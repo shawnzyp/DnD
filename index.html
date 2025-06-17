@@ -1,0 +1,90 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Catalyst Core Cloud Tracker</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+</head>
+<body>
+<main>
+<h1>Catalyst Core Character Tracker</h1>
+
+<section style="margin-top:2rem;">
+<button onclick="cloudSave()" style="padding:10px 20px; font-size:16px; background-color:#00cc66; color:#fff; border:none; border-radius:5px; margin-right:10px;">
+    ☁️ Save to Cloud
+  </button>
+<button onclick="cloudLoad()" style="padding:10px 20px; font-size:16px; background-color:#3399ff; color:#fff; border:none; border-radius:5px;">
+    ☁️ Load from Cloud
+  </button>
+</section>
+</main>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAYENVrM2komgm2Nteg388YewLiVuUOlIw",
+    authDomain: "catalyst-core-e458c.firebaseapp.com",
+    databaseURL: "https://catalyst-core-e458c-default-rtdb.firebaseio.com",
+    projectId: "catalyst-core-e458c",
+    storageBucket: "catalyst-core-e458c.appspot.com",
+    messagingSenderId: "494771671712",
+    appId: "1:494771671712:web:0587e669cd5f7d3be92fc5",
+    measurementId: "G-R3JS5GWKFM"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  function cloudSave() {
+    const saveId = prompt("Enter a Save Code (your unique ID):");
+    if (!saveId) return;
+
+    const inputs = document.querySelectorAll("input, select, textarea");
+    const data = {};
+    inputs.forEach(input => {
+      if (input.name) {
+        data[input.name] = (input.type === "checkbox") ? input.checked : input.value;
+      }
+    });
+
+    database.ref('saves/' + saveId).set(data, function(error) {
+      if (error) {
+        alert("❌ Save failed.");
+      } else {
+        alert("✅ Character saved to the cloud!");
+      }
+    });
+  }
+
+  function cloudLoad() {
+    const saveId = prompt("Enter your Save Code:");
+    if (!saveId) return;
+
+    database.ref('saves/' + saveId).get().then((snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const key in data) {
+          const el = document.querySelector(`[name="${key}"]`);
+          if (el) {
+            if (el.type === "checkbox") {
+              el.checked = data[key];
+            } else {
+              el.value = data[key];
+            }
+          }
+        }
+        alert("✅ Character loaded!");
+      } else {
+        alert("❌ No character found for that Save Code.");
+      }
+    }).catch((error) => {
+      alert("❌ Load failed.");
+      console.error(error);
+    });
+  }
+</script>
+</body>
+</html>
