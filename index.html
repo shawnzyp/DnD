@@ -446,6 +446,15 @@ input, select, textarea {
 <input accept=".json" id="fileInput" onchange="loadFromFile(event)" type="file"/>
 </div>
 </div>
+<div style="margin-top: 1rem;">
+<label for="pasteJSON">📋 Paste JSON to Load Character:</label>
+<textarea id="pasteJSON" placeholder="Paste your saved character JSON here..." style="width:100%; height:150px;"></textarea>
+<button class="toggle-button" onclick="loadFromPastedJSON()" style="margin-top:0.5rem;">📥 Load from Pasted JSON</button>
+</div>
+
+<button class="toggle-button" onclick="clearLocalSave()" style="margin-top: 1rem; background: #ff4444;">
+      ❌ Clear Saved Character
+    </button>
 </section></main>
 <script>
     function toggleSection(button) {
@@ -522,25 +531,8 @@ input, select, textarea {
 </script>
 
 
-<script>
-  function manualSave() {
-    const inputs = document.querySelectorAll("input, select, textarea");
-    const data = {};
-    inputs.forEach(input => {
-      if (input.name) {
-        if (input.type === "checkbox") {
-          data[input.name] = input.checked;
-        } else {
-          data[input.name] = input.value;
-        }
-      }
-    });
 
-    const json = JSON.stringify(data, null, 2);
-    const newWindow = window.open("", "_blank");
-    if (newWindow) {
-      newWindow.document.write("<pre>" + json + "</pre>");
-      newWindow.document.title = "Copy Your Character Data";
+      \`);
     } else {
       alert("Popup blocked! Please allow popups for this site.");
     }
@@ -554,7 +546,7 @@ input, select, textarea {
     reader.onload = function(e) {
       const data = JSON.parse(e.target.result);
       for (const key in data) {
-        const element = document.querySelector(`[name="${key}"]`);
+        const element = document.querySelector(`[name="\${key}"]`);
         if (element) {
           if (element.type === "checkbox") {
             element.checked = data[key];
@@ -565,6 +557,58 @@ input, select, textarea {
       }
     };
     reader.readAsText(file);
+  }
+
+
+
+
+
+
+<script>
+  const STORAGE_KEY = "catalystCharacterData";
+
+  // Auto-save on input change
+  window.addEventListener("DOMContentLoaded", function () {
+    const elements = document.querySelectorAll("input, select, textarea");
+
+    // Load existing data
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        elements.forEach(el => {
+          if (el.name && data[el.name] !== undefined) {
+            if (el.type === "checkbox") {
+              el.checked = data[el.name];
+            } else {
+              el.value = data[el.name];
+            }
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to load saved character data:", e);
+      }
+    }
+
+    // Auto-save on any change
+    elements.forEach(el => {
+      el.addEventListener("input", () => {
+        const data = {};
+        elements.forEach(i => {
+          if (i.name) {
+            data[i.name] = i.type === "checkbox" ? i.checked : i.value;
+          }
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      });
+    });
+  });
+
+  function clearLocalSave() {
+    if (confirm("Are you sure you want to clear your saved character data?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
   }
 </script>
 </body>
