@@ -1,0 +1,1230 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Catalyst Core Character Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&amp;display=swap" rel="stylesheet"/>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  color: #00bfff;
+  background: url('https://www.transparenttextures.com/patterns/stardust.png') repeat, #1e1e1e;
+  margin: 0;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+h1, h2 {
+  text-align: center;
+  margin-top: 1rem;
+  color: #00bfff;
+  font-weight: normal;
+}
+
+main {
+  padding: 1rem;
+  max-width: 100%;
+  margin: auto;
+}
+
+section {
+  background-color: rgba(0, 0, 0, 0.7);
+  border: 2px solid #00bfff;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  overflow-wrap: break-word;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  margin: 0.5rem 0;
+}
+
+input, select, textarea {
+  margin-top: 0.3rem;
+  padding: 0.6rem;
+  border: none;
+  border-radius: 5px;
+  background-color: #2e2e2e;
+  color: #00bfff;
+  font-size: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.grid-block {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.toggle-button {
+  background-color: #00bfff;
+  color: #1e1e1e;
+  border: none;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+  font-weight: normal;
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: 5px;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 1rem;
+  }
+
+  label, input, select, textarea {
+    font-size: 1rem;
+  }
+
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+}
+
+body.view-mode .readonly-value {
+  color: white !important;
+}
+
+@media (max-width: 768px) {
+  body {
+    font-size: 1rem;
+    padding: 0.5rem;
+    overflow-x: hidden;
+  }
+
+  main {
+    padding: 0.5rem;
+    width: 100vw;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  section {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  select, input, textarea {
+    font-size: 1rem;
+    width: 100%;
+  }
+
+  .grid-block {
+    grid-template-columns: 1fr !important;
+  }
+
+  #spVisualBar {
+    width: 70%;
+  }
+}
+</style>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database-compat.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyAYENVrM2komgm2Nteg388YewLiVuUOlIw",
+    authDomain: "catalyst-core-e458c.firebaseapp.com",
+    databaseURL: "https://catalyst-core-e458c-default-rtdb.firebaseio.com",
+    projectId: "catalyst-core-e458c",
+    storageBucket: "catalyst-core-e458c.appspot.com",
+    messagingSenderId: "494771671712",
+    appId: "1:494771671712:web:0587e669cd5f7d3be92fc5",
+    measurementId: "G-R3JS5GWKFM"
+  };
+
+  firebase.initializeApp(firebaseConfig);
+  const database = firebase.database();
+
+  function cloudSave() {
+    const saveId = prompt("Enter a Save Code (your unique ID):");
+    if (!saveId) return;
+    const inputs = document.querySelectorAll("input, select, textarea");
+    const data = {};
+    inputs.forEach(input => {
+      if (input.name) {
+        data[input.name.replaceAll(".", "_")] = (input.type === "checkbox") ? input.checked : input.value;
+      }
+    });
+    database.ref('saves/' + saveId).set(data, error => {
+      alert(error ? "❌ Save failed." : "✅ Character saved!");
+    });
+  }
+
+  function cloudLoad() {
+    const saveId = prompt("Enter your Save Code:");
+    if (!saveId) return;
+    database.ref('saves/' + saveId).get().then(snapshot => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const key in data) {
+          const el = document.querySelector(`[name="${key.replaceAll("_", ".")}"]`);
+          if (el) {
+            if (el.type === "checkbox") {
+              el.checked = data[key];
+            } else {
+              el.value = data[key];
+            }
+          }
+        }
+        alert("✅ Character loaded!");
+      } else {
+        alert("❌ No character found.");
+      }
+    }).catch(error => {
+      alert("❌ Load failed.");
+      console.error(error);
+    });
+  }
+</script>
+</head>
+<body>
+<main><h1 style="text-align: center; color: #00bfff; margin-top: 1rem; font-size: 1.75rem;">Catalyst Core: Character Tracker</h1><h1><div style="display: flex; flex-direction: column; align-items: center; font-size: 0.75rem; margin-bottom: 0.5rem;"><div style="display: flex; align-items: center; gap: 0.5rem;"><select id="diceType" name="diceType" style="font-size: 1rem;"><option value="d4">D4</option><option value="d6">D6</option><option value="d8">D8</option><option value="d10">D10</option><option value="d12">D12</option><option value="d20">D20</option><option value="d100">D100</option></select><button onclick="rollSelectedDice()" style="font-size: 1rem; padding: 0.3rem 0.6rem;" title="Roll Dice" type="button">🎲</button><div id="diceResult" style="font-size: 1rem; font-weight: bold; color: #00bfff; min-width: 80px;">—</div></div><div>Roll</div></div><span style="display: inline-flex; gap: 0.5rem; align-items: center; margin-left: 1rem;"><div style="display: flex; flex-direction: row; gap: 1.2rem; align-items: center; flex-wrap: wrap;"><div style="display: flex; flex-direction: column; align-items: center; font-size: 0.75rem;"><button onclick="cloudSave()" style="font-size: 1rem; padding: 0.3rem 0.6rem;" title="Save to Cloud">💾</button><div>Save</div></div><div style="display: flex; flex-direction: column; align-items: center; font-size: 0.75rem;"><button onclick="cloudLoad()" style="font-size: 1rem; padding: 0.3rem 0.6rem;" title="Load from Cloud">☁️</button><div>Load</div></div><div style="display: flex; flex-direction: column; align-items: center; font-size: 0.75rem;"><button id="viewModeButton" onclick="toggleViewMode()" style="font-size: 1rem; padding: 0.3rem 0.6rem;" title="Toggle View Mode">🧾</button><div>View</div></div><div style="display: flex; flex-direction: column; align-items: center; font-size: 0.75rem;"><button id="toggleJournalBtn" onclick="toggleJournal()" style="font-size: 1rem; padding: 0.3rem 0.6rem;" title="Open Session Journal">📓</button><div>Journal</div></div></div></span>
+</h1><div style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-top: 1rem;"><div id="spVisualBar" style="margin: 0; background-color: #333; border-radius: 5px; height: 20px; width: 300px; max-width: 90%;">
+<div id="spFillBar" style="height: 100%; width: 100%; background-color: #00bfff; border-radius: 5px; text-align: center; color: #1e1e1e; font-weight: bold; font-size: 0.9rem;">SP</div>
+</div><div style="display: flex; flex-direction: column; align-items: center;"><button id="endTurnBtn" onclick="endTurn()" style="font-size: 1rem; padding: 0.3rem 0.6rem; background-color: #00bfff; border: none; border-radius: 5px; color: #1e1e1e;" title="End Turn">🔁</button><div style="font-size: 0.6rem; text-align: center; margin-top: 0.2rem;">Turn</div></div></div><div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem;"></div><section>
+<h2>Identity</h2>
+<div class="grid-block" style="display: grid; grid-template-columns: 1fr; gap: 1rem;"><div style="width: 100%;"><label>Secret Identity: <input name="secretIdentity" style="width: 100%;" type="text"/><span class="readonly-value" style="display:none;">—</span></label></div><div style="width: 100%;"><label>Vigilante Name: <input name="vigilanteName" style="width: 100%;" type="text"/><span class="readonly-value" style="display:none;">—</span></label></div><div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;"><label>Public Identity:
+      <select name="publicIdentity">
+<option>Pick One</option>
+<option>Known</option>
+<option>Unknown</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label><label>Classification:
+      <select name="classification">
+<option>Pick One</option>
+<option>Mutant – Reroll one failed saving throw per long rest.</option>
+<option>Enhanced Human – Advantage on all Technology-related checks.</option>
+<option>Magic User – Cast a minor magical effect (prestidigitation) per long rest.</option>
+<option>Alien/Extraterrestrial – Immune to environmental hazards and no penalty in rough terrain.</option>
+<option>Mystical Being – +2 to Persuasion or Intimidation checks.</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label></div></div>
+</section><section>
+<h2>Origin Story</h2>
+<div class="grid-block" style="grid-template-columns: 1fr;">
+<label>Origin Story:
+      <select name="originStory">
+<option>Pick One</option>
+<option>The Accident – Resistance to one damage type.</option>
+<option>The Experiment – Reroll a failed CON or INT save once per long rest.</option>
+<option>The Legacy – Use powers of someone you know once per long rest.</option>
+<option>The Awakening – +5 to hit/+10 damage when below ½ HP.</option>
+<option>The Pact – Auto-succeed a save or +10 to any roll once per long rest.</option>
+<option>The Lost Time – Skill Move: free use +1d6 bonus on DC 17 power roll.</option>
+<option>The Exposure – +5 elemental damage once per round.</option>
+<option>The Rebirth – Stand at 1 HP if KO’d; resist all damage for 1 round.</option>
+<option>The Vigil – Shield all allies from damage for one turn per combat.</option>
+<option>The Redemption – Take damage for ally; they heal, you gain save advantage.</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Backstory:<textarea name="originBackstory" placeholder="Describe the events that shaped your origin..." rows="4"></textarea><span class="readonly-value" style="display:none;">—</span></label></div>
+</section><section><h2>Power Styles</h2>
+<div class="grid-block">
+<label>Primary Power Style:
+        <select id="primaryPowerStyle" name="primaryPowerStyle" onchange="updatePrimaryPerk()">
+<option>Pick One</option>
+<option value="Physical Powerhouse">Physical Powerhouse</option>
+<option value="Energy Manipulator">Energy Manipulator</option>
+<option value="Speedster">Speedster</option>
+<option value="Telekinetic/Psychic">Telekinetic/Psychic</option>
+<option value="Illusionist">Illusionist</option>
+<option value="Shape-shifter">Shape-shifter</option>
+<option value="Elemental Controller">Elemental Controller</option>
+</select><span class="readonly-value" data-name="primaryPowerStyle" style="display: none; color: #00bfff; font-weight: bold;"></span>
+</label>
+<label>Primary Power Perk: <input id="primaryPerk" name="primaryPerk" readonly="" type="text"/><span class="readonly-value" data-name="primaryPerk" style="display: none; color: #00bfff; font-weight: bold;"></span></label>
+<label>Secondary Power Style:
+        <select id="secondaryPowerStyle" name="secondaryPowerStyle">
+<option>Pick One</option>
+<option value="Physical Powerhouse">Physical Powerhouse</option>
+<option value="Energy Manipulator">Energy Manipulator</option>
+<option value="Speedster">Speedster</option>
+<option value="Telekinetic/Psychic">Telekinetic/Psychic</option>
+<option value="Illusionist">Illusionist</option>
+<option value="Shape-shifter">Shape-shifter</option>
+<option value="Elemental Controller">Elemental Controller</option>
+</select><span class="readonly-value" data-name="secondaryPowerStyle" style="display: none; color: #00bfff; font-weight: bold;"></span>
+</label>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Ability Scores</h2>
+<div class="grid-block" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+<div><label>STR</label><select name="auto_2315392408441002481" onchange="updateModifier(this, 'modSTR')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_2315392408441002481" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modSTR">—</span><button onclick="rollAbility('STR')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+<div><label>DEX</label><select name="auto_-2113629417354789810" onchange="updateModifier(this, 'modDEX')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_-2113629417354789810" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modDEX">—</span><button onclick="rollAbility('DEX')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+<div><label>CON</label><select name="auto_-7983295448474969441" onchange="updateModifier(this, 'modCON')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_-7983295448474969441" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modCON">—</span><button onclick="rollAbility('CON')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+<div><label>INT</label><select name="auto_4285567387368467809" onchange="updateModifier(this, 'modINT')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_4285567387368467809" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modINT">—</span><button onclick="rollAbility('INT')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+<div><label>WIS</label><select name="auto_1099705555006597486" onchange="updateModifier(this, 'modWIS')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_1099705555006597486" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modWIS">—</span><button onclick="rollAbility('WIS')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+<div><label>CHA</label><select name="auto_-4134999331792405181" onchange="updateModifier(this, 'modCHA')">
+<option value="">Pick One</option><option value="10">10</option><option value="11">11</option><option value="12">12</option><option value="13">13</option><option value="14">14</option><option value="15">15</option><option value="16">16</option><option value="17">17</option><option value="18">18</option><option value="19">19</option><option value="20">20</option><option value="21">21</option><option value="22">22</option><option value="23">23</option><option value="24">24</option></select><span class="readonly-value" data-name="auto_-4134999331792405181" style="display: none; color: #00bfff; font-weight: bold;"></span><div>Modifier: <span id="modCHA">—</span><button onclick="rollAbility('CHA')" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button></div></div>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Combat Stats</h2>
+<div class="grid-block">
+<label>Initiative: <input name="initiative" placeholder="Auto" readonly="readonly" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="text"/><span class="readonly-value" style="display:none;">—</span><input name="initiativeBonus" placeholder="+bonus" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" data-name="initiativeBonus" style="display: none; color: #00bfff; font-weight: bold;"></span><button class="roller-button" onclick="rollInitiative()" style="margin-top:0.5rem; font-weight:bold; font-size:0.8rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll Initiative</button></label>
+<label>Speed (ft): <input name="speed" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Passive Perception: <input name="passivePerception" placeholder="Auto" readonly="readonly" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" style="display:none;">—</span><input name="passivePerceptionBonus" placeholder="+bonus" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" data-name="passivePerceptionBonus" style="display: none; color: #00bfff; font-weight: bold;"></span></label>
+<label>Max SP: <input name="maxSP" placeholder="Auto" readonly="readonly" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" style="display:none;">—</span><input name="maxSPBonus" placeholder="+bonus" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/><span class="readonly-value" data-name="maxSPBonus" style="display: none; color: #00bfff; font-weight: bold;"></span></label>
+<label>
+  Toughness Class (TC):
+  <input name="toughnessClass" placeholder="Auto" readonly="" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/>
+<span class="readonly-value" style="display:none;">—</span>
+<input name="toughnessBonus" placeholder="+bonus" style="width: 100%; padding: 0.6rem; background-color: #2e2e2e; color: #00bfff; border: none; border-radius: 5px; box-sizing: border-box;" type="number"/>
+<span class="readonly-value" data-name="toughnessBonus" style="display: none; color: #00bfff; font-weight: bold;"></span>
+</label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Alignment</h2>
+<div class="grid-block">
+<label>Moral Axis:
+        <select id="moralAxis" name="moralAxis" onchange="updateAlignment()">
+<option value="">Pick One</option>
+<option value="Light">Light</option>
+<option value="Neutral">Neutral</option>
+<option value="Shadow">Shadow</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Discipline Axis:
+        <select id="disciplineAxis" name="disciplineAxis" onchange="updateAlignment()">
+<option value="">Pick One</option>
+<option value="Lawful">Lawful</option>
+<option value="Neutral">Neutral</option>
+<option value="Chaotic">Chaotic</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Alignment: <div id="alignmentDisplay" style="padding: 0.5rem;">—</div></label>
+<label>Alignment Perk: <div id="perkDisplay" style="padding: 0.5rem;">—</div></label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Custom Powers</h2>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-bottom: 1rem;">
+<h3>Power 1<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="power1Name" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Effect: <input name="power1Effect" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Range: <input name="power1Range" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+      <select name="power1SP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="power1Save" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Duration: <input name="power1Duration" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-bottom: 1rem;">
+<h3>Power 2<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="power2Name" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Effect: <input name="power2Effect" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Range: <input name="power2Range" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+      <select name="power2SP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="power2Save" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Duration: <input name="power2Duration" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-bottom: 1rem;">
+<h3>Power 3<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="power3Name" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Effect: <input name="power3Effect" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Range: <input name="power3Range" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+      <select name="power3SP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="power3Save" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Duration: <input name="power3Duration" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-bottom: 1rem;">
+<h3>Power 4<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="power4Name" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Effect: <input name="power4Effect" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Range: <input name="power4Range" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+      <select name="power4SP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="power4Save" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Duration: <input name="power4Duration" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-bottom: 1rem;">
+<h3>Power 5<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="power5Name" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Effect: <input name="power5Effect" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Range: <input name="power5Range" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+      <select name="power5SP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="power5Save" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Duration: <input name="power5Duration" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+<div style="border: 3px solid #00bfff; padding: 1rem; margin-top: 2rem;">
+<h3>Signature Move<button onclick="rollPower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲</button><button class="roller-button" onclick="rollAndUsePower(this)" style="margin-left:0.5rem; font-weight:bold; font-size:0.9rem; background-color:#00bfff; border:none; border-radius:3px; color:#1e1e1e;" type="button">🎲 Roll &amp; Use SP</button></h3>
+<label>Name: <input name="signatureMoveName" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Description: <textarea name="signatureMoveDescription"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>SP Cost:
+        <select name="signatureSP">
+<option>Pick One</option>
+<option>1</option>
+<option>2</option>
+<option>3</option>
+<option>4</option>
+<option>5</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Save: <input name="signatureSave" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Special Rule: <input name="signatureSpecial" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Cinematic Action Point</h2>
+<div class="grid-block">
+<label>Usage Status: <select name="cinematicPointUsed">
+<option>Unused</option>
+<option>Used</option>
+</select><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Faction Reputation</h2>
+<div class="grid-block">
+<label>O.M.N.I. Tier:
+      <select name="o.m.n.i.Tier">
+<option>Neutral Standing</option>
+<option>Tier 1 – Basic recognition, minor resources available</option>
+<option>Tier 2 – Moderate backing, safe house access</option>
+<option>Tier 3 – Influential agent, call in favors</option>
+<option>Tier 4 – Operative clearance, strategic support</option>
+<option>Tier 5 – Elite status, command-level authority</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>PFV Tier:
+      <select name="pfvTier">
+<option>Neutral Standing</option>
+<option>Tier 1 – Basic recognition, minor resources available</option>
+<option>Tier 2 – Moderate backing, safe house access</option>
+<option>Tier 3 – Influential agent, call in favors</option>
+<option>Tier 4 – Operative clearance, strategic support</option>
+<option>Tier 5 – Elite status, command-level authority</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Cosmic Conclave Tier:
+      <select name="cosmicconclaveTier">
+<option>Neutral Standing</option>
+<option>Tier 1 – Basic recognition, minor resources available</option>
+<option>Tier 2 – Moderate backing, safe house access</option>
+<option>Tier 3 – Influential agent, call in favors</option>
+<option>Tier 4 – Operative clearance, strategic support</option>
+<option>Tier 5 – Elite status, command-level authority</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+<label>Greyline Mercenaries Tier:
+      <select name="greylinemercenariesTier">
+<option>Neutral Standing</option>
+<option>Tier 1 – Basic recognition, minor resources available</option>
+<option>Tier 2 – Moderate backing, safe house access</option>
+<option>Tier 3 – Influential agent, call in favors</option>
+<option>Tier 4 – Operative clearance, strategic support</option>
+<option>Tier 5 – Elite status, command-level authority</option>
+</select><span class="readonly-value" style="display:none;">—</span>
+</label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Downtime Tracker</h2>
+<div class="grid-block" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem;">
+<label>Media Control (CHA): <input name="mediaControl" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Research (INT/WIS): <input name="research" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Train or Tinker (STR/INT): <input name="trainTinker" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Gather Intel (CHA/WIS): <input name="gatherIntel" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+<label>Personal Time (WIS/CHA): <input name="personalTime" type="text"/><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Equipment &amp; Notes</h2>
+<div class="grid-block">
+<label>Equipment: <textarea name="equipment" rows="6" style="height: 150px;"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>General Notes: <textarea name="notes" rows="6" style="height: 150px;"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+</div>
+</section><section>
+<button class="toggle-button" onclick="toggleSection(this)">▼</button>
+<div class="toggle-section">
+<h2>Expanded Roleplay Questions</h2>
+<label>Greatest Fear: <textarea name="greatestFear"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What do your powers say about you? <textarea name="powerMeaning"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What moment changed your life forever? <textarea name="lifeMoment"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>Who do you trust most on the team? <textarea name="trustedAlly"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<div class="grid-block">
+<label>What does justice mean to you? <textarea name="justiceMeaning"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What is your biggest fear or unresolved trauma? <textarea name="fearTrauma"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What legacy do you want to leave behind? <textarea name="legacy"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What moment first defined your sense of power? <textarea name="powerMoment"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What does your Origin Story mean to you now? <textarea name="originReflection"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What was your life like before powers? <textarea name="prePowerLife"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What about your powers scares you? <textarea name="powerFear"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What is your signature move and what does it reflect? <textarea name="signatureMeaning"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What happens when you are emotionally compromised? <textarea name="emotionalCompromise"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What line would you never cross? <textarea name="moralLine"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>Which alignment do you fear becoming? <textarea name="fearedAlignment"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>Whose opinion matters most and why? <textarea name="opinionImportance"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What drives you to fight? <textarea name="drivingForce"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What would make you walk away for good? <textarea name="walkAway"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What major secret are you keeping? <textarea name="secret"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>What leaves you vulnerable? <textarea name="vulnerability"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>Who do you admire most on your team and why? <textarea name="teamAdmire"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+<label>If you lost your powers tomorrow, who would you still be? <textarea name="identityWithoutPowers"></textarea><span class="readonly-value" style="display:none;">—</span></label>
+</div>
+</div>
+</section>
+<section>
+<button class="toggle-button" onclick="resetAllFields()" style="background-color:#ff4444;">
+    🧨 Reset All Fields
+  </button>
+</section>
+</main>
+
+
+
+
+      \
+
+
+
+
+
+
+<script>
+  const STORAGE_KEY = "catalystCharacterData";
+
+  // Auto-save on input change
+  window.addEventListener("DOMContentLoaded", function () {
+    const elements = document.querySelectorAll("input, select, textarea");
+
+    // Load existing data
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        elements.forEach(el => {
+          if (el.name && data[el.name] !== undefined) {
+            if (el.type === "checkbox") {
+              el.checked = data[el.name];
+            } else {
+              el.value = data[el.name];
+            }
+          }
+        });
+      } catch (e) {
+        console.warn("Failed to load saved character data:", e);
+      }
+    }
+
+    // Auto-save on any change
+    elements.forEach(el => {
+      el.addEventListener("input", () => {
+        const data = {};
+        elements.forEach(i => {
+          if (i.name) {
+            data[i.name] = i.type === "checkbox" ? i.checked : i.value;
+          }
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      });
+    });
+  });
+
+  function clearLocalSave() {
+    if (confirm("Are you sure you want to clear your saved character data?")) {
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+  }
+</script>
+<script>
+  const powerPerks = {
+    "Physical Powerhouse": "Cut one attack by half once per combat.",
+    "Energy Manipulator": "Reroll 1s once per turn.",
+    "Speedster": "+10 ft movement, +1 AC if moving 20+ ft.",
+    "Telekinetic/Psychic": "Force rerolls of 17+ once per rest.",
+    "Illusionist": "Create a 1-min decoy illusion once per combat.",
+    "Shape-shifter": "Advantage on Deception; disguise freely.",
+    "Elemental Controller": "+2 to hit and +5 damage with elemental powers."
+  };
+
+  function updatePrimaryPerk() {
+    const select = document.getElementById("primaryPowerStyle");
+    const perkBox = document.getElementById("primaryPerk");
+    const selected = select.value;
+    perkBox.value = powerPerks[selected] || "";
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const select = document.getElementById("primaryPowerStyle");
+    if (select) {
+      select.addEventListener("change", updatePrimaryPerk);
+      updatePrimaryPerk(); // ensure correct perk on initial load
+    }
+  });
+</script>
+<script>
+  function calculateModifier(score) {
+    return Math.floor((parseInt(score) - 10) / 2);
+  }
+
+  function updateModifier(select, spanId) {
+    const value = select.value;
+    const span = document.getElementById(spanId);
+    if (!value || isNaN(value)) {
+      span.textContent = "—";
+    } else {
+      const mod = calculateModifier(value);
+      span.textContent = (mod >= 0 ? "+" : "") + mod;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const abilities = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+    abilities.forEach(abbr => {
+      const select = document.querySelector(`select[onchange*="${abbr}"]`);
+      if (select) {
+        const spanId = "mod" + abbr;
+        select.addEventListener("change", function () {
+          updateModifier(this, spanId);
+        });
+        updateModifier(select, spanId); // initialize
+      }
+    });
+  });
+</script>
+<script>
+  function resetAllFields() {
+    if (confirm("Are you sure you want to do that?")) {
+      if (confirm("Last chance to turn back.")) {
+        const elements = document.querySelectorAll("input, select, textarea");
+        elements.forEach(el => {
+          if (el.type === "checkbox") {
+            el.checked = false;
+          } else if (el.tagName === "SELECT") {
+            el.selectedIndex = 0;
+          } else {
+            el.value = "";
+          }
+        });
+        localStorage.removeItem("catalystCharacterData");
+        alert("All fields have been reset.");
+      }
+    }
+  }
+</script>
+<script>
+  function syncReadOnlyValues() {
+    const fields = document.querySelectorAll("input[name], select[name], textarea[name]");
+    fields.forEach(field => {
+      const next = field.nextElementSibling;
+      if (next && next.classList.contains("readonly-value")) {
+        if (field.tagName === "SELECT") {
+          const selected = field.options[field.selectedIndex];
+          next.textContent = selected ? selected.text : "—";
+        } else if (field.type === "checkbox") {
+          next.textContent = field.checked ? "✓" : "—";
+        } else {
+          next.textContent = field.value || "—";
+        }
+      }
+    });
+  }
+
+  function toggleViewMode() {
+    const viewMode = document.body.classList.toggle("view-mode");
+
+    const elements = document.querySelectorAll("input, select, textarea");
+    const displays = document.querySelectorAll(".readonly-value");
+
+    elements.forEach(el => {
+      if (viewMode) {
+        if (el.type !== "hidden") el.style.display = "none";
+      } else {
+        if (el.type !== "hidden") el.style.display = "";
+      }
+    });
+
+    displays.forEach(span => {
+      span.style.display = viewMode ? "inline" : "none";
+    });
+
+    const buttons = document.querySelectorAll("button");
+    buttons.forEach(btn => {
+      if (btn.id !== "viewModeButton") {
+        btn.style.display = viewMode ? "none" : "";
+      } else {
+        btn.textContent = viewMode ? "✏️" : "🧾";
+        btn.title = viewMode ? "Exit View Mode" : "Toggle View Mode";
+      }
+    });
+
+    syncReadOnlyValues();
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    syncReadOnlyValues();
+    document.querySelectorAll("input, select, textarea").forEach(el => {
+      el.addEventListener("input", syncReadOnlyValues);
+      el.addEventListener("change", syncReadOnlyValues);
+    });
+  });
+</script>
+<script>
+  function getModifierFromSelect(ability) {
+    const select = document.querySelector(`select[onchange*="` + ability + `"]`);
+    if (!select || !select.value) return null;
+    const score = parseInt(select.value);
+    if (isNaN(score)) return null;
+    return Math.floor((score - 10) / 2);
+  }
+
+  function updateDerivedStats() {
+    const dexMod = getModifierFromSelect("DEX");
+    const wisMod = getModifierFromSelect("WIS");
+
+    const initiativeField = document.querySelector('input[name="initiative"]');
+    const initiativeBonusField = document.querySelector('input[name="initiativeBonus"]');
+    const passiveField = document.querySelector('input[name="passivePerception"]');
+    const passiveBonusField = document.querySelector('input[name="passivePerceptionBonus"]');
+
+    const initiativeBonus = initiativeBonusField && initiativeBonusField.value !== "" ? parseInt(initiativeBonusField.value) : 0;
+    const passiveBonus = passiveBonusField && passiveBonusField.value !== "" ? parseInt(passiveBonusField.value) : 0;
+
+    if (initiativeField && dexMod !== null) {
+      const totalInit = dexMod + initiativeBonus;
+      initiativeField.value = (totalInit >= 0 ? "+" : "") + totalInit;
+    } else if (initiativeField) {
+      initiativeField.value = "";
+    }
+
+    if (passiveField && wisMod !== null) {
+      passiveField.value = 10 + wisMod + passiveBonus;
+    } else if (passiveField) {
+      passiveField.value = "";
+    }
+
+    if (document.body.classList.contains("view-mode")) {
+      syncReadOnlyValues();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    const dexSelect = document.querySelector('select[onchange*="DEX"]');
+    const wisSelect = document.querySelector('select[onchange*="WIS"]');
+    const bonusInputs = document.querySelectorAll('input[name="initiativeBonus"], input[name="passivePerceptionBonus"]');
+
+    if (dexSelect) dexSelect.addEventListener("change", updateDerivedStats);
+    if (wisSelect) wisSelect.addEventListener("change", updateDerivedStats);
+    bonusInputs.forEach(input => input.addEventListener("input", updateDerivedStats));
+
+    updateDerivedStats();
+  });
+</script>
+<div id="saveStatus" style="position:fixed; bottom:0; right:0; background:#1e1e1e; color:#00bfff; padding:0.3rem 1rem; font-size:0.8rem; z-index:9999;">💾 Saved</div>
+<script>
+  function rollAndUsePower(button) {
+    const container = button.closest("div");
+    const nameInput = container.querySelector("input[type='text']");
+    const powerName = nameInput ? nameInput.value : "Power";
+    const spField = document.querySelector('input[name="maxSP"]');
+    const spFill = document.getElementById("spFillBar");
+
+    const select = container.querySelector("select[name*='SP']");
+    const cost = select ? parseInt(select.value) : 0;
+
+    if (isNaN(cost) || cost <= 0) {
+      alert("No valid SP cost selected.");
+      return;
+    }
+
+    const result = Math.floor(Math.random() * 20) + 1;
+    const confirmUse = confirm(`${powerName} rolled a ${result}.\nUse ${cost} SP?`);
+
+    if (confirmUse) {
+      let currentSP = parseInt(spField.value);
+      currentSP = Math.max(0, currentSP - cost);
+      spField.value = currentSP;
+      updateSPVisual();
+
+      if (currentSP <= 0) {
+        setTimeout(() => {
+          if (confirm("You are out of SP. Is your turn over?")) {
+            refreshSP();
+          }
+        }, 100);
+      }
+
+      syncReadOnlyValues();
+    }
+  }
+
+  function rollInitiative() {
+    const dexModSpan = document.getElementById("modDEX");
+    const mod = dexModSpan && dexModSpan.textContent !== "—" ? parseInt(dexModSpan.textContent) : 0;
+    const bonusInput = document.querySelector('input[name="initiativeBonus"]');
+    const bonus = bonusInput ? parseInt(bonusInput.value) || 0 : 0;
+
+    const result = Math.floor(Math.random() * 20) + 1;
+    const total = result + mod + bonus;
+
+    alert("Initiative Roll: " + result + " + DEX mod " + mod + " + bonus " + bonus + " = " + total);
+
+    const field = document.querySelector('input[name="initiative"]');
+    if (field) field.value = (total >= 0 ? "+" : "") + total;
+
+    syncReadOnlyValues();
+  }
+</script>
+<script>
+  function refreshSP() {
+    const conSelect = document.querySelector('select[onchange*="CON"]');
+    const spBonusField = document.querySelector('input[name="maxSPBonus"]');
+    const spField = document.querySelector('input[name="maxSP"]');
+
+    if (conSelect && spField) {
+      const conMod = conSelect.value ? Math.floor((parseInt(conSelect.value) - 10) / 2) : 0;
+      const bonus = parseInt(spBonusField?.value) || 0;
+      spField.value = 5 + conMod + bonus;
+      updateSPVisual();
+      syncReadOnlyValues();
+    }
+  }
+
+  function endTurn() {
+    if (confirm("End your turn and refresh your SP?")) {
+      refreshSP();
+    }
+  }
+</script>
+<div id="sessionJournalModal" style="display:none; position:fixed; top:60px; left:50%; transform:translateX(-50%); background:#1e1e1e; color:#00bfff; border:2px solid #00bfff; border-radius:8px; padding:1rem; width:90%; max-width:600px; z-index:9999;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+<h2 style="margin:0;">Session Journal</h2>
+<button onclick="toggleJournal()" style="background:none; color:#00bfff; border:none; font-size:1.2rem;">✖</button>
+</div>
+<div class="grid-block">
+<textarea id="journalEntry" name="journalEntry" rows="12" style="width: 100%; resize: vertical; background-color: #1e1e1e; color: #00bfff; border: 1px solid #00bfff; padding: 0.5rem;"></textarea><span class="readonly-value" data-name="journalEntry" style="display: none; color: #00bfff; font-weight: bold;"></span>
+</div>
+</div>
+<script>
+  function toggleJournal() {
+    const modal = document.getElementById("sessionJournalModal");
+    if (!modal) return;
+    modal.style.display = (modal.style.display === "none" || modal.style.display === "") ? "block" : "none";
+  }
+</script>
+<script>
+  const alignmentMap = {
+    "Lawful_Light": ["Paragon", "Auto-succeed a Charisma check with civilians or allies (once per session)"],
+    "Neutral_Light": ["Guardian", "Restore 1d6 HP or 1 SP to an ally as a bonus action (once per session)"],
+    "Chaotic_Light": ["Vigilante", "Ignore opportunity attacks when moving toward a threat or hostage"],
+    "Lawful_Neutral": ["Sentinel", "+1 to all saving throws when acting on orders or directives"],
+    "Neutral_Neutral": ["Outsider", "Reroll any roll or remove one condition from yourself (once per session)"],
+    "Chaotic_Neutral": ["Wildcard", "Advantage on Initiative and Deception once per combat"],
+    "Lawful_Shadow": ["Inquisitor", "Deal max damage to 'criminals' once per session"],
+    "Neutral_Shadow": ["Anti-Hero", "Heal 1d6 HP when defeating an enemy with no allies within 10 ft"],
+    "Chaotic_Shadow": ["Renegade", "+1d6 damage when attacking from stealth or surprise (once per combat)"]
+  };
+
+  function updateAlignment() {
+    const moral = document.getElementById("moralAxis")?.value;
+    const discipline = document.getElementById("disciplineAxis")?.value;
+    const key = `${discipline}_${moral}`;
+    const result = alignmentMap[key];
+    const alignmentBox = document.getElementById("alignmentDisplay");
+    const perkBox = document.getElementById("perkDisplay");
+
+    if (result) {
+      alignmentBox.textContent = result[0];
+      perkBox.textContent = result[1];
+    } else {
+      alignmentBox.textContent = "—";
+      perkBox.textContent = "—";
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateAlignment();  // trigger once on load
+    const moral = document.getElementById("moralAxis");
+    const discipline = document.getElementById("disciplineAxis");
+
+    if (moral) moral.addEventListener("change", updateAlignment);
+    if (discipline) discipline.addEventListener("change", updateAlignment);
+  });
+</script>
+<script>
+  function updateSPVisual() {
+    const spField = document.querySelector('input[name="maxSP"]');
+    const conSelect = document.querySelector('select[onchange*="CON"]');
+    const bonusField = document.querySelector('input[name="maxSPBonus"]');
+    const spFill = document.getElementById("spFillBar");
+
+    if (!spField || !spFill) return;
+
+    const conMod = conSelect && conSelect.value ? Math.floor((parseInt(conSelect.value) - 10) / 2) : 0;
+    const bonus = bonusField && bonusField.value ? parseInt(bonusField.value) : 0;
+    const maxSP = 5 + conMod + bonus;
+
+    if (!spField.value || isNaN(parseInt(spField.value))) {
+      spField.value = maxSP;  // initialize to max if empty
+    }
+
+    const currentSP = parseInt(spField.value);
+    const percentage = Math.max(0, Math.min(100, (currentSP / maxSP) * 100));
+    spFill.style.width = percentage + "%";
+    spFill.textContent = currentSP + " / " + maxSP;
+  }
+
+  document.addEventListener("DOMContentLoaded", function () {
+    updateSPVisual();
+    const spField = document.querySelector('input[name="maxSP"]');
+    if (spField) spField.addEventListener("input", updateSPVisual);
+    const conSelect = document.querySelector('select[onchange*="CON"]');
+    const bonusField = document.querySelector('input[name="maxSPBonus"]');
+    if (conSelect) conSelect.addEventListener("change", updateSPVisual);
+    if (bonusField) bonusField.addEventListener("input", updateSPVisual);
+  });
+</script>
+<script>
+  function rollD20() {
+    const result = Math.floor(Math.random() * 20) + 1;
+    alert("🎲 You rolled a " + result + " on a d20.");
+  }
+</script>
+<script>
+  function rollSelectedDice() {
+    const type = document.getElementById("diceType").value;
+    const sides = parseInt(type.replace("d", ""));
+    const result = Math.floor(Math.random() * sides) + 1;
+    const resultBox = document.getElementById("diceResult");
+    resultBox.textContent = `${type.toUpperCase()}: ${result}`;
+  }
+</script>
+<script>
+  window.cloudSave = () => {
+    const saveId = prompt("Enter a Save Code (your unique ID):");
+    if (!saveId) return;
+
+    const inputs = document.querySelectorAll("input, select, textarea");
+    const data = {};
+    inputs.forEach(input => {
+      if (input.name) {
+        data[input.name.replaceAll(".", "_")] = (input.type === "checkbox") ? input.checked : input.value;
+      }
+    });
+
+    const journalText = document.getElementById("journalEntry")?.value || "";
+    data["__journal"] = journalText;
+
+    firebase.database().ref('saves/' + saveId).set(data, error => {
+      const status = document.getElementById("saveStatus");
+      if (status) status.innerHTML = error ? "❌ Save failed." : "💾 Saved";
+      if (!error) {
+        localStorage.setItem("catalystCharacterData", JSON.stringify(data));
+        localStorage.setItem("catalystCharacterJournal", journalText);
+        alert("✅ Character saved to the cloud successfully!");
+      } else {
+        alert("❌ Save failed. Please try again.");
+      }
+    });
+  };
+</script>
+<script>
+  window.toggleViewMode = function () {
+    const viewMode = document.body.classList.toggle("view-mode");
+
+    const elements = document.querySelectorAll("input, select, textarea");
+    const displays = document.querySelectorAll(".readonly-value, #passivePerceptionDisplay, #initiativeDisplay");
+
+    elements.forEach(el => {
+      if (viewMode) {
+        if (el.type !== "hidden") el.style.display = "none";
+      } else {
+        if (el.type !== "hidden") el.style.display = "";
+      }
+    });
+
+    displays.forEach(span => {
+      span.style.display = viewMode ? "inline" : "none";
+    });
+
+    // Icon label hiding
+    document.querySelectorAll("span button + div").forEach(label => {
+      if (label.textContent.trim() && label.parentElement?.parentElement?.style?.flexDirection === "column") {
+        label.style.display = viewMode ? "none" : "block";
+      }
+    });
+
+    // Keep SP bar and End Turn visible in View Mode
+    const spBar = document.getElementById("spVisualBar");
+    if (spBar) spBar.style.display = "block";
+
+    const endTurnBtn = document.getElementById("endTurnBtn");
+    if (endTurnBtn) endTurnBtn.style.display = "inline-block";
+
+    const diceSelect = document.getElementById("diceType");
+    const diceResult = document.getElementById("diceResult");
+    const diceBtn = document.querySelector("button[onclick='rollSelectedDice()']");
+    if (diceSelect) diceSelect.style.display = "inline-block";
+    if (diceResult) diceResult.style.display = "inline-block";
+    if (diceBtn) diceBtn.style.display = "inline-block";
+  };
+</script>
+<script>
+  function updateModifiers() {
+    const abilities = ["STR", "DEX", "CON", "INT", "WIS", "CHA"];
+    abilities.forEach(ability => {
+      const select = document.querySelector(`select[name="${ability}"]`);
+      const display = document.getElementById(`${ability}Mod`);
+      if (select && display) {
+        const score = parseInt(select.value);
+        const mod = isNaN(score) ? "" : Math.floor((score - 10) / 2);
+        display.textContent = (mod >= 0 ? "+" : "") + mod;
+      }
+    });
+
+    // Trigger other dependent updates
+    if (typeof updateInitiative === "function") updateInitiative();
+    if (typeof updatePassivePerception === "function") updatePassivePerception();
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    updateModifiers();
+    const selects = document.querySelectorAll("select");
+    selects.forEach(sel => sel.addEventListener("change", updateModifiers));
+  });
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // Load local character save
+    const savedData = localStorage.getItem("catalystCharacterData");
+    if (savedData) {
+      const data = JSON.parse(savedData);
+      for (const key in data) {
+        const el = document.querySelector(`[name="${key.replaceAll("_", ".")}"]`);
+        if (el) {
+          if (el.type === "checkbox") {
+            el.checked = data[key];
+          } else {
+            el.value = data[key];
+          }
+        }
+      }
+
+      const abilityIds = {
+        "STR": "auto_2315392408441002481",
+        "DEX": "auto_-2113629417354789810",
+        "CON": "auto_-7983295448474969441",
+        "INT": "auto_4285567387368467809",
+        "WIS": "auto_1099705555006597486",
+        "CHA": "auto_-4134999331792405181"
+      };
+
+      for (const [abbr, name] of Object.entries(abilityIds)) {
+        const select = document.querySelector(`select[name="${name}"]`);
+        if (select && typeof updateModifier === "function") {
+          updateModifier(select, "mod" + abbr);
+        }
+      }
+
+      if (typeof updateAlignment === "function") updateAlignment();
+      if (typeof updateSPVisual === "function") updateSPVisual();
+      if (typeof syncReadOnlyValues === "function") syncReadOnlyValues();
+      if (typeof updateDerivedStats === "function") updateDerivedStats();
+      if (typeof updateInitiative === "function") updateInitiative();
+      if (typeof updatePassivePerception === "function") updatePassivePerception();
+    }
+
+    // Rebind change events for modifiers
+    const selects = document.querySelectorAll("select");
+    selects.forEach(sel => sel.addEventListener("change", () => {
+      const id = sel.name;
+      if (!id) return;
+      const abbr = Object.entries({
+        "STR": "auto_2315392408441002481",
+        "DEX": "auto_-2113629417354789810",
+        "CON": "auto_-7983295448474969441",
+        "INT": "auto_4285567387368467809",
+        "WIS": "auto_1099705555006597486",
+        "CHA": "auto_-4134999331792405181"
+      }).find(([_, name]) => name === id)?.[0];
+      if (abbr) updateModifier(sel, "mod" + abbr);
+    }));
+  });
+</script>
+<script>
+  window.cloudLoad = () => {
+    const saveId = prompt("Enter your Save Code:");
+    if (!saveId) return;
+
+    firebase.database().ref('saves/' + saveId).get().then(snapshot => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        for (const key in data) {
+          const el = document.querySelector(`[name="${key.replaceAll("_", ".")}"]`);
+          if (el) {
+            if (el.type === "checkbox") {
+              el.checked = data[key];
+            } else {
+              el.value = data[key];
+            }
+          }
+        }
+
+        const journalText = data["__journal"] || "";
+        const journalBox = document.getElementById("journalEntry");
+        if (journalBox) journalBox.value = journalText;
+        localStorage.setItem("catalystCharacterJournal", journalText);
+
+        const status = document.getElementById("saveStatus");
+        if (status) status.innerHTML = "✅ Loaded";
+
+        // Trigger recalculations
+        const abilityIds = {
+          "STR": "auto_2315392408441002481",
+          "DEX": "auto_-2113629417354789810",
+          "CON": "auto_-7983295448474969441",
+          "INT": "auto_4285567387368467809",
+          "WIS": "auto_1099705555006597486",
+          "CHA": "auto_-4134999331792405181"
+        };
+
+        for (const [abbr, name] of Object.entries(abilityIds)) {
+          const select = document.querySelector(`select[name="${name}"]`);
+          if (select && typeof updateModifier === "function") {
+            updateModifier(select, "mod" + abbr);
+          }
+        }
+
+        if (typeof updateAlignment === "function") updateAlignment();
+        if (typeof updateSPVisual === "function") updateSPVisual();
+        if (typeof syncReadOnlyValues === "function") syncReadOnlyValues();
+        if (typeof updateDerivedStats === "function") updateDerivedStats();
+        if (typeof updateInitiative === "function") updateInitiative();
+        if (typeof updatePassivePerception === "function") updatePassivePerception();
+
+        // Save to localStorage
+        localStorage.setItem("catalystCharacterData", JSON.stringify(data));
+      } else {
+        alert("❌ No character found.");
+      }
+    }).catch(error => {
+      alert("❌ Load failed.");
+      console.error(error);
+    });
+  };
+</script>
+<script>
+function updateToughnessClass() {
+  const dexMod = getModifierFromSelect("DEX");
+  const bonusField = document.querySelector('input[name="toughnessBonus"]');
+  const tcField = document.querySelector('input[name="toughnessClass"]');
+  const bonus = bonusField && bonusField.value !== "" ? parseInt(bonusField.value) : 0;
+  if (tcField && dexMod !== null) {
+    const totalTC = 10 + dexMod + bonus;
+    tcField.value = totalTC;
+  } else if (tcField) {
+    tcField.value = "";
+  }
+}
+document.addEventListener("DOMContentLoaded", () => {
+  const dexSelect = document.querySelector('select[onchange*="DEX"]');
+  const bonusInput = document.querySelector('input[name="toughnessBonus"]');
+  if (dexSelect) dexSelect.addEventListener("change", updateToughnessClass);
+  if (bonusInput) bonusInput.addEventListener("input", updateToughnessClass);
+  updateToughnessClass();
+});
+</script><script>
+document.addEventListener("DOMContentLoaded", () => {
+  setTimeout(() => {
+    if (typeof updateSPVisual === "function") updateSPVisual();
+    if (typeof updateDerivedStats === "function") updateDerivedStats();
+    if (typeof updateToughnessClass === "function") updateToughnessClass();
+    const abilityIds = {
+      "STR": "auto_2315392408441002481",
+      "DEX": "auto_-2113629417354789810",
+      "CON": "auto_-7983295448474969441",
+      "INT": "auto_4285567387368467809",
+      "WIS": "auto_1099705555006597486",
+      "CHA": "auto_-4134999331792405181"
+    };
+    for (const [abbr, id] of Object.entries(abilityIds)) {
+      const select = document.querySelector(`select[name="${id}"]`);
+      if (select && typeof updateModifier === "function") {
+        updateModifier(select, "mod" + abbr);
+      }
+    }
+  }, 100);
+});
+</script></body>
+</html>
