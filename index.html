@@ -492,6 +492,134 @@
         gap: 1rem;
       }
 
+      .setting-controls {
+        margin-top: 1.25rem;
+      }
+
+      .setting-controls.items-search {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+
+      .setting-controls.items-search > * {
+        flex: 1 1 220px;
+      }
+
+      .settings-grid {
+        margin-top: 1.25rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .setting-card {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 16px;
+        padding: 1rem 1rem 1.15rem;
+        background: rgba(5, 9, 16, 0.7);
+      }
+
+      .setting-card summary {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 0.75rem;
+        cursor: pointer;
+        list-style: none;
+      }
+
+      .setting-card summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .setting-card[open] {
+        background: rgba(5, 9, 16, 0.82);
+      }
+
+      .setting-name {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .setting-name span:first-child {
+        font-size: 1.05rem;
+        letter-spacing: 0.05em;
+      }
+
+      .setting-era {
+        font-size: 0.8rem;
+        opacity: 0.65;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .setting-body {
+        margin-top: 0.85rem;
+        display: grid;
+        gap: 0.75rem;
+      }
+
+      .setting-image {
+        border-radius: 12px;
+        padding: 1.5rem 1rem;
+        background: linear-gradient(135deg, rgba(217, 109, 40, 0.35), rgba(25, 45, 66, 0.85));
+        position: relative;
+        overflow: hidden;
+      }
+
+      .setting-image span {
+        display: block;
+        font-size: 0.85rem;
+        letter-spacing: 0.04em;
+        opacity: 0.8;
+      }
+
+      .setting-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 1rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .setting-section {
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 0.75rem;
+      }
+
+      .setting-section strong {
+        display: block;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        opacity: 0.8;
+        margin-bottom: 0.35rem;
+      }
+
+      .setting-section ul {
+        margin: 0;
+        padding-left: 1.2rem;
+      }
+
+      .setting-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.75rem;
+        font-size: 0.85rem;
+      }
+
+      .setting-links a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      @media (min-width: 768px) {
+        .settings-grid {
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        }
+      }
+
       .rules-meta {
         margin-top: 0.75rem;
         display: flex;
@@ -736,6 +864,13 @@
         <h2>Rules Compendium</h2>
         <p>Review every major Dungeons &amp; Dragons edition. Each entry includes core rules coverage, iconic subsystems, and the official SRDs or rulebooks to consult for full detail.</p>
         <div class="rules-grid" id="rules-grid"></div>
+        <div class="setting-controls items-search" role="search">
+          <input type="search" id="setting-query" placeholder="Search settings by name, pitch, or products" aria-label="Search settings" />
+          <select id="setting-genre-filter" aria-label="Filter settings by genre">
+            <option value="all">All genres</option>
+          </select>
+        </div>
+        <div id="settings-grid" class="settings-grid" aria-live="polite"></div>
       </section>
 
       <section id="items" class="card">
@@ -1643,6 +1778,213 @@
           srds: [
             { label: "Rules Cyclopedia Index", url: "https://www.dragonsfoot.org/forums/viewtopic.php?t=36241" }
           ]
+        }
+      ];
+
+      const SETTINGS = [
+        {
+          name: "Ravenloft: Domains of Dread",
+          era: "1983 origins · 5e revivals 2016–2021",
+          elevatorPitch:
+            "A web of mist-shrouded realms ruled by tragic Darklords where fear, temptation, and moral choices shape the horror.",
+          genres: ["Gothic Horror", "Survival", "Low Magic"],
+          flagshipProducts: [
+            {
+              label: "Curse of Strahd",
+              url: "https://dnd.wizards.com/products/curse-strahd",
+              description: "Modern hardcover remix of the classic Barovian vampire saga."
+            },
+            {
+              label: "Van Richten's Guide to Ravenloft",
+              url: "https://dnd.wizards.com/products/van-richtens-guide-ravenloft",
+              description: "2021 setting book expanding the Domains of Dread with genre toolkits."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Ravenloft hub",
+              url: "https://dnd.wizards.com/products/ravenloft"
+            }
+          ],
+          adventureHooks: [
+            "A harvest festival in Barovia twists into a cursed masquerade as Strahd hunts a reincarnated love.",
+            "Van Richten requests escorts into the mists to confront a new Darklord born from a bard's betrayal.",
+            "A desperate village bargains with the Vistani for safe passage, but the price erases cherished memories."
+          ],
+          art: {
+            caption: "Silhouetted castle looming over crimson fog banks—describe the dread that stalks the mists.",
+            background: "linear-gradient(135deg, rgba(122, 41, 53, 0.68), rgba(16, 12, 24, 0.92))"
+          }
+        },
+        {
+          name: "Eberron: The Last War's Aftermath",
+          era: "2004 debut · 5e resurgence 2018–2019",
+          elevatorPitch:
+            "Magitech-noir pulp adventures across the Five Nations where dragonmarks, airships, and living constructs collide after war.",
+          genres: ["Magitech", "Pulp Adventure", "Noir"],
+          flagshipProducts: [
+            {
+              label: "Eberron: Rising from the Last War",
+              url: "https://dnd.wizards.com/products/eberron-rising-last-war",
+              description: "Comprehensive 5e sourcebook with races, artificer class, and lightning rail sandbox."
+            },
+            {
+              label: "Wayfinder's Guide to Eberron",
+              url: "https://dnd.wizards.com/products/wayfinders-guide-eberron",
+              description: "Digital-first gazetteer introducing 5e rules for dragonmarks and Sharn adventures."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Explore Eberron",
+              url: "https://dnd.wizards.com/products/eberron"
+            }
+          ],
+          adventureHooks: [
+            "A lightning rail heist uncovers a House Cannith prototype that could reignite the Last War.",
+            "The party investigates missing warforged veterans whose memories were scrubbed by the Trust.",
+            "Scholars of the Draconic Prophecy recruit the heroes to seal a planar breach in Xen'drik."
+          ],
+          art: {
+            caption: "Skyships, soot-stained towers, and neon dragonmarks beg for daring pulp descriptions.",
+            background: "linear-gradient(135deg, rgba(48, 132, 178, 0.6), rgba(18, 36, 58, 0.9))"
+          }
+        },
+        {
+          name: "Planescape: Cities of Doors",
+          era: "1994 boxed set · 2023 multiverse relaunch",
+          elevatorPitch:
+            "Philosophical planar travel centered on Sigil where belief literally reshapes reality and factions feud over ideals.",
+          genres: ["Planar", "Philosophical", "Weird Fantasy"],
+          flagshipProducts: [
+            {
+              label: "Planescape: Adventures in the Multiverse",
+              url: "https://dnd.wizards.com/products/planescape-adventures-multiverse",
+              description: "Three-book slipcase reintroducing Sigil, the Outlands, and planar campaign options."
+            },
+            {
+              label: "Planescape Campaign Setting (1994)",
+              url: "https://dnd.wizards.com/products/planescape",
+              description: "Original boxed set detailing factions, portals, and planar cant."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Planescape portal",
+              url: "https://dnd.wizards.com/products/planescape"
+            }
+          ],
+          adventureHooks: [
+            "A faction war threatens to fracture Sigil as the Harmonium declares martial law on the Lady's Ward.",
+            "A rogue portal key drags the party into a belief-fueled reality storm on the Outlands' rim.",
+            "Sensates hire the heroes to catalogue new sensations from an uncharted demiplane of living music."
+          ],
+          art: {
+            caption: "Impossible architecture spiraling around a torus invites planar spectacle narration.",
+            background: "linear-gradient(135deg, rgba(160, 93, 206, 0.55), rgba(32, 25, 70, 0.9))"
+          }
+        },
+        {
+          name: "Dark Sun: Athas Reborn",
+          era: "1991 boxed set · 4e revitalization 2010",
+          elevatorPitch:
+            "Sun-scorched sword-and-sand survival where psionics thrive, arcane defilers drain life, and resources are priceless.",
+          genres: ["Post-Apocalyptic", "Sword & Sorcery", "Survival"],
+          flagshipProducts: [
+            {
+              label: "Dark Sun Campaign Setting",
+              url: "https://dnd.wizards.com/products/dark-sun",
+              description: "Classic boxed set introducing Athas, sorcerer-kings, and deadly wastes."
+            },
+            {
+              label: "Dark Sun Campaign Setting (4e)",
+              url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/dark-sun",
+              description: "Updated rules for defiling magic, survival themes, and arena combat."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Athas overview",
+              url: "https://dnd.wizards.com/products/dark-sun"
+            }
+          ],
+          adventureHooks: [
+            "An oasis city hires the party to escort a rare water caravan past silt skimmer raiders.",
+            "A Veiled Alliance cell seeks allies to sabotage a templar's new defiling engine.",
+            "Thri-kreen hunting packs converge on an ancient psionic monolith awakened by the crimson sun."
+          ],
+          art: {
+            caption: "Blasted mesas, bone weapons, and a dying sun ready for harsh survival imagery.",
+            background: "linear-gradient(135deg, rgba(199, 120, 45, 0.65), rgba(66, 24, 10, 0.88))"
+          }
+        },
+        {
+          name: "Spelljammer: Wildspace & Beyond",
+          era: "1989 boxed set · 2022 slipcase revival",
+          elevatorPitch:
+            "Swashbuckling fantasy ships sailing the Astral Sea, bridging worlds with crystal spheres and cosmic whimsy.",
+          genres: ["Space Fantasy", "Planar", "High Adventure"],
+          flagshipProducts: [
+            {
+              label: "Spelljammer: Adventures in Space",
+              url: "https://dnd.wizards.com/products/spelljammer-adventures-space",
+              description: "5e slipcase with Astral Adventurer's Guide, light rules, and starter campaign."
+            },
+            {
+              label: "Spelljammer Campaign Setting (1989)",
+              url: "https://dnd.wizards.com/products/spelljammer",
+              description: "Original boxed set of ship combat, crystal spheres, and phlogiston travel."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Spelljammer dock",
+              url: "https://dnd.wizards.com/products/spelljammer"
+            }
+          ],
+          adventureHooks: [
+            "A giff armada hires the crew to reclaim a derelict nautiloid drifting toward a black hole.",
+            "The party charts a crystal sphere whose stars are actually dormant living spells.",
+            "Space clowns spread chaos on the Rock of Bral, threatening its mercantile treaty."
+          ],
+          art: {
+            caption: "Void-sailing galleons and kaleidoscopic nebulae await your spelljamming narration.",
+            background: "linear-gradient(135deg, rgba(63, 131, 215, 0.55), rgba(15, 18, 54, 0.9))"
+          }
+        },
+        {
+          name: "Dragonlance: War of the Lance",
+          era: "1984 DL series · 2022 Shadow of the Dragon Queen",
+          elevatorPitch:
+            "Epic war chronicles on Krynn where heroes rally nations against dragon armies under the Dark Queen's banner.",
+          genres: ["Epic Fantasy", "War Stories", "Heroic Saga"],
+          flagshipProducts: [
+            {
+              label: "Dragonlance: Shadow of the Dragon Queen",
+              url: "https://dnd.wizards.com/products/dragonlance-shadow-dragon-queen",
+              description: "5e campaign weaving mass battles, Lunar Sorcery, and Solamnic Knights."
+            },
+            {
+              label: "Dragonlance Chronicles (DL1–DL14)",
+              url: "https://dnd.wizards.com/products/dragonlance",
+              description: "Classic module arc following the Heroes of the Lance through the War."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Dragonlance gateway",
+              url: "https://dnd.wizards.com/products/dragonlance"
+            }
+          ],
+          adventureHooks: [
+            "A Solamnic outpost needs covert operatives to free prisoners from a draconian work camp.",
+            "Lunar sorcerers seek escorts to a hidden tower before the next triple moon alignment.",
+            "Dragonarmies mass at Kalaman, and resistance cells beg the heroes to sabotage siege engines."
+          ],
+          art: {
+            caption: "Dragonlances lowered against a storm-lit sky invite stirring war chronicles.",
+            background: "linear-gradient(135deg, rgba(201, 78, 54, 0.62), rgba(48, 17, 24, 0.9))"
+          }
         }
       ];
 
@@ -3029,6 +3371,10 @@
         }
       ];
 
+      const settingQuery = document.getElementById("setting-query");
+      const settingGenreSelect = document.getElementById("setting-genre-filter");
+      const settingsGrid = document.getElementById("settings-grid");
+
       const rarityOptions = [
         "Common",
         "Uncommon",
@@ -3052,6 +3398,198 @@
       const conditionKeywordInput = document.getElementById("condition-keyword-filter");
       const conditionsList = document.getElementById("conditions-list");
       const referenceContainer = document.getElementById("dm-reference");
+
+      if (settingGenreSelect && settingsGrid) {
+        const genreOptions = Array.from(
+          new Set(
+            SETTINGS.flatMap(setting => setting.genres ?? []).map(genre => genre.trim())
+          )
+        )
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b));
+
+        genreOptions.forEach(genre => {
+          const option = document.createElement("option");
+          option.value = genre;
+          option.textContent = genre;
+          settingGenreSelect.appendChild(option);
+        });
+
+        const renderSettings = () => {
+          const query = settingQuery?.value.toLowerCase().trim() ?? "";
+          const genreFilter = settingGenreSelect.value;
+
+          settingsGrid.innerHTML = "";
+
+          const results = SETTINGS.filter(setting => {
+            const normalizedGenres = (setting.genres || []).map(genre => genre.toLowerCase());
+            const matchesGenre =
+              genreFilter === "all" || normalizedGenres.includes(genreFilter.toLowerCase());
+
+            const searchableText = [
+              setting.name,
+              setting.era,
+              setting.elevatorPitch,
+              ...(setting.flagshipProducts || []).map(product => `${product.label} ${product.description ?? ""}`),
+              ...(setting.adventureHooks || [])
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+            const matchesQuery = !query || searchableText.includes(query);
+
+            return matchesGenre && matchesQuery;
+          });
+
+          if (!results.length) {
+            const empty = document.createElement("p");
+            empty.textContent = "No settings match those filters yet. Try another keyword or genre.";
+            empty.style.opacity = "0.75";
+            settingsGrid.appendChild(empty);
+            return;
+          }
+
+          results.forEach(setting => {
+            const details = document.createElement("details");
+            details.className = "setting-card";
+
+            const summary = document.createElement("summary");
+
+            const nameGroup = document.createElement("div");
+            nameGroup.className = "setting-name";
+
+            const nameSpan = document.createElement("span");
+            nameSpan.textContent = setting.name;
+            nameGroup.appendChild(nameSpan);
+
+            const eraSpan = document.createElement("span");
+            eraSpan.className = "setting-era";
+            eraSpan.textContent = setting.era;
+            nameGroup.appendChild(eraSpan);
+
+            summary.appendChild(nameGroup);
+
+            if (Array.isArray(setting.genres) && setting.genres.length) {
+              const tagRow = document.createElement("div");
+              tagRow.className = "tag-row";
+              setting.genres.forEach(genre => {
+                const tag = document.createElement("span");
+                tag.className = "pill";
+                tag.textContent = genre;
+                tagRow.appendChild(tag);
+              });
+              summary.appendChild(tagRow);
+            }
+
+            details.appendChild(summary);
+
+            const body = document.createElement("div");
+            body.className = "setting-body";
+
+            const image = document.createElement("div");
+            image.className = "setting-image";
+            if (setting.art?.background) {
+              image.style.background = setting.art.background;
+            }
+            const caption = document.createElement("span");
+            caption.textContent =
+              setting.art?.caption || "Imagery placeholder—describe what your party witnesses.";
+            image.appendChild(caption);
+            body.appendChild(image);
+
+            const pitch = document.createElement("p");
+            pitch.textContent = setting.elevatorPitch;
+            pitch.style.margin = "0";
+            pitch.style.lineHeight = "1.55";
+            pitch.style.opacity = "0.9";
+            body.appendChild(pitch);
+
+            const metaRow = document.createElement("div");
+            metaRow.className = "setting-meta";
+            const eraLabel = document.createElement("span");
+            eraLabel.innerHTML = `<strong>Era:</strong> ${setting.era}`;
+            metaRow.appendChild(eraLabel);
+            if (setting.genres?.length) {
+              const toneLabel = document.createElement("span");
+              toneLabel.innerHTML = `<strong>Genres:</strong> ${setting.genres.join(", ")}`;
+              metaRow.appendChild(toneLabel);
+            }
+            body.appendChild(metaRow);
+
+            if (Array.isArray(setting.flagshipProducts) && setting.flagshipProducts.length) {
+              const flagshipSection = document.createElement("div");
+              flagshipSection.className = "setting-section";
+              const heading = document.createElement("strong");
+              heading.textContent = "Flagship products";
+              flagshipSection.appendChild(heading);
+
+              const list = document.createElement("ul");
+              setting.flagshipProducts.forEach(product => {
+                const item = document.createElement("li");
+                const link = document.createElement("a");
+                link.href = product.url;
+                link.target = "_blank";
+                link.rel = "noopener";
+                link.textContent = product.label;
+                item.appendChild(link);
+                if (product.description) {
+                  item.appendChild(document.createTextNode(` — ${product.description}`));
+                }
+                list.appendChild(item);
+              });
+              flagshipSection.appendChild(list);
+              body.appendChild(flagshipSection);
+            }
+
+            if (Array.isArray(setting.officialSources) && setting.officialSources.length) {
+              const linkSection = document.createElement("div");
+              linkSection.className = "setting-section";
+              const label = document.createElement("strong");
+              label.textContent = "Official sources";
+              linkSection.appendChild(label);
+
+              const linkRow = document.createElement("div");
+              linkRow.className = "setting-links";
+              setting.officialSources.forEach(source => {
+                const link = document.createElement("a");
+                link.href = source.url;
+                link.target = "_blank";
+                link.rel = "noopener";
+                link.textContent = source.label;
+                linkRow.appendChild(link);
+              });
+              linkSection.appendChild(linkRow);
+              body.appendChild(linkSection);
+            }
+
+            if (Array.isArray(setting.adventureHooks) && setting.adventureHooks.length) {
+              const hooksSection = document.createElement("div");
+              hooksSection.className = "setting-section";
+              const hooksLabel = document.createElement("strong");
+              hooksLabel.textContent = "Adventure hooks";
+              hooksSection.appendChild(hooksLabel);
+
+              const hookList = document.createElement("ul");
+              setting.adventureHooks.forEach(hook => {
+                const li = document.createElement("li");
+                li.textContent = hook;
+                hookList.appendChild(li);
+              });
+              hooksSection.appendChild(hookList);
+              body.appendChild(hooksSection);
+            }
+
+            details.appendChild(body);
+            settingsGrid.appendChild(details);
+          });
+        };
+
+        settingGenreSelect.addEventListener("change", renderSettings);
+        settingQuery?.addEventListener("input", renderSettings);
+
+        renderSettings();
+      }
 
       const formatSpellLevel = (level) => (Number(level) === 0 ? "Cantrip" : `Level ${level}`);
 
