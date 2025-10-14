@@ -333,6 +333,59 @@
         opacity: 0.85;
       }
 
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        min-width: 600px;
+      }
+
+      .comparison-table thead th {
+        background: #f3f4f6;
+        font-weight: 600;
+        padding: 0.75rem;
+        text-align: left;
+      }
+
+      .comparison-table thead th:first-child {
+        background: transparent;
+      }
+
+      .comparison-table tbody th {
+        background: #fafbff;
+        width: 16rem;
+        font-weight: 600;
+        padding: 0.75rem;
+        vertical-align: top;
+      }
+
+      .comparison-table td {
+        border-top: 1px solid rgba(15, 23, 42, 0.1);
+        padding: 0.75rem;
+        vertical-align: top;
+      }
+
+      .comparison-table ul {
+        margin: 0.25rem 0 0.5rem;
+        padding-left: 1.2rem;
+      }
+
+      .comparison-table p {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .comparison-table .key-systems {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(129, 140, 248, 0.08));
+        border-radius: 0.35rem;
+        padding: 0.5rem 0.75rem;
+        display: inline-block;
+      }
+
+      .comparison-table .key-systems ul {
+        margin: 0.25rem 0 0;
+      }
+
       footer {
         text-align: center;
         padding: 1.5rem 1rem 2rem;
@@ -358,6 +411,7 @@
         <button class="active" data-target="ask">Ask the DM</button>
         <button data-target="rules">Rules Compendium</button>
         <button data-target="items">Item &amp; Gear Vault</button>
+        <button data-target="compare">Edition Comparison</button>
       </nav>
 
       <section id="ask" class="card active">
@@ -405,6 +459,12 @@
           </select>
         </div>
         <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
+      </section>
+
+      <section id="compare" class="card">
+        <h2>Edition Comparison Dashboard</h2>
+        <p>Contrast design philosophies, release windows, and key systems at a glance. Use this dashboard to spot how each ruleset approaches combat cadence, narrative support, and supplemental material.</p>
+        <div id="comparison-matrix" style="overflow-x: auto;"></div>
       </section>
     </main>
 
@@ -861,6 +921,96 @@
           document.getElementById(btn.dataset.target).classList.add("active");
         });
       });
+
+      const comparisonContainer = document.getElementById("comparison-matrix");
+      if (comparisonContainer) {
+        const table = document.createElement("table");
+        table.className = "comparison-table";
+
+        const headerRow = document.createElement("tr");
+        const blank = document.createElement("th");
+        blank.scope = "col";
+        headerRow.appendChild(blank);
+        RULES_DATA.forEach(rule => {
+          const th = document.createElement("th");
+          th.scope = "col";
+          th.textContent = rule.edition;
+          headerRow.appendChild(th);
+        });
+
+        const thead = document.createElement("thead");
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+
+        const tbody = document.createElement("tbody");
+        const categories = [
+          { key: "tagline", label: "Design Thesis" },
+          { key: "released", label: "Release Window" },
+          { key: "keySystems", label: "Signature Systems", className: "key-systems" },
+          { key: "playstyle", label: "Table Feel & Playstyle" },
+          { key: "expansions", label: "Essential Expansions" },
+          { key: "adventureHooks", label: "Adventure Hooks" },
+          { key: "srds", label: "Primary References" }
+        ];
+
+        const renderList = (items, mapper = (item) => item) => {
+          const ul = document.createElement("ul");
+          items.forEach(item => {
+            const li = document.createElement("li");
+            li.innerHTML = mapper(item);
+            ul.appendChild(li);
+          });
+          return ul;
+        };
+
+        categories.forEach(({ key, label, className }) => {
+          const row = document.createElement("tr");
+          const heading = document.createElement("th");
+          heading.scope = "row";
+          heading.textContent = label;
+          row.appendChild(heading);
+
+          RULES_DATA.forEach(rule => {
+            const td = document.createElement("td");
+            const value = rule[key];
+
+            if (Array.isArray(value) && value.length) {
+              const content = renderList(
+                value,
+                key === "srds"
+                  ? (item) => `<a href="${item.url}" target="_blank" rel="noopener">${item.label}</a>`
+                  : (item) => item
+              );
+              if (className) {
+                const wrapper = document.createElement("div");
+                wrapper.className = className;
+                wrapper.appendChild(content);
+                td.appendChild(wrapper);
+              } else {
+                td.appendChild(content);
+              }
+            } else if (typeof value === "string" && value.trim()) {
+              const paragraph = document.createElement("p");
+              paragraph.textContent = value;
+              td.appendChild(paragraph);
+            } else if (value?.label && value?.url) {
+              td.innerHTML = `<a href="${value.url}" target="_blank" rel="noopener">${value.label}</a>`;
+            } else {
+              const placeholder = document.createElement("span");
+              placeholder.style.opacity = "0.65";
+              placeholder.textContent = "—";
+              td.appendChild(placeholder);
+            }
+
+            row.appendChild(td);
+          });
+
+          tbody.appendChild(row);
+        });
+
+        table.appendChild(tbody);
+        comparisonContainer.appendChild(table);
+      }
 
       // Populate rules compendium
       const rulesGrid = document.getElementById("rules-grid");
