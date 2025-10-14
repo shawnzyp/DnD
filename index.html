@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>D&D In-Browser LLM (Gemma-2-2B-it)</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 800px; }
+      #log { white-space: pre-wrap; border: 1px solid #ccc; padding: 1rem; height: 320px; overflow: auto; }
+      button { padding: .6rem 1rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Gemma-2-2B-it (WebLLM)</h1>
+    <p>Status: <span id="status">initializing…</span></p>
+    <div id="log"></div>
+    <p>
+      <button id="run">Generate 3 quest hooks</button>
+    </p>
+
+    <script type="module">
+      // Import WebLLM via CDN
+      const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+
+      const logEl = document.getElementById("log");
+      const statusEl = document.getElementById("status");
+      const println = (x) => (logEl.textContent += x + "\n");
+
+      // Discover available prebuilt models (names vary with releases)
+      println("Fetching prebuilt model list…");
+      const models = webllm.prebuiltAppConfig.model_list;
+      println(JSON.stringify(models.map(m => m.model_id), null, 2));
+
+      // Pick a Gemma-2B instruct model. Common id pattern includes "Gemma-2-2B-it".
+      // If you don't see it in the list, update WebLLM or use another supported small model.
+      const selectedModel =
+        models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
+        ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id // fallback
+        ?? models[0].model_id;
+
+      println(`Selected model: ${selectedModel}`);
+
+      // Show download / compile progress
+      const initProgressCallback = (p) => {
+        statusEl.textContent = `[${p.progress * 100 | 0}%] ${p.text || p.stage}`;
+      };
+
+      // Create and load the engine (first load caches model files; subsequent loads are fast)
+      const engine = await webllm.CreateMLCEngine(selectedModel, { initProgressCallback });
+
+      statusEl.textContent = "ready";
+
+      // Helper: stream a reply
+      async function stream(messages, opts = {}) {
+        const chunks = await engine.chat.completions.create({
+          messages,
+          temperature: 0.8,
+          max_tokens: 350,
+          stream: true,
+          stream_options: { include_usage: true },
+          ...opts
+        });
+        let out = "";
+        for await (const c of chunks) {
+          out += c.choices?.[0]?.delta?.content || "";
+          statusEl.textContent = "generating…";
+        }
+        statusEl.textContent = "ready";
+        return out.trim();
+      }
+
+      // D&D-specific example: JSON quest hooks for a coastal city
+      document.getElementById("run").onclick = async () => {
+        println("\n--- Requesting 3 quest hooks (JSON) ---");
+        const messages = [
+          { role: "system", content: "Return compact JSON only under the provided schema. Keep PG-13." },
+          { role: "user", content: `Make 3 quest hooks in a windswept coastal city.
+Schema:
+{"hooks":[{"title":"string","summary":"1-2 sentences","stakes":"1 sentence","twist":"1 sentence"}]}` }
+        ];
+        const reply = await stream(messages, { response_format: { type: "json_object" } });
+        println(reply);
+      };
+    </script>
+  </body>
+</html>
