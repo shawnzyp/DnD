@@ -98,6 +98,59 @@
         display: block;
       }
 
+      .collapsible-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .collapsible-card summary {
+        cursor: pointer;
+        list-style: none;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+      }
+
+      .collapsible-card summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .collapsible-card[open] {
+        background: rgba(255, 255, 255, 0.06);
+      }
+
+      .collapsible-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem 0.75rem;
+        margin-top: 0.4rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .collapsible-content {
+        margin-top: 0.75rem;
+        line-height: 1.55;
+        font-size: 0.95rem;
+        opacity: 0.9;
+      }
+
+      .tag-row {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+
+      .collapsible-card summary .tag-row {
+        margin-top: 0;
+      }
+
       .status {
         display: inline-flex;
         align-items: center;
@@ -441,6 +494,8 @@
         <button class="active" data-target="ask">Ask the DM</button>
         <button data-target="rules">Rules Compendium</button>
         <button data-target="items">Item &amp; Gear Vault</button>
+        <button data-target="spells">Spellbook Archives</button>
+        <button data-target="conditions">Condition Codex</button>
         <button data-target="bestiary">Bestiary</button>
         <button data-target="compare">Edition Comparison</button>
       </nav>
@@ -490,6 +545,38 @@
           </select>
         </div>
         <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
+      </section>
+
+      <section id="spells" class="card">
+        <h2>Spellbook Archives</h2>
+        <p>Explore SRD-friendly spells with quick access to casting details, save mechanics, and reliable sources. Filter by level, school, or the keywords that matter for your encounter prep.</p>
+        <div class="items-search">
+          <input type="search" id="spell-query" placeholder="Search spells by name" aria-label="Search spells by name" />
+          <select id="spell-level-filter" aria-label="Filter spell level">
+            <option value="all">All levels</option>
+          </select>
+          <select id="spell-school-filter" aria-label="Filter spell school">
+            <option value="all">All schools</option>
+          </select>
+          <input type="search" id="spell-keyword-filter" placeholder="Filter spells by keyword (damage, utility, ritual…)" aria-label="Filter spells by keyword" />
+        </div>
+        <div id="spells-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
+      </section>
+
+      <section id="conditions" class="card">
+        <h2>Condition Codex</h2>
+        <p>Review the most common conditions adventurers face, from poisoned to paralyzed. Each entry summarizes the mechanical impact and saving throws so you can adjudicate quickly at the table.</p>
+        <div class="items-search">
+          <input type="search" id="condition-query" placeholder="Search conditions by name" aria-label="Search conditions by name" />
+          <select id="condition-duration-filter" aria-label="Filter condition duration">
+            <option value="all">All durations</option>
+          </select>
+          <select id="condition-save-filter" aria-label="Filter required saving throw">
+            <option value="all">All saving throws</option>
+          </select>
+          <input type="search" id="condition-keyword-filter" placeholder="Filter conditions by keyword (movement, senses…)" aria-label="Filter conditions by keyword" />
+        </div>
+        <div id="conditions-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
       </section>
 
       <section id="bestiary" class="card">
@@ -1132,6 +1219,212 @@
         }
       ];
 
+      const SPELLS = [
+        {
+          name: "Fireball",
+          level: 3,
+          school: "Evocation",
+          castingTime: "1 action",
+          range: "150 feet",
+          duration: "Instantaneous",
+          components: "V, S, M (a tiny ball of bat guano and sulfur)",
+          savingThrow: "Dexterity half",
+          description: "A bright streak blossoms into a roaring blast that deals 8d6 fire damage in a 20-foot radius sphere. Creatures save for half damage and unattended objects may ignite.",
+          source: "SRD 5.1",
+          keywords: ["damage", "fire", "area", "explosive"]
+        },
+        {
+          name: "Cure Wounds",
+          level: 1,
+          school: "Evocation",
+          castingTime: "1 action",
+          range: "Touch",
+          duration: "Instantaneous",
+          components: "V, S",
+          savingThrow: "None",
+          description: "Channel restorative magic into a creature you touch, restoring 1d8 + your spellcasting ability modifier hit points. Higher-level slots heal an extra 1d8 each.",
+          source: "SRD 5.1",
+          keywords: ["healing", "support", "touch"]
+        },
+        {
+          name: "Shield",
+          level: 1,
+          school: "Abjuration",
+          castingTime: "1 reaction (triggered when you are hit or targeted by Magic Missile)",
+          range: "Self",
+          duration: "1 round",
+          components: "V, S",
+          savingThrow: "None",
+          description: "A shimmering barrier increases your AC by 5 until the start of your next turn and negates Magic Missile automatically.",
+          source: "SRD 5.1",
+          keywords: ["defense", "reaction", "abjuration"]
+        },
+        {
+          name: "Mage Hand",
+          level: 0,
+          school: "Conjuration",
+          castingTime: "1 action",
+          range: "30 feet",
+          duration: "1 minute",
+          components: "V, S",
+          savingThrow: "None",
+          description: "Create a spectral hand that manipulates objects within range, carrying up to 10 pounds, opening doors, or storing items in containers.",
+          source: "SRD 5.1",
+          keywords: ["utility", "manipulation", "cantrip"]
+        },
+        {
+          name: "Hold Person",
+          level: 2,
+          school: "Enchantment",
+          castingTime: "1 action",
+          range: "60 feet",
+          duration: "Up to 1 minute (concentration)",
+          components: "V, S, M (a small, straight piece of iron)",
+          savingThrow: "Wisdom negates",
+          description: "Paralyze a humanoid target. On a failed save the creature is incapacitated and restrained, repeating the save at the end of each turn.",
+          source: "SRD 5.1",
+          keywords: ["control", "paralysis", "concentration"]
+        },
+        {
+          name: "Detect Magic",
+          level: 1,
+          school: "Divination",
+          castingTime: "1 action",
+          range: "Self (30-foot radius)",
+          duration: "Up to 10 minutes (concentration)",
+          components: "V, S",
+          savingThrow: "None",
+          description: "Sense the presence of magic within 30 feet. You learn the school of magic with your action when examining a visible aura behind most barriers.",
+          source: "SRD 5.1",
+          keywords: ["utility", "detection", "ritual"]
+        },
+        {
+          name: "Counterspell",
+          level: 3,
+          school: "Abjuration",
+          castingTime: "1 reaction (triggered by a creature casting a spell within 60 feet)",
+          range: "60 feet",
+          duration: "Instantaneous",
+          components: "S",
+          savingThrow: "None",
+          description: "Interrupt another caster. Automatically stops spells of 3rd level or lower; make an ability check for higher-level spells using your spellcasting ability.",
+          source: "SRD 5.1",
+          keywords: ["reaction", "control", "defense"]
+        }
+      ];
+
+      const CONDITIONS = [
+        {
+          name: "Blinded",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "None",
+          summary: "A blinded creature can't see, automatically fails sight-based checks, and attack rolls against it gain advantage while its own attacks suffer disadvantage.",
+          source: "SRD 5.1",
+          effects: [
+            "Vision-based Perception checks automatically fail",
+            "Attack rolls against the creature have advantage",
+            "The creature's attack rolls have disadvantage"
+          ],
+          keywords: ["senses", "perception", "advantage"]
+        },
+        {
+          name: "Charmed",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "Varies",
+          summary: "A charmed creature can't attack the charmer and treats the charmer's social checks with friendly bias.",
+          source: "SRD 5.1",
+          effects: [
+            "The charmed creature can't target the charmer with harmful abilities",
+            "The charmer has advantage on social ability checks to interact with the creature"
+          ],
+          keywords: ["influence", "social", "enchantment"]
+        },
+        {
+          name: "Frightened",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "Varies",
+          summary: "Fearful creatures struggle to focus, gaining disadvantage on ability checks and attacks while the source is in sight and cannot willingly move closer to it.",
+          source: "SRD 5.1",
+          effects: [
+            "Disadvantage on ability checks and attack rolls while the source of fear is in sight",
+            "Cannot willingly move closer to the source of fear"
+          ],
+          keywords: ["fear", "control", "movement"]
+        },
+        {
+          name: "Grappled",
+          duration: "Until escaped or released",
+          durationTag: "special",
+          savingThrow: "Varies (usually Strength or Dexterity to escape)",
+          summary: "Movement drops to 0 and can't be increased. Ends if the grappler is incapacitated or moved away from the target's reach.",
+          source: "SRD 5.1",
+          effects: [
+            "Speed becomes 0",
+            "Bonuses to speed don't apply",
+            "Condition ends if the grappler is incapacitated or the creature is removed from reach"
+          ],
+          keywords: ["movement", "escape", "control"]
+        },
+        {
+          name: "Paralyzed",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "Varies",
+          summary: "The creature is incapacitated, can't move or speak, automatically fails Strength and Dexterity saves, and critical hits land at close range.",
+          source: "SRD 5.1",
+          effects: [
+            "The creature is incapacitated and can't move or speak",
+            "Automatically fails Strength and Dexterity saving throws",
+            "Attack rolls against the creature have advantage, and within 5 feet they become critical hits on a hit"
+          ],
+          keywords: ["incapacitated", "dexterity", "critical"]
+        },
+        {
+          name: "Poisoned",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "Varies",
+          summary: "Toxic afflictions sap vitality, imposing disadvantage on attack rolls and ability checks until cured or the effect ends.",
+          source: "SRD 5.1",
+          effects: [
+            "Disadvantage on attack rolls",
+            "Disadvantage on ability checks"
+          ],
+          keywords: ["toxins", "penalty", "disease"]
+        },
+        {
+          name: "Prone",
+          duration: "Until standing or otherwise moved",
+          durationTag: "instant",
+          savingThrow: "None",
+          summary: "Fallen creatures crawl or stand slowly, making melee swings against them easier while ranged shots are harder.",
+          source: "SRD 5.1",
+          effects: [
+            "The creature's only movement option is to crawl unless it stands, costing half its movement",
+            "Attack rolls against the creature have advantage if within 5 feet, otherwise disadvantage",
+            "The creature's attack rolls have disadvantage"
+          ],
+          keywords: ["movement", "melee", "positioning"]
+        },
+        {
+          name: "Stunned",
+          duration: "Varies by source",
+          durationTag: "ongoing",
+          savingThrow: "Varies",
+          summary: "A stunned creature is incapacitated, can't move, and can speak only falteringly, while attackers enjoy advantage and the victim fails Strength and Dexterity saves.",
+          source: "SRD 5.1",
+          effects: [
+            "The creature is incapacitated, can't move, and can speak only falteringly",
+            "Automatically fails Strength and Dexterity saving throws",
+            "Attack rolls against the creature have advantage"
+          ],
+          keywords: ["incapacitated", "control", "stagger"]
+        }
+      ];
+
       const MONSTERS = [
         {
           name: "Adult Black Dragon",
@@ -1277,6 +1570,242 @@
         "Artifact",
         "Standard"
       ];
+
+      const spellQuery = document.getElementById("spell-query");
+      const spellLevelSelect = document.getElementById("spell-level-filter");
+      const spellSchoolSelect = document.getElementById("spell-school-filter");
+      const spellKeywordInput = document.getElementById("spell-keyword-filter");
+      const spellsList = document.getElementById("spells-list");
+
+      const conditionQuery = document.getElementById("condition-query");
+      const conditionDurationSelect = document.getElementById("condition-duration-filter");
+      const conditionSaveSelect = document.getElementById("condition-save-filter");
+      const conditionKeywordInput = document.getElementById("condition-keyword-filter");
+      const conditionsList = document.getElementById("conditions-list");
+
+      const formatSpellLevel = (level) => (Number(level) === 0 ? "Cantrip" : `Level ${level}`);
+
+      const uniqueSpellLevels = Array.from(new Set(SPELLS.map(spell => spell.level)))
+        .sort((a, b) => a - b);
+      uniqueSpellLevels.forEach(level => {
+        const option = document.createElement("option");
+        option.value = String(level);
+        option.textContent = formatSpellLevel(level);
+        spellLevelSelect.appendChild(option);
+      });
+
+      const uniqueSpellSchools = Array.from(new Set(SPELLS.map(spell => spell.school))).sort();
+      uniqueSpellSchools.forEach(school => {
+        const option = document.createElement("option");
+        option.value = school;
+        option.textContent = school;
+        spellSchoolSelect.appendChild(option);
+      });
+
+      const durationLabels = {
+        ongoing: "Ongoing effects",
+        instant: "Instant or until acted",
+        special: "Special conditions"
+      };
+
+      const uniqueDurationTags = Array.from(new Set(CONDITIONS.map(condition => condition.durationTag))).sort();
+      uniqueDurationTags.forEach(tag => {
+        const option = document.createElement("option");
+        option.value = tag;
+        option.textContent = durationLabels[tag] || tag;
+        conditionDurationSelect.appendChild(option);
+      });
+
+      const uniqueConditionSaves = Array.from(new Set(CONDITIONS.map(condition => condition.savingThrow))).sort();
+      uniqueConditionSaves.forEach(save => {
+        const option = document.createElement("option");
+        option.value = save;
+        option.textContent = save;
+        conditionSaveSelect.appendChild(option);
+      });
+
+      const renderSpells = () => {
+        const nameQuery = spellQuery.value.toLowerCase().trim();
+        const levelFilter = spellLevelSelect.value;
+        const schoolFilter = spellSchoolSelect.value;
+        const keywordQuery = spellKeywordInput.value.toLowerCase().trim();
+
+        spellsList.innerHTML = "";
+
+        const results = SPELLS.filter(spell => {
+          const matchesName = !nameQuery || spell.name.toLowerCase().includes(nameQuery);
+          const matchesLevel = levelFilter === "all" || String(spell.level) === levelFilter;
+          const matchesSchool = schoolFilter === "all" || spell.school === schoolFilter;
+          const matchesKeyword = !keywordQuery || [
+            spell.description,
+            spell.components,
+            spell.castingTime,
+            spell.range,
+            spell.duration,
+            ...(spell.keywords || [])
+          ]
+            .filter(Boolean)
+            .some(field => field.toLowerCase().includes(keywordQuery));
+
+          return matchesName && matchesLevel && matchesSchool && matchesKeyword;
+        });
+
+        if (!results.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "No spells match your filters yet. Try adjusting the level, school, or keywords.";
+          empty.style.opacity = "0.75";
+          spellsList.appendChild(empty);
+          return;
+        }
+
+        results.forEach(spell => {
+          const details = document.createElement("details");
+          details.className = "collapsible-card";
+
+          const summary = document.createElement("summary");
+          summary.innerHTML = `
+            <span>${spell.name}</span>
+            <span class="tag-row">
+              <span class="pill">${formatSpellLevel(spell.level)}</span>
+              <span class="pill">${spell.school}</span>
+            </span>
+          `;
+          details.appendChild(summary);
+
+          const meta = document.createElement("div");
+          meta.className = "collapsible-meta";
+          meta.innerHTML = `
+            <span><strong>Casting Time:</strong> ${spell.castingTime}</span>
+            <span><strong>Range:</strong> ${spell.range}</span>
+            <span><strong>Duration:</strong> ${spell.duration}</span>
+            <span><strong>Components:</strong> ${spell.components}</span>
+            <span><strong>Save:</strong> ${spell.savingThrow}</span>
+            <span><strong>Source:</strong> ${spell.source}</span>
+          `;
+          details.appendChild(meta);
+
+          const body = document.createElement("div");
+          body.className = "collapsible-content";
+          body.textContent = spell.description;
+          details.appendChild(body);
+
+          if (spell.keywords?.length) {
+            const tagRow = document.createElement("div");
+            tagRow.className = "tag-row";
+            spell.keywords.forEach(keyword => {
+              const pill = document.createElement("span");
+              pill.className = "pill";
+              pill.textContent = keyword;
+              tagRow.appendChild(pill);
+            });
+            details.appendChild(tagRow);
+          }
+
+          spellsList.appendChild(details);
+        });
+      };
+
+      const renderConditions = () => {
+        const nameQuery = conditionQuery.value.toLowerCase().trim();
+        const durationFilter = conditionDurationSelect.value;
+        const saveFilter = conditionSaveSelect.value;
+        const keywordQuery = conditionKeywordInput.value.toLowerCase().trim();
+
+        conditionsList.innerHTML = "";
+
+        const results = CONDITIONS.filter(condition => {
+          const matchesName = !nameQuery || condition.name.toLowerCase().includes(nameQuery);
+          const matchesDuration = durationFilter === "all" || condition.durationTag === durationFilter;
+          const matchesSave = saveFilter === "all" || condition.savingThrow === saveFilter;
+          const matchesKeyword = !keywordQuery || [
+            condition.summary,
+            condition.duration,
+            condition.savingThrow,
+            ...(condition.effects || []),
+            ...(condition.keywords || [])
+          ]
+            .filter(Boolean)
+            .some(field => field.toLowerCase().includes(keywordQuery));
+
+          return matchesName && matchesDuration && matchesSave && matchesKeyword;
+        });
+
+        if (!results.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "No conditions match your filters yet. Try a different keyword or duration.";
+          empty.style.opacity = "0.75";
+          conditionsList.appendChild(empty);
+          return;
+        }
+
+        results.forEach(condition => {
+          const details = document.createElement("details");
+          details.className = "collapsible-card";
+
+          const summary = document.createElement("summary");
+          summary.innerHTML = `
+            <span>${condition.name}</span>
+            <span class="tag-row">
+              <span class="pill">${durationLabels[condition.durationTag] || condition.duration}</span>
+              <span class="pill">Save: ${condition.savingThrow}</span>
+            </span>
+          `;
+          details.appendChild(summary);
+
+          const meta = document.createElement("div");
+          meta.className = "collapsible-meta";
+          meta.innerHTML = `
+            <span><strong>Duration:</strong> ${condition.duration}</span>
+            <span><strong>Saving Throw:</strong> ${condition.savingThrow}</span>
+            <span><strong>Source:</strong> ${condition.source}</span>
+          `;
+          details.appendChild(meta);
+
+          const body = document.createElement("div");
+          body.className = "collapsible-content";
+          body.textContent = condition.summary;
+          details.appendChild(body);
+
+          if (condition.effects?.length) {
+            const list = document.createElement("ul");
+            list.style.margin = "0.5rem 0 0";
+            list.style.paddingLeft = "1.25rem";
+            condition.effects.forEach(effect => {
+              const li = document.createElement("li");
+              li.textContent = effect;
+              list.appendChild(li);
+            });
+            details.appendChild(list);
+          }
+
+          if (condition.keywords?.length) {
+            const tagRow = document.createElement("div");
+            tagRow.className = "tag-row";
+            condition.keywords.forEach(keyword => {
+              const pill = document.createElement("span");
+              pill.className = "pill";
+              pill.textContent = keyword;
+              tagRow.appendChild(pill);
+            });
+            details.appendChild(tagRow);
+          }
+
+          conditionsList.appendChild(details);
+        });
+      };
+
+      spellQuery.addEventListener("input", renderSpells);
+      spellLevelSelect.addEventListener("change", renderSpells);
+      spellSchoolSelect.addEventListener("change", renderSpells);
+      spellKeywordInput.addEventListener("input", renderSpells);
+
+      conditionQuery.addEventListener("input", renderConditions);
+      conditionDurationSelect.addEventListener("change", renderConditions);
+      conditionSaveSelect.addEventListener("change", renderConditions);
+      conditionKeywordInput.addEventListener("input", renderConditions);
+
+      renderSpells();
+      renderConditions();
 
       const navButtons = document.querySelectorAll("nav button");
       const sections = document.querySelectorAll("main section");
