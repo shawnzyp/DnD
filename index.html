@@ -257,6 +257,24 @@
         padding-left: 1.25rem;
       }
 
+      .setting-links {
+        margin-top: 0.35rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .setting-links a {
+        color: var(--accent);
+        text-decoration: none;
+      }
+
+      .setting-links a:hover {
+        text-decoration: underline;
+      }
+
       .expansion-list li {
         margin-bottom: 0.2rem;
       }
@@ -502,6 +520,32 @@
             "Xanathar's Guide to Everything (expanded subclasses, downtime)",
             "Tasha's Cauldron of Everything (group patrons, alternate class features)"
           ],
+          settings: [
+            {
+              name: "Forgotten Realms",
+              tone: "Kitchen-sink high fantasy along the Sword Coast with factions, gods, and Realmslore supporting every playstyle.",
+              source: {
+                label: "Sword Coast Adventurer's Guide",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/sc-adventurers-guide"
+              }
+            },
+            {
+              name: "Eberron",
+              tone: "Noir pulp adventures with magitech conveniences, dragonmarked intrigue, and post-war espionage.",
+              source: {
+                label: "Eberron: Rising from the Last War",
+                url: "https://dnd.wizards.com/products/eberron-rising-last-war"
+              }
+            },
+            {
+              name: "Exandria (Wildemount)",
+              tone: "Character-driven drama across war-torn continents where dunamis magic and Vestiges of Divergence shape hero arcs.",
+              source: {
+                label: "Explorer's Guide to Wildemount",
+                url: "https://dnd.wizards.com/products/explorers-guide-wildemount"
+              }
+            }
+          ],
           srds: [
             { label: "Systems Reference Document 5.1", url: "https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf" },
             { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" }
@@ -532,6 +576,32 @@
             "Player's Handbook (2024)",
             "Dungeon Master's Guide (2024) with revised encounter-building and bastions",
             "Monster Manual (2025) introducing updated stat block templates"
+          ],
+          settings: [
+            {
+              name: "Greyhawk",
+              tone: "Classic sword & sorcery around the Free City and its factions, spotlighting elemental cults and political scheming.",
+              source: {
+                label: "Return to Greyhawk Preview",
+                url: "https://www.dndbeyond.com/posts/1561-return-to-greyhawk-in-2024"
+              }
+            },
+            {
+              name: "Planescape: Turn of Fortune's Wheel",
+              tone: "Planar intrigue in Sigil where faction philosophies and multiversal secrets shape every choice.",
+              source: {
+                label: "Planescape: Adventures in the Multiverse",
+                url: "https://dnd.wizards.com/products/planescape-adventures-sigil-and-outlands"
+              }
+            },
+            {
+              name: "Vecna: Eve of Ruin",
+              tone: "High-octane multiverse rescue linking iconic worlds against Vecna's looming apotheosis.",
+              source: {
+                label: "Vecna: Eve of Ruin",
+                url: "https://dnd.wizards.com/products/vecna-eve-of-ruin"
+              }
+            }
           ],
           srds: [
             { label: "Unearthed Arcana archive", url: "https://www.dndbeyond.com/sources/ua" },
@@ -566,6 +636,32 @@
             "Complete series (Arcane, Divine, Warrior, Adventurer)",
             "Tome of Battle, Expanded Psionics Handbook"
           ],
+          settings: [
+            {
+              name: "Forgotten Realms",
+              tone: "Expansive Realmslore with region guides, epic NPCs, and high-magic threats calibrated for crunchy play.",
+              source: {
+                label: "Forgotten Realms Campaign Setting (3e)",
+                url: "https://www.dmsguild.com/product/284252/Forgotten-Realms-Campaign-Setting-3e"
+              }
+            },
+            {
+              name: "Eberron",
+              tone: "Pulp-noir magitech mixing dragonmarked house intrigue with lightning rail heists and pulp relic hunts.",
+              source: {
+                label: "Eberron Campaign Setting (3.5)",
+                url: "https://www.dmsguild.com/product/288607/Eberron-Campaign-Setting-35"
+              }
+            },
+            {
+              name: "Living Greyhawk",
+              tone: "Organized play sandbox where regional meta-plots let tables explore politics, wars, and heroic legacies.",
+              source: {
+                label: "Living Greyhawk Gazetteer",
+                url: "https://www.dmsguild.com/product/221268/Living-Greyhawk-Gazetteer-3e"
+              }
+            }
+          ],
           srds: [
             { label: "d20 SRD", url: "https://www.d20srd.org/" },
             { label: "3.5 Expanded SRD", url: "https://www.dandwiki.com/wiki/3.5e_SRD" }
@@ -599,6 +695,32 @@
             "Mythic Adventures",
             "Ultimate Campaign (kingdom & downtime rules)"
           ],
+          settings: [
+            {
+              name: "Inner Sea (Golarion)",
+              tone: "Kitchen-sink fantasy where each nation delivers a distinct genre, deity pantheon, and adventure hook density.",
+              source: {
+                label: "Inner Sea World Guide",
+                url: "https://paizo.com/products/btpy8v0z?Pathfinder-Campaign-Setting-The-Inner-Sea-World-Guide"
+              }
+            },
+            {
+              name: "Kingmaker",
+              tone: "Hex-crawl sandbox that evolves into kingdom management with political dilemmas and wilderness threats.",
+              source: {
+                label: "Kingmaker Adventure Path",
+                url: "https://paizo.com/products/btpy8j5w?Pathfinder-Adventure-Path-Kingmaker"
+              }
+            },
+            {
+              name: "Skull & Shackles",
+              tone: "Swashbuckling pirate saga of ship battles, infamy, and freedom on the high seas of the Shackles.",
+              source: {
+                label: "Skull & Shackles Adventure Path",
+                url: "https://paizo.com/pathfinder/adventurePath/skullAndShackles"
+              }
+            }
+          ],
           srds: [
             { label: "Archives of Nethys", url: "https://aonprd.com/" }
           ]
@@ -630,6 +752,32 @@
             "Essentials line (Heroes of the Fallen Lands/Feywild)",
             "Dungeon Master's Guide I-II",
             "Monster Manuals I-III"
+          ],
+          settings: [
+            {
+              name: "Nentir Vale",
+              tone: "Points-of-Light frontier where Fallcrest, Winterhaven, and roving threats frame heroic-tier sandboxes.",
+              source: {
+                label: "Nentir Vale Primer",
+                url: "https://www.dndbeyond.com/posts/1445-return-to-the-nentir-vale"
+              }
+            },
+            {
+              name: "Dark Sun (Athas)",
+              tone: "Brutal swords-and-sand survival with psionics, defiling magic, and tyrannical sorcerer-kings.",
+              source: {
+                label: "Dark Sun Campaign Setting (4e)",
+                url: "https://www.dmsguild.com/product/17532/Dark-Sun-Campaign-Setting-4e"
+              }
+            },
+            {
+              name: "Eberron",
+              tone: "High-action pulp where dragonmarked houses, airships, and manifest zones get tuned for tactical encounters.",
+              source: {
+                label: "Eberron Campaign Guide (4e)",
+                url: "https://www.dmsguild.com/product/17536/Eberron-Campaign-Guide-4e"
+              }
+            }
           ],
           srds: [
             { label: "4e Compendium (archived)", url: "https://web.archive.org/web/20160817123609/http://www.wizards.com/dndinsider/compendium/database.aspx" },
@@ -664,6 +812,32 @@
             "Skills & Powers, Spells & Magic optional rules",
             "Campaign settings: Planescape, Dark Sun, Ravenloft"
           ],
+          settings: [
+            {
+              name: "Planescape",
+              tone: "Philosophical planar travel centered on Sigil, factions, and belief-driven conflicts across the multiverse.",
+              source: {
+                label: "Planescape Campaign Setting (2e)",
+                url: "https://www.dmsguild.com/product/431552/Planescape-Campaign-Setting-2e"
+              }
+            },
+            {
+              name: "Dark Sun",
+              tone: "Harsh desert survival on Athas featuring psionics, ecological collapse, and defiling sorcery.",
+              source: {
+                label: "Dark Sun Campaign Setting (2e)",
+                url: "https://www.dmsguild.com/product/17091/Dark-Sun-Campaign-Setting-Expanded-and-Revised-2e"
+              }
+            },
+            {
+              name: "Ravenloft",
+              tone: "Gothic horror domains ruled by Darklords where moral choices and fear checks drive the story.",
+              source: {
+                label: "Ravenloft Campaign Setting (2e)",
+                url: "https://www.dmsguild.com/product/17043/Ravenloft-Campaign-Setting-2e"
+              }
+            }
+          ],
           srds: [
             { label: "AD&D 2e Core Rules (archive)", url: "https://annarchive.com/files/Drmg244.pdf" },
             { label: "TSR Reference (mirror)", url: "https://www.dragonsfoot.org/forums/viewtopic.php?t=30584" }
@@ -696,6 +870,32 @@
             "Gazetteer series for Mystara",
             "Wrath of the Immortals",
             "Creature Catalogue"
+          ],
+          settings: [
+            {
+              name: "Mystara (Known World)",
+              tone: "Classic exploration with nation-focused Gazetteers, pulpy politics, and quirky Immortal meddling.",
+              source: {
+                label: "Mystara Gazetteer Compilation",
+                url: "https://www.dmsguild.com/product/229802/Mystara-Gazetteer-Compilation"
+              }
+            },
+            {
+              name: "Hollow World",
+              tone: "Lost-world pulp adventures beneath the planet's crust featuring preserved cultures and dinosaur-filled wilds.",
+              source: {
+                label: "Hollow World Campaign Setting",
+                url: "https://www.dmsguild.com/product/17152/Hollow-World-Campaign-Setting-Basic"
+              }
+            },
+            {
+              name: "Savage Coast",
+              tone: "Swashbuckling frontier of red steel, cursed regions, and colonial intrigue along Mystara's western shores.",
+              source: {
+                label: "Savage Coast Campaign Book",
+                url: "https://www.dmsguild.com/product/17150/Savage-Coast-Campaign-Book"
+              }
+            }
           ],
           srds: [
             { label: "Rules Cyclopedia Index", url: "https://www.dragonsfoot.org/forums/viewtopic.php?t=36241" }
@@ -1073,6 +1273,57 @@
         expansions.appendChild(ulExp);
         details.appendChild(expansions);
 
+        if (rule.settings?.length) {
+          const settingsSection = document.createElement("div");
+          settingsSection.className = "rules-section";
+          settingsSection.innerHTML = `<strong>Iconic Campaign Settings</strong>`;
+          const settingsList = document.createElement("ul");
+
+          rule.settings.forEach(setting => {
+            const li = document.createElement("li");
+            const name = document.createElement("strong");
+            name.textContent = setting.name;
+            li.appendChild(name);
+
+            if (setting.tone) {
+              li.appendChild(document.createTextNode(` — ${setting.tone}`));
+            }
+
+            const linkRow = document.createElement("div");
+            linkRow.className = "setting-links";
+
+            if (setting.source?.url) {
+              const sourceLink = document.createElement("a");
+              sourceLink.href = setting.source.url;
+              sourceLink.target = "_blank";
+              sourceLink.rel = "noopener";
+              sourceLink.textContent = setting.source.label || "Sourcebook";
+              linkRow.appendChild(sourceLink);
+            }
+
+            const askLink = document.createElement("a");
+            askLink.href = "#ask";
+            askLink.className = "setting-prompt";
+            askLink.dataset.prompt = setting.prompt
+              || `What signature lore should I highlight when running a ${setting.name} campaign for ${rule.edition}?`;
+            askLink.textContent = `Ask the DM about ${setting.name}`;
+
+            if (linkRow.childNodes.length) {
+              const divider = document.createElement("span");
+              divider.textContent = "·";
+              linkRow.appendChild(divider);
+            }
+
+            linkRow.appendChild(askLink);
+            li.appendChild(linkRow);
+
+            settingsList.appendChild(li);
+          });
+
+          settingsSection.appendChild(settingsList);
+          details.appendChild(settingsSection);
+        }
+
         if (rule.adventureHooks?.length) {
           const hooks = document.createElement("div");
           hooks.className = "rules-section";
@@ -1311,12 +1562,31 @@ Stay family friendly and inclusive.`
         }
       });
 
-      document.querySelectorAll(".quick-prompts button").forEach(btn => {
-        btn.addEventListener("click", () => {
-          promptEl.value = btn.dataset.prompt;
-          promptEl.focus();
-        });
-      });
+        const openAskTab = () => {
+          const askButton = document.querySelector('nav button[data-target="ask"]');
+          if (askButton && !askButton.classList.contains("active")) {
+            askButton.click();
+          }
+        };
+
+        const wirePromptPrefill = (elements) => {
+          elements.forEach(el => {
+            el.addEventListener("click", (event) => {
+              const prompt = el.dataset.prompt?.trim();
+              if (!prompt) return;
+              if (el.tagName === "A") {
+                event.preventDefault();
+              }
+              openAskTab();
+              promptEl.value = prompt;
+              promptEl.focus();
+              document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+          });
+        };
+
+        wirePromptPrefill(document.querySelectorAll(".quick-prompts button"));
+        wirePromptPrefill(document.querySelectorAll(".setting-prompt"));
     </script>
   </body>
 </html>
