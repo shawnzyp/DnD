@@ -538,7 +538,7 @@
         <button class="active" data-target="ask">Ask the DM</button>
         <button data-target="rules">Rules Compendium</button>
         <button data-target="items">Item &amp; Gear Vault</button>
-        <button data-target="spells">Spellbook Archives</button>
+        <button data-target="spells">Spellbook</button>
         <button data-target="conditions">Condition Codex</button>
         <button data-target="bestiary">Bestiary</button>
         <button data-target="compare">Edition Comparison</button>
@@ -588,16 +588,21 @@
 
       <section id="spells" class="card">
         <h2>Spellbook Archives</h2>
-        <p>Explore SRD-friendly spells with quick access to casting details, save mechanics, and reliable sources. Filter by level, school, or the keywords that matter for your encounter prep.</p>
+        <p>Explore SRD-friendly spells with quick access to casting details, save mechanics, and reliable sources. Filter by level, school, class, or edition to prep the perfect list.</p>
         <div class="items-search">
-          <input type="search" id="spell-query" placeholder="Search spells by name" aria-label="Search spells by name" />
+          <input type="search" id="spell-query" placeholder="Search spells by name, summary, or tags" aria-label="Search spells" />
           <select id="spell-level-filter" aria-label="Filter spell level">
             <option value="all">All levels</option>
           </select>
           <select id="spell-school-filter" aria-label="Filter spell school">
             <option value="all">All schools</option>
           </select>
-          <input type="search" id="spell-keyword-filter" placeholder="Filter spells by keyword (damage, utility, ritual…)" aria-label="Filter spells by keyword" />
+          <select id="spell-class-filter" aria-label="Filter spell class">
+            <option value="all">All classes</option>
+          </select>
+          <select id="spell-edition-filter" aria-label="Filter spell edition">
+            <option value="all">All editions</option>
+          </select>
         </div>
         <div id="spells-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
       </section>
@@ -1335,95 +1340,139 @@
 
       const SPELLS = [
         {
+          name: "Magic Missile",
+          level: 1,
+          school: "Evocation",
+          classes: ["Wizard", "Sorcerer", "Arcane Trickster", "Eldritch Knight"],
+          edition: "OD&D · AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Loose darts of force that automatically strike and scale with slot level, making the spell a reliable answer to evasive foes across every SRD.",
+          castingTime: "1 action (5e) · 1 segment (AD&D)",
+          range: "120 feet",
+          duration: "Instantaneous",
+          components: "V, S",
+          savingThrow: "None",
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["force", "auto-hit", "damage"]
+        },
+        {
           name: "Fireball",
           level: 3,
           school: "Evocation",
-          castingTime: "1 action",
+          classes: ["Wizard", "Sorcerer", "Artificer (Artillerist)"],
+          edition: "AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Unleash a 20-foot radius inferno for 8d6 fire damage, a benchmark area spell that trades precision for devastating battlefield control across editions.",
+          castingTime: "1 action (5e) · 1 segment (AD&D)",
           range: "150 feet",
           duration: "Instantaneous",
-          components: "V, S, M (a tiny ball of bat guano and sulfur)",
+          components: "V, S, M (a bat guano and sulfur pellet)",
           savingThrow: "Dexterity half",
-          description: "A bright streak blossoms into a roaring blast that deals 8d6 fire damage in a 20-foot radius sphere. Creatures save for half damage and unattended objects may ignite.",
-          source: "SRD 5.1",
-          keywords: ["damage", "fire", "area", "explosive"]
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["fire", "area", "damage"]
         },
         {
           name: "Cure Wounds",
           level: 1,
           school: "Evocation",
-          castingTime: "1 action",
+          classes: ["Cleric", "Druid", "Bard", "Paladin"],
+          edition: "BECMI · AD&D 2e · 3.5e SRD · 5e SRD",
+          summary: "Channel divine energy through a touch to restore 1d8 plus your spellcasting modifier, scaling with slot investment in every SRD release.",
+          castingTime: "1 action (5e) · 1 round (BECMI)",
           range: "Touch",
           duration: "Instantaneous",
           components: "V, S",
           savingThrow: "None",
-          description: "Channel restorative magic into a creature you touch, restoring 1d8 + your spellcasting ability modifier hit points. Higher-level slots heal an extra 1d8 each.",
-          source: "SRD 5.1",
+          source: "SRD 5.1, Basic/Expert Set",
           keywords: ["healing", "support", "touch"]
-        },
-        {
-          name: "Shield",
-          level: 1,
-          school: "Abjuration",
-          castingTime: "1 reaction (triggered when you are hit or targeted by Magic Missile)",
-          range: "Self",
-          duration: "1 round",
-          components: "V, S",
-          savingThrow: "None",
-          description: "A shimmering barrier increases your AC by 5 until the start of your next turn and negates Magic Missile automatically.",
-          source: "SRD 5.1",
-          keywords: ["defense", "reaction", "abjuration"]
-        },
-        {
-          name: "Mage Hand",
-          level: 0,
-          school: "Conjuration",
-          castingTime: "1 action",
-          range: "30 feet",
-          duration: "1 minute",
-          components: "V, S",
-          savingThrow: "None",
-          description: "Create a spectral hand that manipulates objects within range, carrying up to 10 pounds, opening doors, or storing items in containers.",
-          source: "SRD 5.1",
-          keywords: ["utility", "manipulation", "cantrip"]
         },
         {
           name: "Hold Person",
           level: 2,
           school: "Enchantment",
+          classes: ["Cleric", "Druid", "Wizard", "Bard", "Paladin"],
+          edition: "OD&D · AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Lock a humanoid in place with a Wisdom save or remain paralyzed, a classic control option that forces repeat saves at the end of each turn.",
           castingTime: "1 action",
           range: "60 feet",
           duration: "Up to 1 minute (concentration)",
-          components: "V, S, M (a small, straight piece of iron)",
+          components: "V, S, M (a straight iron bar)",
           savingThrow: "Wisdom negates",
-          description: "Paralyze a humanoid target. On a failed save the creature is incapacitated and restrained, repeating the save at the end of each turn.",
-          source: "SRD 5.1",
+          source: "SRD 5.1, d20 SRD",
           keywords: ["control", "paralysis", "concentration"]
         },
         {
           name: "Detect Magic",
           level: 1,
           school: "Divination",
+          classes: ["Wizard", "Cleric", "Druid", "Bard", "Paladin (Devotion)"],
+          edition: "OD&D · AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Sense active spells and magical auras within 30 feet, revealing the school of magic with focused attention and available as a ritual in most modern rulesets.",
           castingTime: "1 action",
           range: "Self (30-foot radius)",
           duration: "Up to 10 minutes (concentration)",
           components: "V, S",
           savingThrow: "None",
-          description: "Sense the presence of magic within 30 feet. You learn the school of magic with your action when examining a visible aura behind most barriers.",
-          source: "SRD 5.1",
+          source: "SRD 5.1, d20 SRD",
           keywords: ["utility", "detection", "ritual"]
         },
         {
-          name: "Counterspell",
-          level: 3,
+          name: "Shield",
+          level: 1,
           school: "Abjuration",
-          castingTime: "1 reaction (triggered by a creature casting a spell within 60 feet)",
-          range: "60 feet",
-          duration: "Instantaneous",
-          components: "S",
+          classes: ["Wizard", "Sorcerer", "Arcane Trickster", "Eldritch Knight"],
+          edition: "AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Summon an instant barrier to boost AC by 5 and negate Magic Missile, keeping fragile casters alive when an attack slips past their defenses.",
+          castingTime: "1 reaction (triggered when targeted)",
+          range: "Self",
+          duration: "1 round",
+          components: "V, S",
           savingThrow: "None",
-          description: "Interrupt another caster. Automatically stops spells of 3rd level or lower; make an ability check for higher-level spells using your spellcasting ability.",
-          source: "SRD 5.1",
-          keywords: ["reaction", "control", "defense"]
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["defense", "reaction", "abjuration"]
+        },
+        {
+          name: "Cone of Cold",
+          level: 5,
+          school: "Evocation",
+          classes: ["Wizard", "Sorcerer"],
+          edition: "AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Project a 60-foot cone of freezing wind for 8d8 cold damage, a higher-tier alternative to fireball that punishes clustered foes with a different damage type.",
+          castingTime: "1 action",
+          range: "Self (60-foot cone)",
+          duration: "Instantaneous",
+          components: "V, S, M (a crystal or glass cone)",
+          savingThrow: "Constitution half",
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["cold", "area", "damage"]
+        },
+        {
+          name: "Silence",
+          level: 2,
+          school: "Illusion",
+          classes: ["Cleric", "Druid", "Bard", "Ranger"],
+          edition: "BECMI · AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Create a 20-foot-radius zone where no sound can be created, crippling verbal spellcasting and stealth checks that rely on noise.",
+          castingTime: "1 action",
+          range: "120 feet",
+          duration: "Up to 10 minutes (concentration)",
+          components: "V, S",
+          savingThrow: "None",
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["control", "utility", "area"]
+        },
+        {
+          name: "Mage Hand",
+          level: 0,
+          school: "Conjuration",
+          classes: ["Wizard", "Sorcerer", "Bard", "Warlock"],
+          edition: "OD&D · AD&D 1e · 3.5e SRD · 5e SRD",
+          summary: "Conjure a spectral hand that manipulates unattended objects, pulls levers, and delivers small items safely from a distance.",
+          castingTime: "1 action",
+          range: "30 feet",
+          duration: "1 minute",
+          components: "V, S",
+          savingThrow: "None",
+          source: "SRD 5.1, d20 SRD",
+          keywords: ["utility", "manipulation", "cantrip"]
         }
       ];
 
@@ -1688,7 +1737,8 @@
       const spellQuery = document.getElementById("spell-query");
       const spellLevelSelect = document.getElementById("spell-level-filter");
       const spellSchoolSelect = document.getElementById("spell-school-filter");
-      const spellKeywordInput = document.getElementById("spell-keyword-filter");
+      const spellClassSelect = document.getElementById("spell-class-filter");
+      const spellEditionSelect = document.getElementById("spell-edition-filter");
       const spellsList = document.getElementById("spells-list");
 
       const conditionQuery = document.getElementById("condition-query");
@@ -1714,6 +1764,22 @@
         option.value = school;
         option.textContent = school;
         spellSchoolSelect.appendChild(option);
+      });
+
+      const uniqueSpellClasses = Array.from(new Set(SPELLS.flatMap(spell => spell.classes || []))).sort();
+      uniqueSpellClasses.forEach(cls => {
+        const option = document.createElement("option");
+        option.value = cls;
+        option.textContent = cls;
+        spellClassSelect.appendChild(option);
+      });
+
+      const uniqueSpellEditions = Array.from(new Set(SPELLS.map(spell => spell.edition))).sort();
+      uniqueSpellEditions.forEach(edition => {
+        const option = document.createElement("option");
+        option.value = edition;
+        option.textContent = edition;
+        spellEditionSelect.appendChild(option);
       });
 
       const durationLabels = {
@@ -1742,31 +1808,41 @@
         const nameQuery = spellQuery.value.toLowerCase().trim();
         const levelFilter = spellLevelSelect.value;
         const schoolFilter = spellSchoolSelect.value;
-        const keywordQuery = spellKeywordInput.value.toLowerCase().trim();
+        const classFilter = spellClassSelect.value;
+        const editionFilter = spellEditionSelect.value;
 
         spellsList.innerHTML = "";
 
         const results = SPELLS.filter(spell => {
-          const matchesName = !nameQuery || spell.name.toLowerCase().includes(nameQuery);
-          const matchesLevel = levelFilter === "all" || String(spell.level) === levelFilter;
-          const matchesSchool = schoolFilter === "all" || spell.school === schoolFilter;
-          const matchesKeyword = !keywordQuery || [
-            spell.description,
-            spell.components,
+          const searchableFields = [
+            spell.name,
+            spell.summary,
+            spell.school,
+            spell.edition,
+            spell.source,
             spell.castingTime,
             spell.range,
             spell.duration,
+            spell.components,
+            spell.savingThrow,
+            ...(spell.classes || []),
             ...(spell.keywords || [])
           ]
             .filter(Boolean)
-            .some(field => field.toLowerCase().includes(keywordQuery));
+            .map(field => field.toLowerCase());
 
-          return matchesName && matchesLevel && matchesSchool && matchesKeyword;
+          const matchesQuery = !nameQuery || searchableFields.some(field => field.includes(nameQuery));
+          const matchesLevel = levelFilter === "all" || String(spell.level) === levelFilter;
+          const matchesSchool = schoolFilter === "all" || spell.school === schoolFilter;
+          const matchesClass = classFilter === "all" || (spell.classes || []).includes(classFilter);
+          const matchesEdition = editionFilter === "all" || spell.edition === editionFilter;
+
+          return matchesQuery && matchesLevel && matchesSchool && matchesClass && matchesEdition;
         });
 
         if (!results.length) {
           const empty = document.createElement("p");
-          empty.textContent = "No spells match your filters yet. Try adjusting the level, school, or keywords.";
+          empty.textContent = "No spells match your filters yet. Try adjusting the level, school, class, or edition.";
           empty.style.opacity = "0.75";
           spellsList.appendChild(empty);
           return;
@@ -1789,6 +1865,8 @@
           const meta = document.createElement("div");
           meta.className = "collapsible-meta";
           meta.innerHTML = `
+            <span><strong>Classes:</strong> ${spell.classes?.join(", ") || "—"}</span>
+            <span><strong>Edition Coverage:</strong> ${spell.edition}</span>
             <span><strong>Casting Time:</strong> ${spell.castingTime}</span>
             <span><strong>Range:</strong> ${spell.range}</span>
             <span><strong>Duration:</strong> ${spell.duration}</span>
@@ -1800,7 +1878,7 @@
 
           const body = document.createElement("div");
           body.className = "collapsible-content";
-          body.textContent = spell.description;
+          body.textContent = spell.summary;
           details.appendChild(body);
 
           if (spell.keywords?.length) {
@@ -1911,7 +1989,8 @@
       spellQuery.addEventListener("input", renderSpells);
       spellLevelSelect.addEventListener("change", renderSpells);
       spellSchoolSelect.addEventListener("change", renderSpells);
-      spellKeywordInput.addEventListener("input", renderSpells);
+      spellClassSelect.addEventListener("change", renderSpells);
+      spellEditionSelect.addEventListener("change", renderSpells);
 
       conditionQuery.addEventListener("input", renderConditions);
       conditionDurationSelect.addEventListener("change", renderConditions);
@@ -1968,7 +2047,10 @@
           navButtons.forEach(b => b.classList.remove("active"));
           sections.forEach(sec => sec.classList.remove("active"));
           btn.classList.add("active");
-          document.getElementById(btn.dataset.target).classList.add("active");
+          const targetSection = document.getElementById(btn.dataset.target);
+          if (targetSection) {
+            targetSection.classList.add("active");
+          }
         });
       });
 
