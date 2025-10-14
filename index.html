@@ -3,84 +3,776 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>D&D In-Browser LLM (Gemma-2-2B-it)</title>
+    <title>D&D Companion – Ask the DM</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 800px; }
-      #log { white-space: pre-wrap; border: 1px solid #ccc; padding: 1rem; height: 320px; overflow: auto; }
-      button { padding: .6rem 1rem; }
+      :root {
+        color-scheme: light dark;
+        --bg: #0e141a;
+        --surface: rgba(255, 255, 255, 0.08);
+        --text: #f5f5f5;
+        --accent: #d96d28;
+        --accent-dark: #b3571e;
+        font-family: "Inter", "Segoe UI", system-ui, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 70%), var(--bg);
+        color: var(--text);
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+
+      header {
+        padding: 1.5rem 1rem 1rem;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0 0 0.25rem;
+        font-size: clamp(1.8rem, 4vw, 2.4rem);
+        letter-spacing: 0.08em;
+      }
+
+      header p {
+        margin: 0;
+        opacity: 0.8;
+        font-size: 0.95rem;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem 2rem;
+        max-width: 980px;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      .card {
+        background: rgba(15, 22, 32, 0.82);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 18px;
+        padding: 1.25rem;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.28);
+        backdrop-filter: blur(12px);
+      }
+
+      nav {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 0.5rem;
+      }
+
+      nav button {
+        background: transparent;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 0.65rem 0.9rem;
+        color: inherit;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        transition: all 180ms ease;
+      }
+
+      nav button.active {
+        background: var(--accent);
+        border-color: transparent;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(217, 109, 40, 0.4);
+      }
+
+      nav button:active {
+        transform: translateY(1px);
+      }
+
+      section {
+        display: none;
+      }
+
+      section.active {
+        display: block;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .status span {
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #ffbe4d;
+        display: inline-block;
+      }
+
+      .status.ready span { background: #31c48d; }
+      .status.generating span { background: #ff7849; }
+
+      .chat-log {
+        height: clamp(240px, 40vh, 420px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+        border-radius: 14px;
+        background: rgba(5, 9, 16, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+      }
+
+      .bubble {
+        padding: 0.85rem 1rem;
+        border-radius: 12px;
+        line-height: 1.45;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+      }
+
+      .bubble.user {
+        align-self: flex-end;
+        background: rgba(217, 109, 40, 0.18);
+        border-top-right-radius: 4px;
+      }
+
+      .bubble.assistant {
+        background: rgba(255, 255, 255, 0.04);
+        border-top-left-radius: 4px;
+      }
+
+      .chat-input {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .chat-input textarea {
+        flex: 1;
+        min-height: 68px;
+        resize: vertical;
+        border-radius: 12px;
+        padding: 0.75rem;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        font-size: 1rem;
+      }
+
+      .chat-input button {
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        padding: 0.75rem 1.1rem;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        min-width: 110px;
+        box-shadow: 0 12px 30px rgba(217, 109, 40, 0.4);
+        transition: background 160ms ease, transform 160ms ease;
+      }
+
+      .chat-input button:disabled {
+        opacity: 0.6;
+        cursor: wait;
+        box-shadow: none;
+      }
+
+      .chat-input button:not(:disabled):active {
+        transform: translateY(1px);
+        background: var(--accent-dark);
+      }
+
+      .quick-prompts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+      }
+
+      .quick-prompts button {
+        background: rgba(255, 255, 255, 0.08);
+        border: none;
+        color: inherit;
+        padding: 0.5rem 0.8rem;
+        border-radius: 999px;
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+
+      .quick-prompts button:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      details {
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 1rem;
+        background: rgba(5, 9, 16, 0.65);
+      }
+
+      details summary {
+        cursor: pointer;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+      }
+
+      .rules-grid {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .rules-section {
+        margin-top: 0.75rem;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        padding-top: 0.75rem;
+      }
+
+      .rules-section ul,
+      .expansion-list ul {
+        margin: 0.35rem 0 0;
+        padding-left: 1.25rem;
+      }
+
+      .expansion-list li {
+        margin-bottom: 0.2rem;
+      }
+
+      .pill {
+        display: inline-block;
+        background: rgba(217, 109, 40, 0.22);
+        color: #ffdcb5;
+        border-radius: 999px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+
+      .items-search {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .items-search input,
+      .items-search select {
+        width: 100%;
+        padding: 0.65rem 0.85rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+      }
+
+      .item-card {
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.04);
+      }
+
+      .item-card h4 {
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        font-size: 1rem;
+      }
+
+      .item-card p {
+        margin: 0.45rem 0 0;
+        line-height: 1.5;
+        opacity: 0.85;
+      }
+
+      footer {
+        text-align: center;
+        padding: 1.5rem 1rem 2rem;
+        opacity: 0.7;
+        font-size: 0.8rem;
+      }
+
+      @media (min-width: 768px) {
+        main {
+          padding: 0 2rem 2.5rem;
+        }
+      }
     </style>
   </head>
   <body>
-    <h1>Gemma-2-2B-it (WebLLM)</h1>
-    <p>Status: <span id="status">initializing…</span></p>
-    <div id="log"></div>
-    <p>
-      <button id="run">Generate 3 quest hooks</button>
-    </p>
+    <header>
+      <h1>D&D Companion</h1>
+      <p>Ask the DM · Browse every edition · Reference gear &amp; loot</p>
+    </header>
+
+    <main>
+      <nav class="card">
+        <button class="active" data-target="ask">Ask the DM</button>
+        <button data-target="rules">Rules Compendium</button>
+        <button data-target="items">Item &amp; Gear Vault</button>
+      </nav>
+
+      <section id="ask" class="card active">
+        <h2>Ask the DM</h2>
+        <p>Chat with a lore-savvy Dungeon Master powered by an on-device LLM. Ask about rules, ruling conflicts, worldbuilding prompts, or create custom content for any edition.</p>
+        <div class="status" id="status"><span></span><strong>Initializing engine…</strong></div>
+        <div class="chat-log" id="chat-log"></div>
+        <div class="chat-input">
+          <textarea id="prompt" placeholder="Ask anything about D&D…" aria-label="Ask the DM"></textarea>
+          <button id="send" disabled>Send</button>
+        </div>
+        <div class="quick-prompts" aria-label="Quick prompts">
+          <button data-prompt="How do concentration checks work in D&D 5e?">Concentration rules (5e)</button>
+          <button data-prompt="Explain the grapple rules in D&D 3.5 with examples.">Grapple (3.5)</button>
+          <button data-prompt="What are the core differences between D&D 5e and One D&D 2024 classes?">Edition comparison</button>
+          <button data-prompt="Generate a level 5 treasure hoard with items from multiple editions.">Treasure hoard</button>
+        </div>
+      </section>
+
+      <section id="rules" class="card">
+        <h2>Rules Compendium</h2>
+        <p>Review every major Dungeons &amp; Dragons edition. Each entry includes core rules coverage, iconic subsystems, and the official SRDs or rulebooks to consult for full detail.</p>
+        <div class="rules-grid" id="rules-grid"></div>
+      </section>
+
+      <section id="items" class="card">
+        <h2>Item &amp; Gear Vault</h2>
+        <p>Search across equipment, magic items, and artifacts spanning multiple editions. Filter by type or rarity and tap an item to review its summary and primary source.</p>
+        <div class="items-search">
+          <input type="search" id="item-query" placeholder="Search by name, effect, or source" aria-label="Search items" />
+          <select id="item-filter" aria-label="Filter rarity">
+            <option value="all">All rarities</option>
+          </select>
+        </div>
+        <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
+      </section>
+    </main>
+
+    <footer>
+      Built with WebLLM (Gemma-2-2B-it) so your DM helper runs entirely in the browser. Sources reference the SRD/OGL materials for each edition.
+    </footer>
 
     <script type="module">
-      // Import WebLLM via CDN
-      const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+      const RULES_DATA = [
+        {
+          edition: "5th Edition (2014 SRD, 2016 SRD 5.1)",
+          tagline: "Modern streamlined rules built on bounded accuracy and advantage/disadvantage.",
+          keySystems: [
+            "Advantage & Disadvantage mechanics",
+            "Proficiency bonus progression",
+            "Backgrounds, feats (optional), multiclass prerequisites",
+            "Concentration-based spell maintenance",
+            "Unified challenge rating and encounter building guidelines"
+          ],
+          expansions: [
+            "Player's Handbook (core classes, species, spells)",
+            "Dungeon Master's Guide (magic item creation, optional rules)",
+            "Monster Manual + Mordenkainen Presents (creature lore)",
+            "Xanathar's Guide to Everything (expanded subclasses, downtime)",
+            "Tasha's Cauldron of Everything (group patrons, alternate class features)"
+          ],
+          srds: [
+            { label: "Systems Reference Document 5.1", url: "https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf" },
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" }
+          ]
+        },
+        {
+          edition: "One D&D / 2024 Core Rules",
+          tagline: "Upcoming refresh with revised classes, species terminology, and weapon masteries.",
+          keySystems: [
+            "Rebalanced class progression with common subclass levels",
+            "Weapon mastery properties and new weapon categories",
+            "Revised spell lists grouped by class-specific traditions",
+            "Species traits grouped into Heritage & Culture blocks",
+            "Epic boons and tiered play updates"
+          ],
+          expansions: [
+            "Player's Handbook (2024)",
+            "Dungeon Master's Guide (2024) with revised encounter-building and bastions",
+            "Monster Manual (2025) introducing updated stat block templates"
+          ],
+          srds: [
+            { label: "Unearthed Arcana archive", url: "https://www.dndbeyond.com/sources/ua" },
+            { label: "Rules Glossary (Playtest 8)", url: "https://www.dndbeyond.com/sources/ua/ph-playtest-8" }
+          ]
+        },
+        {
+          edition: "3.5 Edition (Revised d20 System)",
+          tagline: "Crunch-heavy rules with granular feats, prestige classes, and tactical combat options.",
+          keySystems: [
+            "Base attack bonus (BAB) and iterative attacks",
+            "Skill ranks with cross-class costs",
+            "AoO (attacks of opportunity) trigger matrix",
+            "Prestige class entry requirements",
+            "Metamagic level adjustments and item creation feats"
+          ],
+          expansions: [
+            "Player's Handbook v3.5",
+            "Dungeon Master's Guide v3.5",
+            "Monster Manual v3.5",
+            "Complete series (Arcane, Divine, Warrior, Adventurer)",
+            "Tome of Battle, Expanded Psionics Handbook"
+          ],
+          srds: [
+            { label: "d20 SRD", url: "https://www.d20srd.org/" },
+            { label: "3.5 Expanded SRD", url: "https://www.dandwiki.com/wiki/3.5e_SRD" }
+          ]
+        },
+        {
+          edition: "Pathfinder 1e (3.5 derivative)",
+          tagline: "Paizo's revision with archetypes, favored class bonuses, and robust adventure paths.",
+          keySystems: [
+            "Combat maneuvers (CMB/CMD)",
+            "Archetypes to customize base classes",
+            "Favored class bonuses and traits",
+            "Mythic Adventures & kingdom building subsystems",
+            "Extensive bestiary with template rules"
+          ],
+          expansions: [
+            "Core Rulebook",
+            "Advanced Player's Guide",
+            "Ultimate Combat & Magic",
+            "Mythic Adventures",
+            "Ultimate Campaign (kingdom & downtime rules)"
+          ],
+          srds: [
+            { label: "Archives of Nethys", url: "https://aonprd.com/" }
+          ]
+        },
+        {
+          edition: "4th Edition",
+          tagline: "Tactical, power-card driven combat with roles and structured encounters.",
+          keySystems: [
+            "At-will/encounter/daily power cadence",
+            "Role-based design (Defender, Striker, Leader, Controller)",
+            "Healing surges and short-rest resource loops",
+            "Skill challenges for narrative resolution",
+            "Monster design math with level-based templates"
+          ],
+          expansions: [
+            "Player's Handbooks I-III",
+            "Martial, Arcane, Primal, Divine Power",
+            "Essentials line (Heroes of the Fallen Lands/Feywild)",
+            "Dungeon Master's Guide I-II",
+            "Monster Manuals I-III"
+          ],
+          srds: [
+            { label: "4e Compendium (archived)", url: "https://web.archive.org/web/20160817123609/http://www.wizards.com/dndinsider/compendium/database.aspx" },
+            { label: "4e Quick Rules Reference", url: "https://rpg.stackexchange.com/questions/12304/quick-reference-for-dnd-4e-rules" }
+          ]
+        },
+        {
+          edition: "AD&D 2nd Edition",
+          tagline: "THAC0-based combat, proficiencies, and classic campaign settings like Planescape and Dark Sun.",
+          keySystems: [
+            "THAC0 progression and descending Armor Class",
+            "Non-weapon proficiencies",
+            "Spheres of priest magic",
+            "Specialist wizards and school opposition",
+            "Morale, reaction, and encounter tables"
+          ],
+          expansions: [
+            "Player's Handbook",
+            "Dungeon Master's Guide",
+            "Monstrous Compendium/Manual",
+            "Skills & Powers, Spells & Magic optional rules",
+            "Campaign settings: Planescape, Dark Sun, Ravenloft"
+          ],
+          srds: [
+            { label: "AD&D 2e Core Rules (archive)", url: "https://annarchive.com/files/Drmg244.pdf" },
+            { label: "TSR Reference (mirror)", url: "https://www.dragonsfoot.org/forums/viewtopic.php?t=30584" }
+          ]
+        },
+        {
+          edition: "BECMI / Rules Cyclopedia",
+          tagline: "Classic basic-to-immortal progression with race-as-class and domain play.",
+          keySystems: [
+            "Race-as-class progression",
+            "Race-specific spell lists",
+            "War machine mass combat",
+            "Domain management at Name level",
+            "Weapon mastery tiers"
+          ],
+          expansions: [
+            "Basic/Expert/Companion/Master/Immortal boxed sets",
+            "Rules Cyclopedia",
+            "Gazetteer series for Mystara",
+            "Wrath of the Immortals",
+            "Creature Catalogue"
+          ],
+          srds: [
+            { label: "Rules Cyclopedia Index", url: "https://www.dragonsfoot.org/forums/viewtopic.php?t=36241" }
+          ]
+        }
+      ];
 
-      const logEl = document.getElementById("log");
-      const statusEl = document.getElementById("status");
-      const println = (x) => (logEl.textContent += x + "\n");
+      const ITEMS = [
+        { name: "Vorpal Sword", type: "Weapon", rarity: "Legendary", edition: "1e+", description: "On a critical hit, the sword severs the target's head if it has one and is susceptible to critical hits.", source: "DMG (multiple editions)" },
+        { name: "Bag of Holding", type: "Wondrous Item", rarity: "Uncommon", edition: "OD&D+", description: "Extra-dimensional storage holding up to 500 lb while weighing a fraction of the contents.", source: "SRD 5.1, DMG" },
+        { name: "Deck of Many Things", type: "Wondrous Item", rarity: "Legendary", edition: "1e+", description: "Draw from the deck to gain boons or banes ranging from treasure and XP to imprisonment.", source: "DMG" },
+        { name: "Sun Blade", type: "Weapon", rarity: "Rare", edition: "1e+", description: "Versatile finesse longsword emitting radiant damage and bright sunlight on command.", source: "SRD 5.1" },
+        { name: "Winged Boots", type: "Wondrous Item", rarity: "Uncommon", edition: "1e+", description: "Grants a flying speed equal to your walking speed for limited durations per day.", source: "SRD 5.1" },
+        { name: "Portable Hole", type: "Wondrous Item", rarity: "Rare", edition: "1e+", description: "Creates an extradimensional space 10 ft deep that can be folded and carried.", source: "SRD 5.1" },
+        { name: "Immovable Rod", type: "Wondrous Item", rarity: "Uncommon", edition: "1e+", description: "Pressing a button causes the rod to defy gravity and remain fixed in space until released.", source: "SRD 5.1" },
+        { name: "Plate Armor", type: "Armor", rarity: "Standard", edition: "All", description: "Heavy armor granting high AC with disadvantage on Stealth checks and a Strength requirement in newer editions.", source: "PHB" },
+        { name: "Elven Chain", type: "Armor", rarity: "Rare", edition: "1e+", description: "Lightweight chainmail granting advantage on Dexterity checks to avoid stealth penalties.", source: "DMG" },
+        { name: "Staff of Power", type: "Staff", rarity: "Very Rare", edition: "1e+", description: "Versatile arcane focus with charges for spells, a retributive strike, and AC/attack bonuses.", source: "DMG" },
+        { name: "Manual of Quickness of Action", type: "Wondrous Item", rarity: "Very Rare", edition: "1e+", description: "Study increases Dexterity permanently once and then loses magic.", source: "DMG" },
+        { name: "Alchemy Jug", type: "Wondrous Item", rarity: "Uncommon", edition: "5e", description: "Produces various liquids each day like mayonnaise, acid, or oil as chosen.", source: "SRD 5.1" },
+        { name: "Keoghtom's Ointment", type: "Wondrous Item", rarity: "Uncommon", edition: "1e+", description: "Salve that heals hit points, cures poison, and disease when applied.", source: "DMG" },
+        { name: "Bracers of Defense", type: "Wondrous Item", rarity: "Rare", edition: "1e+", description: "Grants AC bonus when not wearing armor or using a shield.", source: "SRD 5.1" },
+        { name: "Cloak of Displacement", type: "Wondrous Item", rarity: "Rare", edition: "1e+", description: "Projects an illusion causing attackers to have disadvantage until you are hit.", source: "DMG" }
+      ];
 
-      // Discover available prebuilt models (names vary with releases)
-      println("Fetching prebuilt model list…");
-      const models = webllm.prebuiltAppConfig.model_list;
-      println(JSON.stringify(models.map(m => m.model_id), null, 2));
+      const rarityOptions = [
+        "Common",
+        "Uncommon",
+        "Rare",
+        "Very Rare",
+        "Legendary",
+        "Artifact",
+        "Standard"
+      ];
 
-      // Pick a Gemma-2B instruct model. Common id pattern includes "Gemma-2-2B-it".
-      // If you don't see it in the list, update WebLLM or use another supported small model.
-      const selectedModel =
-        models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
-        ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id // fallback
-        ?? models[0].model_id;
+      const navButtons = document.querySelectorAll("nav button");
+      const sections = document.querySelectorAll("main section");
+      navButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          navButtons.forEach(b => b.classList.remove("active"));
+          sections.forEach(sec => sec.classList.remove("active"));
+          btn.classList.add("active");
+          document.getElementById(btn.dataset.target).classList.add("active");
+        });
+      });
 
-      println(`Selected model: ${selectedModel}`);
+      // Populate rules compendium
+      const rulesGrid = document.getElementById("rules-grid");
+      RULES_DATA.forEach(rule => {
+        const details = document.createElement("details");
+        const summary = document.createElement("summary");
+        summary.innerHTML = `<span>${rule.edition}</span>`;
+        details.appendChild(summary);
 
-      // Show download / compile progress
-      const initProgressCallback = (p) => {
-        statusEl.textContent = `[${p.progress * 100 | 0}%] ${p.text || p.stage}`;
+        const tagline = document.createElement("p");
+        tagline.textContent = rule.tagline;
+        tagline.style.marginTop = "0.5rem";
+        tagline.style.opacity = "0.85";
+        details.appendChild(tagline);
+
+        const systems = document.createElement("div");
+        systems.className = "rules-section";
+        systems.innerHTML = `<strong>Signature systems</strong>`;
+        const ul = document.createElement("ul");
+        rule.keySystems.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          ul.appendChild(li);
+        });
+        systems.appendChild(ul);
+        details.appendChild(systems);
+
+        const expansions = document.createElement("div");
+        expansions.className = "rules-section expansion-list";
+        expansions.innerHTML = `<strong>Key rulebooks & expansions</strong>`;
+        const ulExp = document.createElement("ul");
+        rule.expansions.forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          ulExp.appendChild(li);
+        });
+        expansions.appendChild(ulExp);
+        details.appendChild(expansions);
+
+        const links = document.createElement("div");
+        links.className = "rules-section";
+        links.innerHTML = `<strong>Primary references & SRDs</strong>`;
+        const linkList = document.createElement("ul");
+        rule.srds.forEach(srd => {
+          const li = document.createElement("li");
+          li.innerHTML = `<a href="${srd.url}" target="_blank" rel="noopener">${srd.label}</a>`;
+          linkList.appendChild(li);
+        });
+        links.appendChild(linkList);
+        details.appendChild(links);
+
+        rulesGrid.appendChild(details);
+      });
+
+      // Populate item filters
+      const raritySelect = document.getElementById("item-filter");
+      rarityOptions.forEach(rarity => {
+        const option = document.createElement("option");
+        option.value = rarity;
+        option.textContent = rarity;
+        raritySelect.appendChild(option);
+      });
+
+      const itemsList = document.getElementById("items-list");
+      const itemQuery = document.getElementById("item-query");
+
+      const renderItems = () => {
+        const query = itemQuery.value.toLowerCase().trim();
+        const rarity = raritySelect.value;
+        itemsList.innerHTML = "";
+        const results = ITEMS.filter(item => {
+          const matchesQuery = !query || [item.name, item.description, item.source, item.type, item.edition].some(field => field.toLowerCase().includes(query));
+          const matchesRarity = rarity === "all" || item.rarity === rarity;
+          return matchesQuery && matchesRarity;
+        });
+
+        if (!results.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "No items match your filters yet. Try a different search term.";
+          empty.style.opacity = "0.75";
+          itemsList.appendChild(empty);
+          return;
+        }
+
+        results.forEach(item => {
+          const card = document.createElement("article");
+          card.className = "item-card";
+          card.innerHTML = `
+            <h4>${item.name} <span class="pill">${item.rarity}</span></h4>
+            <p><strong>Type:</strong> ${item.type} · <strong>Edition:</strong> ${item.edition}</p>
+            <p>${item.description}</p>
+            <p style="font-size: 0.85rem; opacity: 0.7;"><strong>Source:</strong> ${item.source}</p>
+          `;
+          itemsList.appendChild(card);
+        });
       };
 
-      // Create and load the engine (first load caches model files; subsequent loads are fast)
-      const engine = await webllm.CreateMLCEngine(selectedModel, { initProgressCallback });
+      itemQuery.addEventListener("input", renderItems);
+      raritySelect.addEventListener("change", renderItems);
+      renderItems();
 
-      statusEl.textContent = "ready";
+      // WebLLM setup
+      const logEl = document.getElementById("chat-log");
+      const promptEl = document.getElementById("prompt");
+      const sendBtn = document.getElementById("send");
+      const statusEl = document.getElementById("status");
 
-      // Helper: stream a reply
-      async function stream(messages, opts = {}) {
+      const messages = [
+        {
+          role: "system",
+          content: `You are an expert Dungeon Master and rules archivist for every edition of Dungeons & Dragons.
+Provide concise, citation-style answers drawing on SRDs, rulebooks, and designer commentary.
+If content might differ between editions, call out each edition explicitly.
+Always encourage players to consult the cited books for full rules text.
+Avoid reproducing copyrighted text verbatim; summarize mechanics instead.
+Stay family friendly and inclusive.`
+        }
+      ];
+
+      const appendMessage = (role, content) => {
+        const bubble = document.createElement("div");
+        bubble.className = `bubble ${role}`;
+        bubble.textContent = content;
+        logEl.appendChild(bubble);
+        logEl.scrollTop = logEl.scrollHeight;
+      };
+
+      appendMessage("assistant", "Welcome, adventurer! I'm your digital Dungeon Master. Ask me about any rule, edition, or item and I'll guide you to the right table, chapter, or adjudication.");
+
+      const updateStatus = (text, state = "") => {
+        statusEl.classList.remove("ready", "generating");
+        if (state) statusEl.classList.add(state);
+        statusEl.querySelector("strong").textContent = text;
+      };
+
+      updateStatus("Initializing engine…");
+
+      const webllm = await import("https://esm.run/@mlc-ai/web-llm");
+      const models = webllm.prebuiltAppConfig.model_list;
+      const selectedModel =
+        models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
+        ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
+        ?? models[0].model_id;
+
+      let engine;
+      try {
+        engine = await webllm.CreateMLCEngine(selectedModel, {
+          initProgressCallback: (p) => updateStatus(`${Math.floor(p.progress * 100)}% · ${p.text || p.stage}`)
+        });
+        updateStatus("Ready to answer questions", "ready");
+        sendBtn.disabled = false;
+      } catch (err) {
+        console.error(err);
+        updateStatus("Failed to load WebLLM. Refresh and ensure WebGPU is enabled.");
+        return;
+      }
+
+      async function streamReply(messages, opts = {}) {
         const chunks = await engine.chat.completions.create({
           messages,
-          temperature: 0.8,
-          max_tokens: 350,
+          temperature: 0.5,
+          max_tokens: 400,
           stream: true,
           stream_options: { include_usage: true },
           ...opts
         });
         let out = "";
         for await (const c of chunks) {
-          out += c.choices?.[0]?.delta?.content || "";
-          statusEl.textContent = "generating…";
+          const delta = c.choices?.[0]?.delta?.content || "";
+          out += delta;
+          if (delta) {
+            if (!logEl.lastChild || !logEl.lastChild.classList.contains("assistant")) {
+              const bubble = document.createElement("div");
+              bubble.className = "bubble assistant";
+              bubble.textContent = delta;
+              logEl.appendChild(bubble);
+            } else {
+              logEl.lastChild.textContent += delta;
+            }
+            logEl.scrollTop = logEl.scrollHeight;
+          }
+          updateStatus("Generating response…", "generating");
         }
-        statusEl.textContent = "ready";
         return out.trim();
       }
 
-      // D&D-specific example: JSON quest hooks for a coastal city
-      document.getElementById("run").onclick = async () => {
-        println("\n--- Requesting 3 quest hooks (JSON) ---");
-        const messages = [
-          { role: "system", content: "Return compact JSON only under the provided schema. Keep PG-13." },
-          { role: "user", content: `Make 3 quest hooks in a windswept coastal city.
-Schema:
-{"hooks":[{"title":"string","summary":"1-2 sentences","stakes":"1 sentence","twist":"1 sentence"}]}` }
-        ];
-        const reply = await stream(messages, { response_format: { type: "json_object" } });
-        println(reply);
+      const sendPrompt = async () => {
+        const text = promptEl.value.trim();
+        if (!text) return;
+        promptEl.value = "";
+        appendMessage("user", text);
+        messages.push({ role: "user", content: text });
+        sendBtn.disabled = true;
+        try {
+          const reply = await streamReply(messages);
+          messages.push({ role: "assistant", content: reply });
+          updateStatus("Ready", "ready");
+        } catch (error) {
+          console.error(error);
+          appendMessage("assistant", "I ran into an error generating that response. Please try again.");
+          updateStatus("Encountered an error");
+        } finally {
+          sendBtn.disabled = false;
+        }
       };
+
+      sendBtn.addEventListener("click", sendPrompt);
+      promptEl.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter" && !ev.shiftKey) {
+          ev.preventDefault();
+          sendPrompt();
+        }
+      });
+
+      document.querySelectorAll(".quick-prompts button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          promptEl.value = btn.dataset.prompt;
+          promptEl.focus();
+        });
+      });
     </script>
   </body>
 </html>
