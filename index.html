@@ -90,6 +90,439 @@
         transform: translateY(1px);
       }
 
+      .encounter-layout {
+        display: grid;
+        gap: 1rem;
+      }
+
+      .encounter-column {
+        display: grid;
+        gap: 0.85rem;
+        padding: 1rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .encounter-column header h3 {
+        margin: 0;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+
+      .encounter-column header p {
+        margin: 0.35rem 0 0;
+        line-height: 1.5;
+        opacity: 0.8;
+        font-size: 0.9rem;
+      }
+
+      .party-config {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: flex-end;
+      }
+
+      .party-config label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .party-config input {
+        background: rgba(0, 0, 0, 0.4);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 10px;
+        padding: 0.55rem 0.6rem;
+        font-size: 1rem;
+        min-width: 4.5rem;
+      }
+
+      .encounter-search {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .encounter-search input[type="search"] {
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        padding: 0.7rem 0.9rem;
+        font-size: 1rem;
+      }
+
+      .encounter-search-results {
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .encounter-result {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem 0.9rem;
+        border-radius: 12px;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .encounter-result strong {
+        display: block;
+        font-size: 1rem;
+      }
+
+      .encounter-result span {
+        display: block;
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+
+      .encounter-result button {
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        padding: 0.55rem 0.9rem;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 10px 22px rgba(217, 109, 40, 0.35);
+      }
+
+      .roster-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.55rem;
+      }
+
+      .roster-empty {
+        opacity: 0.7;
+        font-size: 0.9rem;
+      }
+
+      .roster-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: rgba(0, 0, 0, 0.35);
+      }
+
+      .roster-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .roster-meta strong {
+        font-size: 1rem;
+      }
+
+      .roster-meta span {
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+
+      .roster-actions {
+        display: inline-flex;
+        gap: 0.35rem;
+        align-items: center;
+      }
+
+      .roster-actions button {
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.35rem 0.6rem;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .encounter-roster button {
+        margin-top: 0.5rem;
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.4rem 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        width: fit-content;
+      }
+
+      .roster-count {
+        font-variant-numeric: tabular-nums;
+        min-width: 2ch;
+        text-align: center;
+      }
+
+      .encounter-summary {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.85rem 0.95rem;
+        border-radius: 14px;
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .difficulty-indicator {
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.9rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .difficulty-indicator::before {
+        content: "";
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: #9ca3af;
+      }
+
+      .difficulty-indicator[data-difficulty="Easy"]::before {
+        background: #31c48d;
+      }
+
+      .difficulty-indicator[data-difficulty="Medium"]::before {
+        background: #fbbf24;
+      }
+
+      .difficulty-indicator[data-difficulty="Hard"]::before {
+        background: #f97316;
+      }
+
+      .difficulty-indicator[data-difficulty="Deadly"]::before {
+        background: #ef4444;
+      }
+
+      .threshold-grid {
+        display: grid;
+        gap: 0.45rem;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      }
+
+      .threshold-grid span {
+        display: block;
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+
+      .threshold-grid strong {
+        display: block;
+        font-size: 1rem;
+      }
+
+      .encounter-quick-adjust {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .encounter-quick-adjust span {
+        opacity: 0.7;
+        font-size: 0.85rem;
+      }
+
+      .encounter-quick-adjust button {
+        background: transparent;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        padding: 0.35rem 0.75rem;
+        color: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .encounter-footnote {
+        font-size: 0.8rem;
+        opacity: 0.65;
+        line-height: 1.4;
+      }
+
+      .initiative-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .initiative-controls button {
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 999px;
+        padding: 0.45rem 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .initiative-form {
+        display: grid;
+        gap: 0.5rem;
+      }
+
+      .initiative-form-row {
+        display: grid;
+        gap: 0.5rem;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      }
+
+      .initiative-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .initiative-form input,
+      .initiative-form select {
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.6rem 0.7rem;
+        font-size: 1rem;
+      }
+
+      .initiative-form button[type="submit"] {
+        justify-self: start;
+        background: var(--accent);
+        border: none;
+        color: #fff;
+        padding: 0.6rem 1.1rem;
+        border-radius: 10px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 12px 24px rgba(217, 109, 40, 0.4);
+      }
+
+      .initiative-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .initiative-entry {
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 12px;
+        padding: 0.75rem 0.85rem;
+        background: rgba(0, 0, 0, 0.35);
+        display: grid;
+        gap: 0.6rem;
+      }
+
+      .initiative-entry.active {
+        border-color: rgba(217, 109, 40, 0.55);
+        box-shadow: 0 0 0 1px rgba(217, 109, 40, 0.35);
+      }
+
+      .initiative-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+
+      .initiative-header strong {
+        font-size: 1rem;
+      }
+
+      .initiative-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem 0.65rem;
+        font-size: 0.8rem;
+        opacity: 0.75;
+      }
+
+      .initiative-conditions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .condition-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(217, 109, 40, 0.22);
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+      }
+
+      .condition-chip button {
+        background: transparent;
+        border: none;
+        color: inherit;
+        cursor: pointer;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .initiative-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        align-items: center;
+      }
+
+      .initiative-actions select,
+      .initiative-actions input {
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.9rem;
+      }
+
+      .initiative-actions button {
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.35rem 0.6rem;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
       section {
         display: none;
       }
@@ -821,6 +1254,16 @@
         .reference-grid {
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         }
+
+        .encounter-layout {
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .encounter-layout {
+          grid-template-columns: 1.4fr 1fr;
+        }
       }
     </style>
   </head>
@@ -834,6 +1277,7 @@
       <nav class="card">
         <button class="active" data-target="ask">Ask the DM</button>
         <button data-target="details">DM Screen</button>
+        <button data-target="encounters">Encounters</button>
         <button data-target="rules">Rules Compendium</button>
         <button data-target="items">Item &amp; Gear Vault</button>
         <button data-target="spells">Spellbook</button>
@@ -858,6 +1302,69 @@
         <h2>DM Screen Reference</h2>
         <p>Keep essential adjudication tables within reach. These SRD-friendly summaries cover actions, typical DC benchmarks, overland travel, and common environmental hazards.</p>
         <div id="dm-reference" class="reference-grid" aria-live="polite"></div>
+      </section>
+
+      <section id="encounters" class="card">
+        <h2>Encounter Workshop</h2>
+        <p>Balance combat on the fly with XP math, curated monsters, and a persistent initiative tracker.</p>
+        <div class="encounter-layout">
+          <article class="encounter-column">
+            <header>
+              <h3 id="encounter-party-heading">Encounter Builder</h3>
+              <p>Set party parameters, add monsters from the bestiary roster, and watch encounter difficulty update in real time.</p>
+            </header>
+            <div class="party-config" role="group" aria-labelledby="encounter-party-heading">
+              <label for="encounter-party-level">Average party level
+                <input type="number" id="encounter-party-level" name="encounter-party-level" min="1" max="20" value="5" />
+              </label>
+              <label for="encounter-party-size">Party size
+                <input type="number" id="encounter-party-size" name="encounter-party-size" min="1" max="8" value="4" />
+              </label>
+            </div>
+            <div class="encounter-search">
+              <label class="sr-only" for="encounter-monster-query">Search monsters for the encounter roster</label>
+              <input type="search" id="encounter-monster-query" placeholder="Search monsters by name, role, or biome" autocomplete="off" />
+              <div id="encounter-monster-results" class="encounter-search-results" aria-live="polite"></div>
+            </div>
+            <div class="encounter-roster">
+              <h4>Encounter roster</h4>
+              <ul id="encounter-roster" class="roster-list" aria-live="polite"></ul>
+              <button id="encounter-clear" type="button">Clear roster</button>
+            </div>
+            <div id="encounter-summary" class="encounter-summary" aria-live="polite"></div>
+          </article>
+          <article class="encounter-column initiative-column">
+            <header>
+              <h3 id="initiative-heading">Initiative Tracker</h3>
+              <p>Capture turn order, apply relevant conditions, and keep state synced between visits thanks to local storage.</p>
+            </header>
+            <form id="initiative-form" class="initiative-form" aria-labelledby="initiative-heading">
+              <div class="initiative-form-row">
+                <label for="initiative-name">Name
+                  <input type="text" id="initiative-name" name="initiative-name" placeholder="Creature or character" required />
+                </label>
+                <label for="initiative-score">Initiative
+                  <input type="number" id="initiative-score" name="initiative-score" placeholder="15" />
+                </label>
+                <label for="initiative-type">Role
+                  <select id="initiative-type" name="initiative-type">
+                    <option value="PC">PC</option>
+                    <option value="Ally">Ally</option>
+                    <option value="NPC">NPC</option>
+                    <option value="Monster">Monster</option>
+                  </select>
+                </label>
+              </div>
+              <button type="submit">Add participant</button>
+            </form>
+            <div class="initiative-controls" aria-label="Initiative tools">
+              <button type="button" id="initiative-sort">Sort by initiative</button>
+              <button type="button" id="initiative-next">Advance turn</button>
+              <button type="button" id="initiative-clear">Clear tracker</button>
+            </div>
+            <ul id="initiative-list" class="initiative-list" aria-live="polite"></ul>
+          </article>
+        </div>
       </section>
 
       <section id="rules" class="card">
@@ -3235,6 +3742,63 @@
         }
       ];
 
+      const XP_BY_CR = {
+        "0": 10,
+        "1/8": 25,
+        "1/4": 50,
+        "1/2": 100,
+        "1": 200,
+        "2": 450,
+        "3": 700,
+        "4": 1100,
+        "5": 1800,
+        "6": 2300,
+        "7": 2900,
+        "8": 3900,
+        "9": 5000,
+        "10": 5900,
+        "11": 7200,
+        "12": 8400,
+        "13": 10000,
+        "14": 11500,
+        "15": 13000,
+        "16": 15000,
+        "17": 18000,
+        "18": 20000,
+        "19": 22000,
+        "20": 25000,
+        "21": 33000,
+        "22": 41000,
+        "23": 50000,
+        "24": 62000,
+        "25": 75000,
+        "26": 90000,
+        "27": 105000,
+        "28": 120000,
+        "29": 135000,
+        "30": 155000
+      };
+
+      function parseCR(cr) {
+        if (typeof cr === "number") return cr;
+        if (typeof cr === "string") {
+          const trimmed = cr.trim();
+          if (trimmed.includes("/")) {
+            const [num, denom] = trimmed.split("/").map(Number);
+            if (!Number.isNaN(num) && !Number.isNaN(denom) && denom !== 0) {
+              return num / denom;
+            }
+          }
+          const numeric = Number(trimmed);
+          if (!Number.isNaN(numeric)) {
+            return numeric;
+          }
+        }
+        return 0;
+      }
+
+      const slugify = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
       const MONSTERS = [
         {
           name: "Adult Black Dragon",
@@ -3313,6 +3877,234 @@
           ]
         },
         {
+          name: "Kobold Saboteur",
+          size: "Small",
+          creatureType: "Humanoid",
+          alignment: "Lawful evil",
+          challenge: "1/8",
+          terrain: ["Dungeon", "Mountain"],
+          role: ["Skirmisher", "Trapmaker"],
+          overview: "Pack hunters that soften intruders with sling stones, traps, and clever tactics before darting into narrow tunnels.",
+          signatureAbilities: [
+            "Pack Tactics: Gains advantage when swarming a foe alongside another ally.",
+            "Saboteur's Satchel: Carries caltrops, oil, and noise-makers to delay pursuit.",
+            "Nimble Escape: Uses bonus actions to hide or disengage after laying snares."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Volo's Guide to Monsters", url: "https://www.dndbeyond.com/sources/vgm" }
+          ]
+        },
+        {
+          name: "Skeleton Archer",
+          size: "Medium",
+          creatureType: "Undead",
+          alignment: "Lawful evil",
+          challenge: "1/4",
+          terrain: ["Dungeon", "Desert", "Ruins"],
+          role: ["Artillery"],
+          overview: "Reanimated archers that hold defensible chokepoints while their necromancer masters advance with melee troops.",
+          signatureAbilities: [
+            "Sharpened Volley: Longbows pepper the backline with reliable piercing damage.",
+            "Undead Fortitude: Keeps the archer fighting through blows that would drop living soldiers.",
+            "Siege Awareness: Ignores sleep and fear, ideal for long sieges and midnight assaults."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Rules Cyclopedia", url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia-Basic" }
+          ]
+        },
+        {
+          name: "Orc Raider",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Chaotic evil",
+          challenge: "1/2",
+          terrain: ["Grassland", "Mountain", "Tundra"],
+          role: ["Brute", "Skirmisher"],
+          overview: "Shock troops that close quickly with greataxes and aggressive charges to overwhelm frontier settlements.",
+          signatureAbilities: [
+            "Aggressive: Covers extra ground each round to stay in melee with fleeing targets.",
+            "Relentless Endurance: Survives finishing blows long enough to retreat or retaliate.",
+            "Tribal War Calls: Uses bonus actions to grant advantage on the next attack for nearby orcs."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Bandit Captain",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any non-lawful",
+          challenge: "2",
+          terrain: ["Urban", "Forest", "Coastal"],
+          role: ["Leader", "Striker"],
+          overview: "Seasoned raiders that coordinate ambushes, leverage multiattack, and direct minions with ruthless efficiency.",
+          signatureAbilities: [
+            "Parry: Uses reactions to turn away a crucial hit while allies reposition.",
+            "Multiattack: Combines scimitar and dagger strikes to threaten lightly armored foes.",
+            "Tactical Orders: Grants allied bandits a bonus to damage when focusing fire on a single hero."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Ghosts of Saltmarsh", url: "https://www.dndbeyond.com/sources/gos" }
+          ]
+        },
+        {
+          name: "Cult Fanatic",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any evil",
+          challenge: "2",
+          terrain: ["Urban", "Dungeon"],
+          role: ["Support", "Caster"],
+          overview: "Devoted priests who combine dagger strikes with dark prayers, bolstering cult cells during infiltration missions.",
+          signatureAbilities: [
+            "Dark Blessing: Imbues allies with temporary hit points before combat erupts.",
+            "Inflict Wounds: Delivers swingy burst damage to punish distracted defenders.",
+            "Fanatic Zeal: Fights to the death and triggers morale bonuses for surviving cultists."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Princes of the Apocalypse", url: "https://www.dndbeyond.com/sources/pota" }
+          ]
+        },
+        {
+          name: "Veteran Sellsword",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any",
+          challenge: "3",
+          terrain: ["Urban", "Road", "Siege"],
+          role: ["Soldier", "Bodyguard"],
+          overview: "Battle-tested mercenaries wielding sword and crossbow, often hired to defend caravans or noble envoys.",
+          signatureAbilities: [
+            "Crossbow Volley: Opens with a heavy crossbow before closing to melee.",
+            "Second Wind: Recovers hit points mid-fight to stay in the fray longer than green troops.",
+            "Formation Fighter: Grants advantage on opportunity attacks when fighting shoulder-to-shoulder."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Waterdeep: Dragon Heist", url: "https://www.dndbeyond.com/sources/wdh" }
+          ]
+        },
+        {
+          name: "Wraith",
+          size: "Medium",
+          creatureType: "Undead",
+          alignment: "Neutral evil",
+          challenge: "5",
+          terrain: ["Dungeon", "Shadowfell", "Graveyard"],
+          role: ["Skirmisher", "Controller"],
+          overview: "Malevolent spirits that drain life and spawn specters, perfect for set pieces in haunted keeps.",
+          signatureAbilities: [
+            "Life Drain: On a failed save, reduces hit point maximum, terrifying even seasoned parties.",
+            "Incorporeal Movement: Phases through walls to attack backlines or retreat through sealed crypts.",
+            "Create Specter: Fallen heroes might rise as minions, escalating drawn-out fights."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Yuan-ti Malison",
+          size: "Medium",
+          creatureType: "Monstrosity",
+          alignment: "Neutral evil",
+          challenge: "5",
+          terrain: ["Jungle", "Temple", "Swamp"],
+          role: ["Controller", "Caster"],
+          overview: "Serpentine masterminds that blend swordplay with venomous magic to defend hidden temples.",
+          signatureAbilities: [
+            "Multiattack: Strikes with scimitars and venomous bites to lock down front-liners.",
+            "Innate Spellcasting: Access to suggestion and hold person keeps heroes off-balance.",
+            "Shapechanging: Infiltrates humanoid societies before revealing serpentine forms."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Tomb of Annihilation", url: "https://www.dndbeyond.com/sources/toa" }
+          ]
+        },
+        {
+          name: "Githyanki Knight",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Lawful evil",
+          challenge: "8",
+          terrain: ["Astral Sea", "Planar Stronghold"],
+          role: ["Elite", "Striker"],
+          overview: "Astral raiders who lead silver-sword charges from red dragons or spelljamming ships.",
+          signatureAbilities: [
+            "Silver Greatsword: Carves through planar foes and severs astral cords.",
+            "Innate Psionics: Casts plane shift and telekinesis to reposition the battlefield.",
+            "Martial Advantage: Deals extra damage when allies surround a target."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Mordenkainen Presents", url: "https://www.dndbeyond.com/sources/mpmm" }
+          ]
+        },
+        {
+          name: "Young Red Dragon",
+          size: "Large",
+          creatureType: "Dragon",
+          alignment: "Chaotic evil",
+          challenge: "10",
+          terrain: ["Mountain", "Volcano"],
+          role: ["Solo", "Artillery"],
+          overview: "Volcanic tyrants that claim tribute from mountainside villages while raining fire upon rivals.",
+          signatureAbilities: [
+            "Fire Breath (Recharge 5–6): Cone of fire devastates clustered adventurers.",
+            "Frightful Presence: Forces morale checks that can scatter low-level retainers.",
+            "Molten Lair Actions: Melts footing or spews magma vents inside its lair."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Dragonlance Campaign Setting", url: "https://www.dmsguild.com/product/36821/Dragonlance-Campaign-Setting" }
+          ]
+        },
+        {
+          name: "Stone Golem",
+          size: "Large",
+          creatureType: "Construct",
+          alignment: "Unaligned",
+          challenge: "10",
+          terrain: ["Dungeon", "Temple"],
+          role: ["Defender", "Solo"],
+          overview: "Runic guardians carved from granite that obey ancient commands and shrug off most magic.",
+          signatureAbilities: [
+            "Immutable Form: Immune to many effects that would disable living guards.",
+            "Slow Gaze: Recharges a cone that hinders quick-moving parties.",
+            "Magic Resistance: Advantage on saves keeps the golem standing amid spell barrages."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/golem.htm" }
+          ]
+        },
+        {
+          name: "Storm Giant Quintessent",
+          size: "Huge",
+          creatureType: "Giant",
+          alignment: "Chaotic good",
+          challenge: "16",
+          terrain: ["Coastal", "Planar", "Storm"],
+          role: ["Solo", "Controller"],
+          overview: "Elemental avatars of the tempest that stride storms as living thunderheads, defending giant realms from titanic threats.",
+          signatureAbilities: [
+            "Arc Lightning: Strikes two targets at once with searing storm bolts.",
+            "Tempestuous Touch: Forces Strength saves to avoid being hurled from cliffs.",
+            "Mythic Lair Actions: Summons cyclone walls and hurricane-force winds each round."
+          ],
+          sources: [
+            { label: "Mordenkainen Presents", url: "https://www.dndbeyond.com/sources/mpmm" },
+            { label: "Storm King's Thunder", url: "https://www.dndbeyond.com/sources/skt" }
+          ]
+        },
+        {
           name: "Goblin Boss",
           size: "Small",
           creatureType: "Humanoid",
@@ -3369,7 +4161,786 @@
             { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/lich.htm" }
           ]
         }
-      ];
+      ].map(monster => {
+        const challengeKey = typeof monster.challenge === "number" ? String(monster.challenge) : monster.challenge;
+        const crValue = parseCR(monster.challenge);
+        return {
+          ...monster,
+          id: monster.id || slugify(monster.name),
+          xp: monster.xp ?? XP_BY_CR[challengeKey] ?? XP_BY_CR[String(crValue)] ?? 0,
+          crValue
+        };
+      });
+
+      const MONSTER_LOOKUP = new Map(MONSTERS.map(monster => [monster.id, monster]));
+
+      const encounterPartyLevelInput = document.getElementById("encounter-party-level");
+      const encounterPartySizeInput = document.getElementById("encounter-party-size");
+      const encounterSearchInput = document.getElementById("encounter-monster-query");
+      const encounterResultsContainer = document.getElementById("encounter-monster-results");
+      const encounterRosterList = document.getElementById("encounter-roster");
+      const encounterSummaryContainer = document.getElementById("encounter-summary");
+      const encounterClearButton = document.getElementById("encounter-clear");
+
+      if (
+        encounterPartyLevelInput &&
+        encounterPartySizeInput &&
+        encounterSearchInput &&
+        encounterResultsContainer &&
+        encounterRosterList &&
+        encounterSummaryContainer &&
+        encounterClearButton
+      ) {
+        const PARTY_XP_THRESHOLDS = {
+          1: { easy: 25, medium: 50, hard: 75, deadly: 100 },
+          2: { easy: 50, medium: 100, hard: 150, deadly: 200 },
+          3: { easy: 75, medium: 150, hard: 225, deadly: 400 },
+          4: { easy: 125, medium: 250, hard: 375, deadly: 500 },
+          5: { easy: 250, medium: 500, hard: 750, deadly: 1100 },
+          6: { easy: 300, medium: 600, hard: 900, deadly: 1400 },
+          7: { easy: 350, medium: 750, hard: 1100, deadly: 1700 },
+          8: { easy: 450, medium: 900, hard: 1400, deadly: 2100 },
+          9: { easy: 550, medium: 1100, hard: 1600, deadly: 2400 },
+          10: { easy: 600, medium: 1200, hard: 1900, deadly: 2800 },
+          11: { easy: 800, medium: 1600, hard: 2400, deadly: 3600 },
+          12: { easy: 1000, medium: 2000, hard: 3000, deadly: 4500 },
+          13: { easy: 1100, medium: 2200, hard: 3400, deadly: 5100 },
+          14: { easy: 1250, medium: 2500, hard: 3800, deadly: 5700 },
+          15: { easy: 1400, medium: 2800, hard: 4300, deadly: 6400 },
+          16: { easy: 1600, medium: 3200, hard: 4800, deadly: 7200 },
+          17: { easy: 2000, medium: 3900, hard: 5900, deadly: 8800 },
+          18: { easy: 2100, medium: 4200, hard: 6300, deadly: 9500 },
+          19: { easy: 2400, medium: 4900, hard: 7300, deadly: 10900 },
+          20: { easy: 2800, medium: 5700, hard: 8500, deadly: 12700 }
+        };
+
+        const MULTIPLIER_STEPS = [
+          { max: 1, label: "Single monster", multiplier: 1 },
+          { max: 2, label: "Pair of monsters", multiplier: 1.5 },
+          { max: 6, label: "3–6 monsters", multiplier: 2 },
+          { max: 10, label: "7–10 monsters", multiplier: 2.5 },
+          { max: 14, label: "11–14 monsters", multiplier: 3 },
+          { max: Infinity, label: "15+ monsters", multiplier: 4 }
+        ];
+
+        const numberFormatter = new Intl.NumberFormat("en-US");
+        const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+        const encounterState = {
+          partyLevel: clamp(Math.floor(Number(encounterPartyLevelInput.value) || 1), 1, 20),
+          partySize: clamp(Math.floor(Number(encounterPartySizeInput.value) || 4), 1, 8),
+          monsters: []
+        };
+
+        encounterPartyLevelInput.value = String(encounterState.partyLevel);
+        encounterPartySizeInput.value = String(encounterState.partySize);
+
+        const formatXP = (value) => numberFormatter.format(Math.max(0, Math.round(value || 0)));
+
+        const ensureRosterSorted = () => {
+          encounterState.monsters.sort((a, b) => {
+            const monsterA = MONSTER_LOOKUP.get(a.id);
+            const monsterB = MONSTER_LOOKUP.get(b.id);
+            const crDiff = (monsterB?.crValue ?? 0) - (monsterA?.crValue ?? 0);
+            if (crDiff !== 0) return crDiff;
+            return (monsterB?.xp ?? 0) - (monsterA?.xp ?? 0);
+          });
+        };
+
+        const getMultiplierInfo = (count, partySize) => {
+          if (count <= 0) {
+            return {
+              multiplier: 1,
+              baseLabel: "No monsters",
+              appliedLabel: "No monsters",
+              adjustment: "Add creatures to calculate encounter difficulty"
+            };
+          }
+
+          let index = MULTIPLIER_STEPS.findIndex(step => count <= step.max);
+          if (index === -1) index = MULTIPLIER_STEPS.length - 1;
+          const baseIndex = index;
+
+          if (partySize <= 2 && index < MULTIPLIER_STEPS.length - 1) {
+            index += 1;
+          } else if (partySize >= 6 && index > 0) {
+            index -= 1;
+          }
+
+          const adjustment =
+            partySize <= 2
+              ? "Adjusted up for a small party"
+              : partySize >= 6
+                ? "Adjusted down for a large party"
+                : "Standard party size";
+
+          return {
+            multiplier: MULTIPLIER_STEPS[index].multiplier,
+            baseLabel: MULTIPLIER_STEPS[baseIndex].label,
+            appliedLabel: MULTIPLIER_STEPS[index].label,
+            adjustment
+          };
+        };
+
+        const getPartyThresholds = () => {
+          const template = PARTY_XP_THRESHOLDS[encounterState.partyLevel] || PARTY_XP_THRESHOLDS[20];
+          return {
+            easy: template.easy * encounterState.partySize,
+            medium: template.medium * encounterState.partySize,
+            hard: template.hard * encounterState.partySize,
+            deadly: template.deadly * encounterState.partySize
+          };
+        };
+
+        const renderEncounterRoster = () => {
+          encounterRosterList.innerHTML = "";
+
+          if (!encounterState.monsters.length) {
+            const empty = document.createElement("li");
+            empty.className = "roster-empty";
+            empty.textContent = "No creatures added yet. Use the search above to populate your encounter.";
+            encounterRosterList.appendChild(empty);
+            return;
+          }
+
+          encounterState.monsters.forEach(entry => {
+            const monster = MONSTER_LOOKUP.get(entry.id);
+            if (!monster) return;
+
+            const item = document.createElement("li");
+            item.className = "roster-row";
+            item.dataset.id = entry.id;
+
+            const meta = document.createElement("div");
+            meta.className = "roster-meta";
+
+            const title = document.createElement("strong");
+            title.textContent = monster.name;
+            meta.appendChild(title);
+
+            const detail = document.createElement("span");
+            detail.textContent = `CR ${monster.challenge} · ${formatXP(monster.xp)} XP each`;
+            meta.appendChild(detail);
+
+            const total = document.createElement("span");
+            total.textContent = `${formatXP((monster.xp || 0) * entry.count)} XP total`;
+            meta.appendChild(total);
+
+            item.appendChild(meta);
+
+            const actions = document.createElement("div");
+            actions.className = "roster-actions";
+
+            const decrease = document.createElement("button");
+            decrease.type = "button";
+            decrease.dataset.action = "decrease";
+            decrease.textContent = "–";
+            decrease.setAttribute("aria-label", `Remove one ${monster.name}`);
+            actions.appendChild(decrease);
+
+            const count = document.createElement("span");
+            count.className = "roster-count";
+            count.textContent = String(entry.count);
+            actions.appendChild(count);
+
+            const increase = document.createElement("button");
+            increase.type = "button";
+            increase.dataset.action = "increase";
+            increase.textContent = "+";
+            increase.setAttribute("aria-label", `Add another ${monster.name}`);
+            actions.appendChild(increase);
+
+            const remove = document.createElement("button");
+            remove.type = "button";
+            remove.dataset.action = "remove";
+            remove.textContent = "Remove";
+            remove.setAttribute("aria-label", `Remove ${monster.name} from the encounter`);
+            actions.appendChild(remove);
+
+            item.appendChild(actions);
+            encounterRosterList.appendChild(item);
+          });
+        };
+
+        const nudgeEncounter = (direction) => {
+          if (!encounterState.monsters.length) return;
+          ensureRosterSorted();
+          const sorted = encounterState.monsters
+            .map(entry => ({ ...entry }))
+            .sort((a, b) => {
+              const xpA = MONSTER_LOOKUP.get(a.id)?.xp ?? 0;
+              const xpB = MONSTER_LOOKUP.get(b.id)?.xp ?? 0;
+              return xpB - xpA;
+            });
+
+          const target = sorted[0];
+          if (!target) return;
+
+          const original = encounterState.monsters.find(entry => entry.id === target.id);
+          if (!original) return;
+
+          if (direction < 0) {
+            original.count -= 1;
+            if (original.count <= 0) {
+              encounterState.monsters = encounterState.monsters.filter(entry => entry.id !== original.id);
+            }
+          } else {
+            original.count += 1;
+          }
+
+          ensureRosterSorted();
+          renderEncounterRoster();
+          renderEncounterSummary();
+          renderEncounterSearch();
+        };
+
+        const renderEncounterSummary = () => {
+          encounterSummaryContainer.innerHTML = "";
+
+          const totalMonsters = encounterState.monsters.reduce((sum, entry) => sum + entry.count, 0);
+          const thresholds = getPartyThresholds();
+          const multiplierInfo = getMultiplierInfo(totalMonsters, encounterState.partySize);
+
+          let baseXP = 0;
+          encounterState.monsters.forEach(entry => {
+            const monster = MONSTER_LOOKUP.get(entry.id);
+            if (!monster) return;
+            baseXP += (monster.xp || 0) * entry.count;
+          });
+
+          const adjustedXP = totalMonsters ? Math.round(baseXP * multiplierInfo.multiplier) : 0;
+
+          let difficulty = "Trivial";
+          if (totalMonsters === 0) {
+            difficulty = "Trivial";
+          } else if (adjustedXP >= thresholds.deadly) {
+            difficulty = "Deadly";
+          } else if (adjustedXP >= thresholds.hard) {
+            difficulty = "Hard";
+          } else if (adjustedXP >= thresholds.medium) {
+            difficulty = "Medium";
+          } else if (adjustedXP >= thresholds.easy) {
+            difficulty = "Easy";
+          }
+
+          const indicator = document.createElement("div");
+          indicator.className = "difficulty-indicator";
+          indicator.dataset.difficulty = difficulty;
+          indicator.textContent =
+            totalMonsters === 0
+              ? "No monsters selected"
+              : `${difficulty === "Trivial" ? "Trivial (below easy)" : `${difficulty} encounter`}`;
+          encounterSummaryContainer.appendChild(indicator);
+
+          const xpSummary = document.createElement("p");
+          xpSummary.textContent = `Base XP ${formatXP(baseXP)} · Adjusted XP ${formatXP(adjustedXP)}`;
+          encounterSummaryContainer.appendChild(xpSummary);
+
+          const thresholdGrid = document.createElement("div");
+          thresholdGrid.className = "threshold-grid";
+          [
+            ["Easy", thresholds.easy],
+            ["Medium", thresholds.medium],
+            ["Hard", thresholds.hard],
+            ["Deadly", thresholds.deadly]
+          ].forEach(([label, value]) => {
+            const cell = document.createElement("div");
+            const caption = document.createElement("span");
+            caption.textContent = label;
+            const amount = document.createElement("strong");
+            amount.textContent = formatXP(value);
+            cell.appendChild(caption);
+            cell.appendChild(amount);
+            thresholdGrid.appendChild(cell);
+          });
+          encounterSummaryContainer.appendChild(thresholdGrid);
+
+          if (totalMonsters > 0) {
+            const quickAdjust = document.createElement("div");
+            quickAdjust.className = "encounter-quick-adjust";
+            const label = document.createElement("span");
+            label.textContent = "Quick adjust:";
+            quickAdjust.appendChild(label);
+
+            const easierButton = document.createElement("button");
+            easierButton.type = "button";
+            easierButton.dataset.adjust = "easier";
+            easierButton.textContent = "Ease encounter";
+            quickAdjust.appendChild(easierButton);
+
+            const harderButton = document.createElement("button");
+            harderButton.type = "button";
+            harderButton.dataset.adjust = "harder";
+            harderButton.textContent = "Raise stakes";
+            quickAdjust.appendChild(harderButton);
+
+            encounterSummaryContainer.appendChild(quickAdjust);
+          }
+
+          const multiplierText = Number.isInteger(multiplierInfo.multiplier)
+            ? multiplierInfo.multiplier.toString()
+            : multiplierInfo.multiplier.toFixed(1);
+
+          const footnote = document.createElement("p");
+          footnote.className = "encounter-footnote";
+          footnote.textContent = `XP multiplier ×${multiplierText} (${multiplierInfo.appliedLabel}; ${multiplierInfo.adjustment}).`;
+          encounterSummaryContainer.appendChild(footnote);
+        };
+
+        const renderEncounterSearch = () => {
+          encounterResultsContainer.innerHTML = "";
+          const query = encounterSearchInput.value.toLowerCase().trim();
+          const targetCR = encounterState.partyLevel;
+
+          const results = MONSTERS.filter(monster => {
+            if (!query) return true;
+            const haystack = [
+              monster.name,
+              monster.creatureType,
+              monster.alignment,
+              monster.overview,
+              ...(monster.role || []),
+              ...(monster.terrain || [])
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+            return haystack.includes(query);
+          })
+            .sort((a, b) => {
+              const diff = Math.abs((a.crValue ?? parseCR(a.challenge)) - targetCR)
+                - Math.abs((b.crValue ?? parseCR(b.challenge)) - targetCR);
+              if (diff !== 0) return diff;
+              return a.name.localeCompare(b.name);
+            })
+            .slice(0, 8);
+
+          if (!results.length) {
+            const empty = document.createElement("p");
+            empty.className = "roster-empty";
+            empty.textContent = "No monsters match that search. Try a different role, biome, or CR.";
+            encounterResultsContainer.appendChild(empty);
+            return;
+          }
+
+          results.forEach(monster => {
+            const result = document.createElement("div");
+            result.className = "encounter-result";
+
+            const text = document.createElement("div");
+            const title = document.createElement("strong");
+            title.textContent = monster.name;
+            text.appendChild(title);
+
+            const subtitle = document.createElement("span");
+            subtitle.textContent = `CR ${monster.challenge} · ${formatXP(monster.xp)} XP`;
+            text.appendChild(subtitle);
+
+            const tags = document.createElement("span");
+            tags.textContent = `${(monster.role || []).join(", ") || "Unknown role"} · ${(monster.terrain || []).join(", ") || "Any biome"}`;
+            tags.style.opacity = "0.65";
+            tags.style.fontSize = "0.8rem";
+            text.appendChild(tags);
+
+            result.appendChild(text);
+
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.monsterId = monster.id;
+            const existing = encounterState.monsters.find(entry => entry.id === monster.id);
+            button.textContent = existing ? "Add another" : "Add";
+            result.appendChild(button);
+
+            encounterResultsContainer.appendChild(result);
+          });
+        };
+
+        const addMonsterToEncounter = (id) => {
+          const monster = MONSTER_LOOKUP.get(id);
+          if (!monster) return;
+          const existing = encounterState.monsters.find(entry => entry.id === id);
+          if (existing) {
+            existing.count += 1;
+          } else {
+            encounterState.monsters.push({ id, count: 1 });
+          }
+          ensureRosterSorted();
+          renderEncounterRoster();
+          renderEncounterSummary();
+          renderEncounterSearch();
+        };
+
+        encounterPartyLevelInput.addEventListener("input", () => {
+          const parsed = Math.floor(Number(encounterPartyLevelInput.value));
+          if (Number.isNaN(parsed)) return;
+          encounterState.partyLevel = clamp(parsed, 1, 20);
+          encounterPartyLevelInput.value = String(encounterState.partyLevel);
+          renderEncounterSummary();
+          renderEncounterSearch();
+        });
+
+        encounterPartySizeInput.addEventListener("input", () => {
+          const parsed = Math.floor(Number(encounterPartySizeInput.value));
+          if (Number.isNaN(parsed)) return;
+          encounterState.partySize = clamp(parsed, 1, 8);
+          encounterPartySizeInput.value = String(encounterState.partySize);
+          renderEncounterSummary();
+        });
+
+        encounterSearchInput.addEventListener("input", renderEncounterSearch);
+
+        encounterResultsContainer.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-monster-id]");
+          if (!button) return;
+          addMonsterToEncounter(button.dataset.monsterId);
+        });
+
+        encounterRosterList.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-action]");
+          if (!button) return;
+          const item = event.target.closest("li[data-id]");
+          if (!item) return;
+          const entry = encounterState.monsters.find(mon => mon.id === item.dataset.id);
+          if (!entry) return;
+
+          if (button.dataset.action === "increase") {
+            entry.count += 1;
+          } else if (button.dataset.action === "decrease") {
+            entry.count -= 1;
+            if (entry.count <= 0) {
+              encounterState.monsters = encounterState.monsters.filter(mon => mon.id !== entry.id);
+            }
+          } else if (button.dataset.action === "remove") {
+            encounterState.monsters = encounterState.monsters.filter(mon => mon.id !== entry.id);
+          }
+
+          ensureRosterSorted();
+          renderEncounterRoster();
+          renderEncounterSummary();
+          renderEncounterSearch();
+        });
+
+        encounterSummaryContainer.addEventListener("click", (event) => {
+          const button = event.target.closest("button[data-adjust]");
+          if (!button) return;
+          if (button.dataset.adjust === "easier") {
+            nudgeEncounter(-1);
+          } else if (button.dataset.adjust === "harder") {
+            nudgeEncounter(1);
+          }
+        });
+
+        encounterClearButton.addEventListener("click", () => {
+          if (!encounterState.monsters.length) return;
+          encounterState.monsters = [];
+          renderEncounterRoster();
+          renderEncounterSummary();
+          renderEncounterSearch();
+        });
+
+        ensureRosterSorted();
+        renderEncounterRoster();
+        renderEncounterSummary();
+        renderEncounterSearch();
+      }
+
+      const initiativeForm = document.getElementById("initiative-form");
+      const initiativeList = document.getElementById("initiative-list");
+      const initiativeSortButton = document.getElementById("initiative-sort");
+      const initiativeClearButton = document.getElementById("initiative-clear");
+      const initiativeNextButton = document.getElementById("initiative-next");
+
+      if (initiativeForm && initiativeList && initiativeSortButton && initiativeClearButton && initiativeNextButton) {
+        const INIT_STORAGE_KEY = "dnd-companion-initiative-v1";
+        const initiativeNameInput = document.getElementById("initiative-name");
+        const initiativeScoreInput = document.getElementById("initiative-score");
+        const initiativeTypeSelect = document.getElementById("initiative-type");
+
+        const conditionOptionsMarkup = [
+          '<option value="">Add condition…</option>',
+          ...CONDITIONS.map(condition => `<option value="${condition.name}">${condition.name}</option>`)
+        ].join("");
+
+        const createId = () =>
+          `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
+        const normalizeParticipant = (participant) => ({
+          id: participant.id || createId(),
+          name: participant.name || "Unnamed",
+          initiative: typeof participant.initiative === "number" ? participant.initiative : Number(participant.initiative) || 0,
+          type: participant.type || "PC",
+          conditions: Array.isArray(participant.conditions) ? participant.conditions.filter(Boolean) : []
+        });
+
+        let initiativeState = { participants: [], activeId: null };
+
+        try {
+          const stored = localStorage.getItem(INIT_STORAGE_KEY);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed?.participants)) {
+              initiativeState.participants = parsed.participants.map(normalizeParticipant);
+              if (parsed.activeId && initiativeState.participants.some(p => p.id === parsed.activeId)) {
+                initiativeState.activeId = parsed.activeId;
+              }
+            }
+          }
+        } catch (error) {
+          console.warn("Failed to load initiative tracker state", error);
+        }
+
+        const saveInitiativeState = () => {
+          try {
+            localStorage.setItem(
+              INIT_STORAGE_KEY,
+              JSON.stringify({
+                participants: initiativeState.participants,
+                activeId: initiativeState.activeId
+              })
+            );
+          } catch (error) {
+            console.warn("Unable to persist initiative state", error);
+          }
+        };
+
+        const renderInitiative = () => {
+          initiativeList.innerHTML = "";
+
+          if (!initiativeState.participants.length) {
+            const empty = document.createElement("li");
+            empty.className = "roster-empty";
+            empty.textContent = "No participants yet. Add adventurers, allies, or foes to start tracking initiative.";
+            initiativeList.appendChild(empty);
+            return;
+          }
+
+          initiativeState.participants.forEach(participant => {
+            const item = document.createElement("li");
+            item.className = "initiative-entry";
+            item.dataset.id = participant.id;
+            if (participant.id === initiativeState.activeId) {
+              item.classList.add("active");
+            }
+
+            const header = document.createElement("div");
+            header.className = "initiative-header";
+
+            const info = document.createElement("div");
+            const name = document.createElement("strong");
+            name.textContent = participant.name;
+            info.appendChild(name);
+
+            const meta = document.createElement("div");
+            meta.className = "initiative-meta";
+            meta.innerHTML = `
+              <span>Initiative ${participant.initiative ?? "—"}</span>
+              <span>${participant.type}</span>
+            `;
+            info.appendChild(meta);
+            header.appendChild(info);
+
+            const headerActions = document.createElement("div");
+            headerActions.className = "initiative-actions";
+
+            const focusButton = document.createElement("button");
+            focusButton.type = "button";
+            focusButton.dataset.action = "activate";
+            focusButton.textContent = participant.id === initiativeState.activeId ? "Active" : "Focus";
+            headerActions.appendChild(focusButton);
+
+            const removeButton = document.createElement("button");
+            removeButton.type = "button";
+            removeButton.dataset.action = "remove";
+            removeButton.textContent = "Remove";
+            headerActions.appendChild(removeButton);
+
+            header.appendChild(headerActions);
+            item.appendChild(header);
+
+            if (participant.conditions.length) {
+              const conditionRow = document.createElement("div");
+              conditionRow.className = "initiative-conditions";
+              participant.conditions.forEach(condition => {
+                const chip = document.createElement("span");
+                chip.className = "condition-chip";
+                chip.dataset.condition = condition;
+                chip.textContent = condition;
+                const remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "condition-remove";
+                remove.setAttribute("aria-label", `Remove ${condition} from ${participant.name}`);
+                remove.textContent = "×";
+                chip.appendChild(remove);
+                conditionRow.appendChild(chip);
+              });
+              item.appendChild(conditionRow);
+            }
+
+            const actions = document.createElement("div");
+            actions.className = "initiative-actions";
+
+            const initiativeInput = document.createElement("input");
+            initiativeInput.type = "number";
+            initiativeInput.className = "initiative-score-input";
+            initiativeInput.value = participant.initiative ?? "";
+            initiativeInput.placeholder = "Init";
+            initiativeInput.dataset.id = participant.id;
+            initiativeInput.setAttribute("aria-label", `Initiative score for ${participant.name}`);
+            actions.appendChild(initiativeInput);
+
+            const conditionSelect = document.createElement("select");
+            conditionSelect.className = "condition-selector";
+            conditionSelect.innerHTML = conditionOptionsMarkup;
+            conditionSelect.dataset.id = participant.id;
+            actions.appendChild(conditionSelect);
+
+            const upButton = document.createElement("button");
+            upButton.type = "button";
+            upButton.dataset.action = "move-up";
+            upButton.textContent = "▲";
+            upButton.setAttribute("aria-label", `Move ${participant.name} up`);
+            actions.appendChild(upButton);
+
+            const downButton = document.createElement("button");
+            downButton.type = "button";
+            downButton.dataset.action = "move-down";
+            downButton.textContent = "▼";
+            downButton.setAttribute("aria-label", `Move ${participant.name} down`);
+            actions.appendChild(downButton);
+
+            item.appendChild(actions);
+            initiativeList.appendChild(item);
+          });
+        };
+
+        const moveParticipant = (id, delta) => {
+          const index = initiativeState.participants.findIndex(p => p.id === id);
+          if (index === -1) return;
+          const newIndex = index + delta;
+          if (newIndex < 0 || newIndex >= initiativeState.participants.length) return;
+          const [participant] = initiativeState.participants.splice(index, 1);
+          initiativeState.participants.splice(newIndex, 0, participant);
+        };
+
+        const sortParticipantsByInitiative = () => {
+          initiativeState.participants.sort((a, b) => {
+            if ((b.initiative ?? 0) !== (a.initiative ?? 0)) {
+              return (b.initiative ?? 0) - (a.initiative ?? 0);
+            }
+            return a.name.localeCompare(b.name);
+          });
+        };
+
+        initiativeForm.addEventListener("submit", (event) => {
+          event.preventDefault();
+          const name = initiativeNameInput.value.trim();
+          if (!name) return;
+          const initiativeScore = Math.floor(Number(initiativeScoreInput.value));
+          const participant = {
+            id: createId(),
+            name,
+            initiative: Number.isNaN(initiativeScore) ? 0 : initiativeScore,
+            type: initiativeTypeSelect.value || "PC",
+            conditions: []
+          };
+          initiativeState.participants.push(participant);
+          if (!initiativeState.activeId) {
+            initiativeState.activeId = participant.id;
+          }
+          sortParticipantsByInitiative();
+          renderInitiative();
+          saveInitiativeState();
+          initiativeForm.reset();
+          initiativeNameInput.focus();
+        });
+
+        initiativeList.addEventListener("change", (event) => {
+          const item = event.target.closest("li[data-id]");
+          if (!item) return;
+          const participant = initiativeState.participants.find(p => p.id === item.dataset.id);
+          if (!participant) return;
+
+          if (event.target.matches(".initiative-score-input")) {
+            const value = Math.floor(Number(event.target.value));
+            participant.initiative = Number.isNaN(value) ? 0 : value;
+            renderInitiative();
+            saveInitiativeState();
+          } else if (event.target.matches(".condition-selector")) {
+            const condition = event.target.value;
+            if (condition && !participant.conditions.includes(condition)) {
+              participant.conditions.push(condition);
+              renderInitiative();
+              saveInitiativeState();
+            }
+            event.target.value = "";
+          }
+        });
+
+        initiativeList.addEventListener("click", (event) => {
+          const item = event.target.closest("li[data-id]");
+          if (!item) return;
+          const participant = initiativeState.participants.find(p => p.id === item.dataset.id);
+          if (!participant) return;
+
+          if (event.target.classList.contains("condition-remove")) {
+            const condition = event.target.parentElement?.dataset.condition;
+            if (condition) {
+              participant.conditions = participant.conditions.filter(name => name !== condition);
+              renderInitiative();
+              saveInitiativeState();
+            }
+            return;
+          }
+
+          const button = event.target.closest("button[data-action]");
+          if (!button) return;
+
+          if (button.dataset.action === "remove") {
+            initiativeState.participants = initiativeState.participants.filter(p => p.id !== participant.id);
+            if (initiativeState.activeId === participant.id) {
+              initiativeState.activeId = initiativeState.participants[0]?.id ?? null;
+            }
+          } else if (button.dataset.action === "activate") {
+            initiativeState.activeId = participant.id;
+          } else if (button.dataset.action === "move-up") {
+            moveParticipant(participant.id, -1);
+          } else if (button.dataset.action === "move-down") {
+            moveParticipant(participant.id, 1);
+          }
+
+          renderInitiative();
+          saveInitiativeState();
+        });
+
+        initiativeSortButton.addEventListener("click", () => {
+          sortParticipantsByInitiative();
+          renderInitiative();
+          saveInitiativeState();
+        });
+
+        initiativeClearButton.addEventListener("click", () => {
+          if (!initiativeState.participants.length) return;
+          if (!confirm("Clear all participants from the initiative tracker?")) return;
+          initiativeState = { participants: [], activeId: null };
+          renderInitiative();
+          saveInitiativeState();
+        });
+
+        initiativeNextButton.addEventListener("click", () => {
+          if (!initiativeState.participants.length) return;
+          if (!initiativeState.activeId) {
+            initiativeState.activeId = initiativeState.participants[0].id;
+          } else {
+            const currentIndex = initiativeState.participants.findIndex(p => p.id === initiativeState.activeId);
+            const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % initiativeState.participants.length;
+            initiativeState.activeId = initiativeState.participants[nextIndex].id;
+          }
+          renderInitiative();
+          saveInitiativeState();
+        });
+
+        renderInitiative();
+      }
 
       const settingQuery = document.getElementById("setting-query");
       const settingGenreSelect = document.getElementById("setting-genre-filter");
@@ -3904,17 +5475,6 @@
       const monsterTerrainSelect = document.getElementById("monster-terrain-filter");
       const monsterRoleSelect = document.getElementById("monster-role-filter");
       const bestiaryList = document.getElementById("bestiary-list");
-
-      const parseCR = (cr) => {
-        if (typeof cr === "number") return cr;
-        if (typeof cr === "string" && cr.includes("/")) {
-          const [num, denom] = cr.split("/").map(Number);
-          if (!Number.isNaN(num) && !Number.isNaN(denom) && denom !== 0) {
-            return num / denom;
-          }
-        }
-        return Number(cr);
-      };
 
       const uniqueCRs = Array.from(new Set(MONSTERS.map(monster => monster.challenge)))
         .sort((a, b) => parseCR(a) - parseCR(b));
