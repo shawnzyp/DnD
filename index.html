@@ -245,24 +245,68 @@
       }
 
       .quick-prompts {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+        margin-top: 1.25rem;
+      }
+
+      .quick-prompts-group {
         display: flex;
-        flex-wrap: wrap;
+        flex-direction: column;
+        gap: 0.65rem;
+        padding: 1rem;
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .quick-prompts-group h3 {
+        margin: 0;
+        font-size: 0.95rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.85;
+      }
+
+      .quick-prompts-group p {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.75;
+        line-height: 1.4;
+      }
+
+      .quick-prompts-buttons {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 0.5rem;
-        margin-top: 1rem;
       }
 
       .quick-prompts button {
         background: rgba(255, 255, 255, 0.08);
         border: none;
         color: inherit;
-        padding: 0.5rem 0.8rem;
+        padding: 0.55rem 0.8rem;
         border-radius: 999px;
         cursor: pointer;
         font-size: 0.85rem;
+        text-align: left;
+        line-height: 1.35;
+        transition: background 150ms ease;
       }
 
       .quick-prompts button:hover {
         background: rgba(255, 255, 255, 0.16);
+      }
+
+      @media (max-width: 640px) {
+        .quick-prompts {
+          grid-template-columns: 1fr;
+        }
+
+        .quick-prompts-buttons {
+          grid-template-columns: 1fr;
+        }
       }
 
       details {
@@ -509,12 +553,7 @@
           <textarea id="prompt" placeholder="Ask anything about D&D…" aria-label="Ask the DM"></textarea>
           <button id="send" disabled>Send</button>
         </div>
-        <div class="quick-prompts" aria-label="Quick prompts">
-          <button data-prompt="How do concentration checks work in D&D 5e?">Concentration rules (5e)</button>
-          <button data-prompt="Explain the grapple rules in D&D 3.5 with examples.">Grapple (3.5)</button>
-          <button data-prompt="What are the core differences between D&D 5e and One D&D 2024 classes?">Edition comparison</button>
-          <button data-prompt="Generate a level 5 treasure hoard with items from multiple editions.">Treasure hoard</button>
-        </div>
+        <div class="quick-prompts" aria-label="Quick prompts"></div>
       </section>
 
       <section id="rules" class="card">
@@ -609,6 +648,81 @@
     </footer>
 
     <script type="module">
+      const QUICK_PROMPTS = [
+        {
+          theme: "Rules & Rulings",
+          description: "Clarify tricky mechanics across popular editions.",
+          prompts: [
+            {
+              label: "Concentration rules (5e)",
+              prompt: "How do concentration checks work in D&D 5e?"
+            },
+            {
+              label: "Grapple contest (3.5)",
+              prompt: "Explain the grapple rules in D&D 3.5 with examples."
+            },
+            {
+              label: "Counterspell variants",
+              prompt: "Outline how counterspell options differ between the Player's Handbook and Xanathar's Guide to Everything."
+            }
+          ]
+        },
+        {
+          theme: "Narrative Sparks",
+          description: "Jump-start quests, factions, and lore hooks.",
+          prompts: [
+            {
+              label: "Planar portal complication",
+              prompt: "Create a planar travel complication for a party of tier 2 adventurers."
+            },
+            {
+              label: "Faction intrigue",
+              prompt: "Draft a political intrigue plot hook involving the Zhentarim and the Harpers."
+            },
+            {
+              label: "Archfey villain monologue",
+              prompt: "Write a villain monologue for a scheming archfey antagonizing the party."
+            }
+          ]
+        },
+        {
+          theme: "Loot & Rewards",
+          description: "Design treasure hoards and bespoke magic gear.",
+          prompts: [
+            {
+              label: "Treasure hoard",
+              prompt: "Generate a level 5 treasure hoard with items from multiple editions."
+            },
+            {
+              label: "Custom storm giant weapon",
+              prompt: "Design a rare magic weapon themed around storm giants with balanced mechanics."
+            },
+            {
+              label: "Downtime boons",
+              prompt: "Suggest downtime rewards for a tier 3 party finishing a planar expedition."
+            }
+          ]
+        },
+        {
+          theme: "Edition Insights",
+          description: "Compare design philosophies and table expectations.",
+          prompts: [
+            {
+              label: "Edition comparison",
+              prompt: "What are the core differences between D&D 5e and One D&D 2024 classes?"
+            },
+            {
+              label: "OSR conversion guidance",
+              prompt: "Give guidance on converting an OSR dungeon crawl to D&D 5e pacing."
+            },
+            {
+              label: "4e encounter cadence",
+              prompt: "Summarize how encounter pacing differs between D&D 4e and 5e."
+            }
+          ]
+        }
+      ];
+
       const RULES_DATA = [
         {
           edition: "5th Edition (2014 SRD, 2016 SRD 5.1)",
@@ -1807,6 +1921,46 @@
       renderSpells();
       renderConditions();
 
+      const quickPromptsContainer = document.querySelector(".quick-prompts");
+
+      const renderQuickPrompts = () => {
+        if (!quickPromptsContainer) return [];
+        quickPromptsContainer.innerHTML = "";
+
+        const createdButtons = [];
+        QUICK_PROMPTS.forEach(group => {
+          const groupCard = document.createElement("article");
+          groupCard.className = "quick-prompts-group";
+
+          const heading = document.createElement("h3");
+          heading.textContent = group.theme;
+          groupCard.appendChild(heading);
+
+          if (group.description) {
+            const description = document.createElement("p");
+            description.textContent = group.description;
+            groupCard.appendChild(description);
+          }
+
+          const buttonGrid = document.createElement("div");
+          buttonGrid.className = "quick-prompts-buttons";
+
+          group.prompts.forEach(promptItem => {
+            const button = document.createElement("button");
+            button.type = "button";
+            button.dataset.prompt = promptItem.prompt;
+            button.textContent = promptItem.label;
+            buttonGrid.appendChild(button);
+            createdButtons.push(button);
+          });
+
+          groupCard.appendChild(buttonGrid);
+          quickPromptsContainer.appendChild(groupCard);
+        });
+
+        return createdButtons;
+      };
+
       const navButtons = document.querySelectorAll("nav button");
       const sections = document.querySelectorAll("main section");
       navButtons.forEach((btn) => {
@@ -2280,6 +2434,33 @@ Stay family friendly and inclusive.`
         }
       ];
 
+      function openAskTab() {
+        const askButton = document.querySelector('nav button[data-target="ask"]');
+        if (askButton && !askButton.classList.contains("active")) {
+          askButton.click();
+        }
+      }
+
+      function wirePromptPrefill(elements) {
+        elements.forEach(el => {
+          el.addEventListener("click", (event) => {
+            const prompt = el.dataset.prompt?.trim();
+            if (!prompt) return;
+            if (el.tagName === "A") {
+              event.preventDefault();
+            }
+            openAskTab();
+            promptEl.value = prompt;
+            promptEl.focus();
+            document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+        });
+      }
+
+      const quickPromptButtons = renderQuickPrompts();
+      wirePromptPrefill(quickPromptButtons);
+      wirePromptPrefill(document.querySelectorAll(".setting-prompt"));
+
       const appendMessage = (role, content) => {
         const bubble = document.createElement("div");
         bubble.className = `bubble ${role}`;
@@ -2375,31 +2556,6 @@ Stay family friendly and inclusive.`
         }
       });
 
-        const openAskTab = () => {
-          const askButton = document.querySelector('nav button[data-target="ask"]');
-          if (askButton && !askButton.classList.contains("active")) {
-            askButton.click();
-          }
-        };
-
-        const wirePromptPrefill = (elements) => {
-          elements.forEach(el => {
-            el.addEventListener("click", (event) => {
-              const prompt = el.dataset.prompt?.trim();
-              if (!prompt) return;
-              if (el.tagName === "A") {
-                event.preventDefault();
-              }
-              openAskTab();
-              promptEl.value = prompt;
-              promptEl.focus();
-              document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
-            });
-          });
-        };
-
-        wirePromptPrefill(document.querySelectorAll(".quick-prompts button"));
-        wirePromptPrefill(document.querySelectorAll(".setting-prompt"));
     </script>
   </body>
 </html>
