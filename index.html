@@ -315,7 +315,8 @@
         color: inherit;
       }
 
-      .item-meta {
+      .item-meta,
+      .monster-meta {
         display: flex;
         flex-wrap: wrap;
         gap: 0.4rem 0.75rem;
@@ -325,18 +326,21 @@
         opacity: 0.85;
       }
 
-      .item-meta strong {
+      .item-meta strong,
+      .monster-meta strong {
         font-weight: 600;
       }
 
-      .item-card {
+      .item-card,
+      .monster-card {
         border: 1px solid rgba(255, 255, 255, 0.1);
         border-radius: 14px;
         padding: 1rem;
         background: rgba(255, 255, 255, 0.04);
       }
 
-      .item-card h4 {
+      .item-card h4,
+      .monster-card h4 {
         margin: 0;
         display: flex;
         align-items: center;
@@ -345,10 +349,18 @@
         font-size: 1rem;
       }
 
-      .item-card p {
+      .item-card p,
+      .monster-card p {
         margin: 0.45rem 0 0;
         line-height: 1.5;
         opacity: 0.85;
+      }
+
+      .monster-abilities {
+        margin: 0.35rem 0 0.15rem;
+        padding-left: 1.2rem;
+        line-height: 1.5;
+        opacity: 0.9;
       }
 
       .comparison-table {
@@ -429,6 +441,7 @@
         <button class="active" data-target="ask">Ask the DM</button>
         <button data-target="rules">Rules Compendium</button>
         <button data-target="items">Item &amp; Gear Vault</button>
+        <button data-target="bestiary">Bestiary</button>
         <button data-target="compare">Edition Comparison</button>
       </nav>
 
@@ -477,6 +490,24 @@
           </select>
         </div>
         <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
+      </section>
+
+      <section id="bestiary" class="card">
+        <h2>Bestiary</h2>
+        <p>Discover iconic creatures with quick access to their tactics, challenge ratings, and SRD-friendly reference links. Filter by role or biome to slot foes into your next encounter.</p>
+        <div class="items-search">
+          <input type="search" id="monster-query" placeholder="Search by name, ability, or lore" aria-label="Search monsters" />
+          <select id="monster-cr-filter" aria-label="Filter challenge rating">
+            <option value="all">All challenge ratings</option>
+          </select>
+          <select id="monster-terrain-filter" aria-label="Filter terrain">
+            <option value="all">All terrains</option>
+          </select>
+          <select id="monster-role-filter" aria-label="Filter combat role">
+            <option value="all">All roles</option>
+          </select>
+        </div>
+        <div id="bestiary-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
       </section>
 
       <section id="compare" class="card">
@@ -1101,6 +1132,142 @@
         }
       ];
 
+      const MONSTERS = [
+        {
+          name: "Adult Black Dragon",
+          size: "Huge",
+          creatureType: "Dragon",
+          alignment: "Chaotic evil",
+          challenge: "14",
+          terrain: ["Swamp", "Coastal"],
+          role: ["Solo", "Controller"],
+          overview: "A patient tyrant that lurks in fetid marshes, reshaping the landscape with acid and dominating local tribes as expendable scouts.",
+          signatureAbilities: [
+            "Acid Breath (Recharge 5–6): Unleashes a corrosive line that eats through ranks and cover alike, forcing Dexterity saves for half damage.",
+            "Amphibious Ambusher: A swim speed and superior darkvision let the dragon strike from underwater tunnels or night skies without warning.",
+            "Legendary Actions: Wing beats, tail lashes, and perception sweeps keep the dragon airborne and responsive between turns."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monstrous Manual (AD&D 2e)", url: "https://www.dmsguild.com/product/17171/Monstrous-Compendium--Volume-One-and-Two" }
+          ]
+        },
+        {
+          name: "Behir",
+          size: "Huge",
+          creatureType: "Monstrosity",
+          alignment: "Neutral evil",
+          challenge: "11",
+          terrain: ["Mountain", "Underdark"],
+          role: ["Skirmisher", "Striker"],
+          overview: "Serpentine predators that coil around storm-lashed peaks or deep caverns, hunting with sudden pounces and lightning blasts.",
+          signatureAbilities: [
+            "Multiattack & Swallow: Claws and bites restrain prey so the behir can swallow and keep fighting with a belly full of heroes.",
+            "Lightning Breath (Recharge 5–6): A focused blast that punishes tightly packed parties climbing a ridge or tunnel.",
+            "Spider Climb: Its innate climbing lets it ambush from ceilings, cliffs, or stalagmites far from melee reprisal."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Frost Giant",
+          size: "Huge",
+          creatureType: "Giant",
+          alignment: "Neutral evil",
+          challenge: "8",
+          terrain: ["Arctic", "Mountain"],
+          role: ["Brute", "Soldier"],
+          overview: "Raid leaders from the frozen north who wield great axes like siege engines and command loyal winter wolves.",
+          signatureAbilities: [
+            "Greataxe Strikes: High damage per swing makes the giant a threat to any front-liner without strong defenses.",
+            "Rock Hurling: Giants keep pressure on distant foes or fortifications with improvised boulders.",
+            "Frigid Resilience: Cold immunity and hardy saves let them ignore many Arctic hazards the party relies on."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Against the Giants (1e)", url: "https://www.dmsguild.com/product/17035/G1-3-Against-the-Giants-1e" }
+          ]
+        },
+        {
+          name: "Gelatinous Cube",
+          size: "Large",
+          creatureType: "Ooze",
+          alignment: "Unaligned",
+          challenge: "2",
+          terrain: ["Dungeon", "Underdark"],
+          role: ["Controller", "Hazard"],
+          overview: "Transparent dungeon sweepers that dissolve gear and creatures alike while sliding silently through corridors.",
+          signatureAbilities: [
+            "Engulf: Creatures sharing its space are paralyzed and dissolved, making tight halls terrifying chokepoints.",
+            "Transparent Form: Without careful perception checks the cube remains unseen until it strikes.",
+            "Pseudopod Reach: Extends to capture stragglers or retrieve suspended treasure from within."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/gelatinousCube.htm" }
+          ]
+        },
+        {
+          name: "Goblin Boss",
+          size: "Small",
+          creatureType: "Humanoid",
+          alignment: "Neutral evil",
+          challenge: "1",
+          terrain: ["Forest", "Cavern", "Urban"],
+          role: ["Leader", "Skirmisher"],
+          overview: "Cunning commanders who weaponize mobility and minions to harry caravans before slipping back into the dark.",
+          signatureAbilities: [
+            "Redirect Attack: Uses nearby goblins as unwilling shields to blunt incoming blows.",
+            "Multiattack: Combines scimitar and dagger strikes for swingy burst damage on isolated targets.",
+            "Nimble Escape: Bonus-action Disengage or Hide keeps the boss alive long enough to rally reinforcements."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" }
+          ]
+        },
+        {
+          name: "Treant",
+          size: "Huge",
+          creatureType: "Plant",
+          alignment: "Chaotic good",
+          challenge: "9",
+          terrain: ["Forest"],
+          role: ["Defender", "Support"],
+          overview: "Ancient guardians of woodland realms who animate allies and reshape the battlefield with living roots.",
+          signatureAbilities: [
+            "Animate Trees: Calls nearby trees into battle, turning a clearing into a crowd of allied bludgeons.",
+            "Slam Attacks: Heavy melee swings crush siege gear and punish fire-bearing intruders.",
+            "Siege Monster: Deals double damage to structures, making treants ideal for defending or toppling fortifications."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/treant.htm" }
+          ]
+        },
+        {
+          name: "Lich",
+          size: "Medium",
+          creatureType: "Undead",
+          alignment: "Any evil",
+          challenge: "21",
+          terrain: ["Dungeon", "Urban", "Shadowfell"],
+          role: ["Solo", "Artillery"],
+          overview: "Immortal spellcasters who trade mortality for arcane supremacy, defending phylacteries with layered wards and minions.",
+          signatureAbilities: [
+            "Paralyzing Touch: A chilling melee strike that locks down foes for follow-up spells.",
+            "Legendary Resistance & Actions: Ensures the lich maintains control of the battlefield despite control effects.",
+            "Spellcasting Arsenal: Access to high-level necromancy and control magic lets the lich script entire encounters."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/lich.htm" }
+          ]
+        }
+      ];
+
       const rarityOptions = [
         "Common",
         "Uncommon",
@@ -1121,6 +1288,123 @@
           document.getElementById(btn.dataset.target).classList.add("active");
         });
       });
+
+      const monsterQuery = document.getElementById("monster-query");
+      const monsterCRSelect = document.getElementById("monster-cr-filter");
+      const monsterTerrainSelect = document.getElementById("monster-terrain-filter");
+      const monsterRoleSelect = document.getElementById("monster-role-filter");
+      const bestiaryList = document.getElementById("bestiary-list");
+
+      const parseCR = (cr) => {
+        if (typeof cr === "number") return cr;
+        if (typeof cr === "string" && cr.includes("/")) {
+          const [num, denom] = cr.split("/").map(Number);
+          if (!Number.isNaN(num) && !Number.isNaN(denom) && denom !== 0) {
+            return num / denom;
+          }
+        }
+        return Number(cr);
+      };
+
+      const uniqueCRs = Array.from(new Set(MONSTERS.map(monster => monster.challenge)))
+        .sort((a, b) => parseCR(a) - parseCR(b));
+      uniqueCRs.forEach(cr => {
+        const option = document.createElement("option");
+        option.value = cr;
+        option.textContent = `CR ${cr}`;
+        monsterCRSelect.appendChild(option);
+      });
+
+      const uniqueTerrains = Array.from(new Set(MONSTERS.flatMap(monster => monster.terrain))).sort();
+      uniqueTerrains.forEach(terrain => {
+        const option = document.createElement("option");
+        option.value = terrain;
+        option.textContent = terrain;
+        monsterTerrainSelect.appendChild(option);
+      });
+
+      const uniqueRoles = Array.from(new Set(MONSTERS.flatMap(monster => monster.role))).sort();
+      uniqueRoles.forEach(role => {
+        const option = document.createElement("option");
+        option.value = role;
+        option.textContent = role;
+        monsterRoleSelect.appendChild(option);
+      });
+
+      const renderMonsters = () => {
+        const query = monsterQuery.value.toLowerCase().trim();
+        const crFilter = monsterCRSelect.value;
+        const terrainFilter = monsterTerrainSelect.value;
+        const roleFilter = monsterRoleSelect.value;
+
+        bestiaryList.innerHTML = "";
+
+        const results = MONSTERS.filter(monster => {
+          const searchableFields = [
+            monster.name,
+            monster.overview,
+            monster.creatureType,
+            monster.alignment,
+            monster.size,
+            monster.signatureAbilities.join(" "),
+            monster.terrain.join(" "),
+            monster.role.join(" ")
+          ]
+            .filter(Boolean)
+            .map(field => field.toLowerCase());
+
+          const matchesQuery = !query || searchableFields.some(field => field.includes(query));
+          const matchesCR = crFilter === "all" || monster.challenge === crFilter;
+          const matchesTerrain = terrainFilter === "all" || monster.terrain.includes(terrainFilter);
+          const matchesRole = roleFilter === "all" || monster.role.includes(roleFilter);
+          return matchesQuery && matchesCR && matchesTerrain && matchesRole;
+        });
+
+        if (!results.length) {
+          const empty = document.createElement("p");
+          empty.textContent = "No monsters match those filters. Try broadening your search or removing a filter.";
+          empty.style.opacity = "0.75";
+          bestiaryList.appendChild(empty);
+          return;
+        }
+
+        results.forEach(monster => {
+          const card = document.createElement("article");
+          card.className = "monster-card";
+          const abilityList = monster.signatureAbilities
+            .map(ability => `<li>${ability}</li>`)
+            .join("");
+          const sourceLinks = monster.sources
+            .map(source => `<a href="${source.url}" target="_blank" rel="noopener">${source.label}</a>`)
+            .join(", ");
+
+          card.innerHTML = `
+            <h4>
+              ${monster.name}
+              <span class="pill">CR ${monster.challenge}</span>
+            </h4>
+            <div class="monster-meta">
+              <span><strong>Size:</strong> ${monster.size}</span>
+              <span><strong>Type:</strong> ${monster.creatureType}</span>
+              <span><strong>Alignment:</strong> ${monster.alignment}</span>
+              <span><strong>Role:</strong> ${monster.role.join(", ")}</span>
+              <span><strong>Terrain:</strong> ${monster.terrain.join(", ")}</span>
+            </div>
+            <p>${monster.overview}</p>
+            ${monster.signatureAbilities.length ? `<p><strong>Signature abilities & tactics</strong></p>` : ""}
+            ${monster.signatureAbilities.length ? `<ul class="monster-abilities">${abilityList}</ul>` : ""}
+            <p style="font-size: 0.85rem; opacity: 0.7;"><strong>Sources:</strong> ${sourceLinks}</p>
+          `;
+
+          bestiaryList.appendChild(card);
+        });
+      };
+
+      monsterQuery.addEventListener("input", renderMonsters);
+      monsterCRSelect.addEventListener("change", renderMonsters);
+      monsterTerrainSelect.addEventListener("change", renderMonsters);
+      monsterRoleSelect.addEventListener("change", renderMonsters);
+      renderMonsters();
 
       const comparisonContainer = document.getElementById("comparison-matrix");
       if (comparisonContainer) {
