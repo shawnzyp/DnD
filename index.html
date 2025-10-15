@@ -1391,19 +1391,74 @@
     </header>
 
     <main>
-      <nav class="card">
-        <button class="active" data-target="ask">Ask the DM</button>
-        <button data-target="details">DM Screen</button>
-        <button data-target="encounters">Encounters</button>
-        <button data-target="rules">Rules Compendium</button>
-        <button data-target="items">Item &amp; Gear Vault</button>
-        <button data-target="spells">Spellbook</button>
-        <button data-target="conditions">Condition Codex</button>
-        <button data-target="bestiary">Bestiary</button>
-        <button data-target="compare">Edition Comparison</button>
+      <nav class="card" role="tablist">
+        <button
+          id="tab-ask"
+          class="active"
+          role="tab"
+          aria-selected="true"
+          aria-controls="ask"
+          data-target="ask"
+        >Ask the DM</button>
+        <button
+          id="tab-details"
+          role="tab"
+          aria-selected="false"
+          aria-controls="details"
+          data-target="details"
+        >DM Screen</button>
+        <button
+          id="tab-encounters"
+          role="tab"
+          aria-selected="false"
+          aria-controls="encounters"
+          data-target="encounters"
+        >Encounters</button>
+        <button
+          id="tab-rules"
+          role="tab"
+          aria-selected="false"
+          aria-controls="rules"
+          data-target="rules"
+        >Rules Compendium</button>
+        <button
+          id="tab-items"
+          role="tab"
+          aria-selected="false"
+          aria-controls="items"
+          data-target="items"
+        >Item &amp; Gear Vault</button>
+        <button
+          id="tab-spells"
+          role="tab"
+          aria-selected="false"
+          aria-controls="spells"
+          data-target="spells"
+        >Spellbook</button>
+        <button
+          id="tab-conditions"
+          role="tab"
+          aria-selected="false"
+          aria-controls="conditions"
+          data-target="conditions"
+        >Condition Codex</button>
+        <button
+          id="tab-bestiary"
+          role="tab"
+          aria-selected="false"
+          aria-controls="bestiary"
+          data-target="bestiary"
+        >Bestiary</button>
+        <button
+          id="tab-compare"
+          role="tab"
+          aria-selected="false"
+          aria-controls="compare"
+          data-target="compare"
+        >Edition Comparison</button>
       </nav>
 
-      <section id="ask" class="card active">
+      <section id="ask" class="card active" role="tabpanel" tabindex="0" aria-labelledby="tab-ask">
         <h2>Ask the DM</h2>
         <p>Chat with a lore-savvy Dungeon Master powered by an on-device LLM. Ask about rules, ruling conflicts, worldbuilding prompts, or create custom content for any edition.</p>
         <div class="status" id="status"><span></span><strong>Initializing engine…</strong></div>
@@ -1415,13 +1470,13 @@
         <div class="quick-prompts" aria-label="Quick prompts"></div>
       </section>
 
-      <section id="details" class="card">
+      <section id="details" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-details" hidden>
         <h2>DM Screen Reference</h2>
         <p>Keep essential adjudication tables within reach. These SRD-friendly summaries cover actions, typical DC benchmarks, overland travel, and common environmental hazards.</p>
         <div id="dm-reference" class="reference-grid" aria-live="polite"></div>
       </section>
 
-      <section id="encounters" class="card">
+      <section id="encounters" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-encounters" hidden>
         <h2>Encounter Workshop</h2>
         <p>Balance combat on the fly with XP math, curated monsters, and a persistent initiative tracker.</p>
         <div class="encounter-layout">
@@ -1484,7 +1539,7 @@
         </div>
       </section>
 
-      <section id="rules" class="card">
+      <section id="rules" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-rules" hidden>
         <h2>Rules Compendium</h2>
         <p>Review every major Dungeons &amp; Dragons edition. Each entry includes core rules coverage, iconic subsystems, and the official SRDs or rulebooks to consult for full detail.</p>
         <div class="rules-grid" id="rules-grid"></div>
@@ -1497,7 +1552,7 @@
         <div id="settings-grid" class="settings-grid" aria-live="polite"></div>
       </section>
 
-      <section id="items" class="card">
+      <section id="items" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-items" hidden>
         <h2>Item &amp; Gear Vault</h2>
         <p>Search across equipment, magic items, and artifacts spanning multiple editions. Filter by type or rarity and tap an item to review its summary and primary source.</p>
         <div class="items-search">
@@ -1544,7 +1599,7 @@
         <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
       </section>
 
-      <section id="spells" class="card">
+      <section id="spells" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-spells" hidden>
         <h2>Spellbook Archives</h2>
         <p>Explore SRD-friendly spells with quick access to casting details, save mechanics, and reliable sources. Filter by level, school, class, or edition to prep the perfect list.</p>
         <div class="items-search">
@@ -1565,7 +1620,7 @@
         <div id="spells-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
       </section>
 
-      <section id="conditions" class="card">
+      <section id="conditions" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-conditions" hidden>
         <h2>Condition Codex</h2>
         <p>Review the most common conditions adventurers face, from poisoned to paralyzed. Each entry summarizes the mechanical impact and saving throws so you can adjudicate quickly at the table.</p>
         <div class="items-search">
@@ -1581,7 +1636,7 @@
         <div id="conditions-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
       </section>
 
-      <section id="bestiary" class="card">
+      <section id="bestiary" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-bestiary" hidden>
         <h2>Bestiary</h2>
         <p>Discover iconic creatures with quick access to their tactics, challenge ratings, and SRD-friendly reference links. Filter by role or biome to slot foes into your next encounter.</p>
         <div class="items-search">
@@ -1599,7 +1654,7 @@
         <div id="bestiary-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
       </section>
 
-      <section id="compare" class="card">
+      <section id="compare" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-compare" hidden>
         <h2>Edition Comparison Dashboard</h2>
         <p>Contrast design philosophies, release windows, and key systems at a glance. Use this dashboard to spot how each ruleset approaches combat cadence, narrative support, and supplemental material.</p>
         <div id="comparison-matrix" style="overflow-x: auto;"></div>
@@ -5596,19 +5651,101 @@
         return createdButtons;
       };
 
-      const navButtons = document.querySelectorAll("nav button");
-      const sections = document.querySelectorAll("main section");
-      navButtons.forEach((btn) => {
-        btn.addEventListener("click", () => {
-          navButtons.forEach(b => b.classList.remove("active"));
-          sections.forEach(sec => sec.classList.remove("active"));
-          btn.classList.add("active");
-          const targetSection = document.getElementById(btn.dataset.target);
-          if (targetSection) {
-            targetSection.classList.add("active");
+      const TAB_STORAGE_KEY = "dnd-active-tab";
+      const tabs = Array.from(document.querySelectorAll('nav [role="tab"]'));
+      const panels = Array.from(document.querySelectorAll('main [role="tabpanel"]'));
+
+      let storageAvailable = true;
+
+      const storeActiveTab = (tabId) => {
+        if (!storageAvailable) return;
+        try {
+          localStorage.setItem(TAB_STORAGE_KEY, tabId);
+        } catch (error) {
+          storageAvailable = false;
+          console.warn("Unable to store active tab", error);
+        }
+      };
+
+      const activateTab = (tab, { focusPanel = false, persist = false } = {}) => {
+        if (!tab) return;
+        const targetId = tab.getAttribute("aria-controls");
+        const targetPanel = panels.find(panel => panel.id === targetId);
+
+        tabs.forEach(btn => {
+          const isSelected = btn === tab;
+          btn.classList.toggle("active", isSelected);
+          btn.setAttribute("aria-selected", isSelected ? "true" : "false");
+          btn.tabIndex = isSelected ? 0 : -1;
+        });
+
+        panels.forEach(panel => {
+          const isActive = panel === targetPanel;
+          panel.classList.toggle("active", isActive);
+          if (isActive) {
+            panel.removeAttribute("hidden");
+            if (focusPanel && typeof panel.focus === "function") {
+              panel.focus();
+            }
+          } else {
+            panel.setAttribute("hidden", "");
+          }
+        });
+
+        if (persist) {
+          storeActiveTab(tab.id);
+        }
+      };
+
+      const focusTabAtIndex = (index) => {
+        const tab = tabs[index];
+        if (!tab) return;
+        tab.focus();
+        activateTab(tab, { persist: true });
+      };
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => {
+          activateTab(tab, { focusPanel: true, persist: true });
+        });
+
+        tab.addEventListener("keydown", (event) => {
+          const { key } = event;
+          if (key === "ArrowRight" || key === "ArrowDown") {
+            event.preventDefault();
+            const nextIndex = (index + 1) % tabs.length;
+            focusTabAtIndex(nextIndex);
+          } else if (key === "ArrowLeft" || key === "ArrowUp") {
+            event.preventDefault();
+            const prevIndex = (index - 1 + tabs.length) % tabs.length;
+            focusTabAtIndex(prevIndex);
+          } else if (key === "Home") {
+            event.preventDefault();
+            focusTabAtIndex(0);
+          } else if (key === "End") {
+            event.preventDefault();
+            focusTabAtIndex(tabs.length - 1);
           }
         });
       });
+
+      let initialTabId = null;
+      if (storageAvailable) {
+        try {
+          initialTabId = localStorage.getItem(TAB_STORAGE_KEY);
+        } catch (error) {
+          storageAvailable = false;
+          console.warn("Unable to read stored active tab", error);
+        }
+      }
+
+      const initialTab = tabs.find(tab => tab.id === initialTabId)
+        || tabs.find(tab => tab.classList.contains("active"))
+        || tabs[0];
+
+      if (initialTab) {
+        activateTab(initialTab, { persist: false });
+      }
 
       const monsterQuery = document.getElementById("monster-query");
       const monsterCRSelect = document.getElementById("monster-cr-filter");
