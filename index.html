@@ -1138,6 +1138,123 @@
         color: inherit;
       }
 
+      .downtime-tool {
+        margin-top: 1.5rem;
+        display: grid;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 16px;
+        background: rgba(0, 0, 0, 0.32);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+      }
+
+      .downtime-tool h3 {
+        margin: 0;
+        font-size: 1.15rem;
+        letter-spacing: 0.04em;
+      }
+
+      .downtime-tool p {
+        margin: 0;
+        font-size: 0.9rem;
+        opacity: 0.85;
+        line-height: 1.5;
+      }
+
+      .downtime-form {
+        display: grid;
+        gap: 0.85rem;
+      }
+
+      .downtime-form label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .downtime-form select,
+      .downtime-form input {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+      }
+
+      .downtime-checkboxes {
+        display: grid;
+        gap: 0.45rem;
+      }
+
+      .downtime-checkboxes label {
+        display: inline-flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .downtime-summary {
+        display: grid;
+        gap: 0.6rem;
+        padding: 0.75rem 0.85rem;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+      }
+
+      .downtime-summary strong {
+        font-size: 0.95rem;
+      }
+
+      .downtime-summary dl {
+        display: grid;
+        gap: 0.35rem;
+        margin: 0;
+      }
+
+      .downtime-summary dt {
+        font-weight: 600;
+        font-size: 0.85rem;
+        opacity: 0.75;
+      }
+
+      .downtime-summary dd {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.45;
+      }
+
+      .downtime-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .downtime-actions button {
+        background: rgba(255, 255, 255, 0.12);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 999px;
+        padding: 0.45rem 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 160ms ease, transform 160ms ease;
+      }
+
+      .downtime-actions button:active {
+        transform: translateY(1px);
+      }
+
+      .downtime-actions button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
       .item-meta,
       .monster-meta {
         display: flex;
@@ -1400,6 +1517,29 @@
           <select id="edition-filter" aria-label="Filter edition availability">
             <option value="all">All editions</option>
           </select>
+        </div>
+        <div class="downtime-tool" aria-live="polite">
+          <div>
+            <h3>Downtime Activity Calculator</h3>
+            <p>Estimate SRD-friendly downtime costs, workdays, and check guidance for crafting equipment, scribing spells, or training new proficiencies.</p>
+          </div>
+          <form id="downtime-form" class="downtime-form">
+            <label for="downtime-activity">Activity type
+              <select id="downtime-activity" name="activity">
+                <option value="crafting">Crafting (mundane item)</option>
+                <option value="scribing">Scribing a spell</option>
+                <option value="training">Training proficiency</option>
+              </select>
+            </label>
+            <div id="downtime-dynamic-fields"></div>
+          </form>
+          <div class="downtime-summary" id="downtime-summary">
+            <strong>Results will appear here as you enter details.</strong>
+            <p style="margin: 0; font-size: 0.85rem; opacity: 0.75;">Downtime math follows SRD 5.1 downtime activities and wizard spellbook rules.</p>
+          </div>
+          <div class="downtime-actions">
+            <button type="button" id="downtime-copy" disabled>Copy summary</button>
+          </div>
         </div>
         <div id="items-list" style="margin-top: 1rem; display: grid; gap: 0.85rem;"></div>
       </section>
@@ -6054,6 +6194,555 @@
 
       const itemsList = document.getElementById("items-list");
       const itemQuery = document.getElementById("item-query");
+
+      const downtimeForm = document.getElementById("downtime-form");
+      const downtimeActivitySelect = document.getElementById("downtime-activity");
+      const downtimeDynamicFields = document.getElementById("downtime-dynamic-fields");
+      const downtimeSummary = document.getElementById("downtime-summary");
+      const downtimeCopyBtn = document.getElementById("downtime-copy");
+
+      const numberFormatter = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 0 });
+
+      const formatGp = (value) => {
+        const safeValue = Number.isFinite(value) ? value : 0;
+        const rounded = Math.round((safeValue + Number.EPSILON) * 100) / 100;
+        const formatted = numberFormatter.format(rounded);
+        return `${formatted} gp`;
+      };
+
+      const formatHours = (value) => {
+        if (!Number.isFinite(value) || value <= 0) return "0 hours";
+        const rounded = Math.round((value + Number.EPSILON) * 10) / 10;
+        const digits = Number.isInteger(rounded) ? 0 : 1;
+        const formatted = rounded.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+        return `${formatted} hour${rounded === 1 ? "" : "s"}`;
+      };
+
+      const formatDays = (value) => {
+        if (!Number.isFinite(value) || value <= 0) return "0 days";
+        const rounded = Math.round((value + Number.EPSILON) * 10) / 10;
+        const digits = Number.isInteger(rounded) ? 0 : 1;
+        const formatted = rounded.toLocaleString(undefined, { minimumFractionDigits: digits, maximumFractionDigits: digits });
+        return `${formatted} day${rounded === 1 ? "" : "s"}`;
+      };
+
+      const DOWNTIME_CONFIG = {
+        crafting: {
+          label: "Crafting (mundane item)",
+          reference: "SRD 5.1, Downtime Activities – Crafting (Player's Handbook p. 187)",
+          fields: [
+            {
+              id: "craft-market-price",
+              name: "marketPrice",
+              label: "Market price of the finished item (gp)",
+              type: "number",
+              min: 0,
+              step: 1,
+              value: 50,
+              helper: "Enter the list cost of the item you want to produce.",
+            },
+            {
+              id: "craft-days",
+              name: "availableDays",
+              label: "Downtime days you can invest now",
+              type: "number",
+              min: 1,
+              step: 1,
+              placeholder: "Optional",
+              helper: "Track partial progress for a short crafting season.",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "craft-proficiency",
+              name: "proficient",
+              label: "Crafter is proficient with the required artisan's tools (advantage when appropriate)",
+              defaultChecked: true,
+            },
+            {
+              id: "craft-assistant",
+              name: "assistant",
+              label: "Working alongside at least one skilled helper (adds +5 gp progress/day)",
+            },
+            {
+              id: "craft-guild",
+              name: "guild",
+              label: "Guild workshop or bulk materials discount (reduce costs by 25%)",
+            },
+          ],
+          compute(values) {
+            const marketPrice = Math.max(0, Number(values.marketPrice) || 0);
+            if (!marketPrice) {
+              return {
+                headline: "Enter an item's market price to calculate a crafting plan.",
+                timeText: "Awaiting input",
+                costText: "Materials cost unknown",
+                checkText: "Use the relevant artisan's tools with an ability check vs. a DC the DM sets for the item.",
+                reference: this.reference,
+                note: "Crafting requires access to tools and materials before work can begin.",
+                copyText: "",
+              };
+            }
+
+            const baseProgress = 5;
+            const progressPerDay = baseProgress + (values.assistant ? 5 : 0);
+            const totalDaysRaw = marketPrice / progressPerDay;
+            const totalDays = Math.max(1, Math.ceil(totalDaysRaw));
+            let materialsCost = marketPrice / 2;
+            if (values.guild) {
+              materialsCost *= 0.75;
+            }
+
+            const availableDays = Number.isFinite(values.availableDays) && values.availableDays > 0
+              ? values.availableDays
+              : null;
+            const noteParts = [];
+
+            if (availableDays) {
+              const daysWorked = Math.min(availableDays, totalDaysRaw);
+              const gpProgress = daysWorked * progressPerDay;
+              const percentComplete = Math.min(gpProgress / marketPrice, 1) * 100;
+              if (availableDays < totalDaysRaw) {
+                const remainingDays = Math.ceil(totalDaysRaw - availableDays);
+                noteParts.push(`With ${formatDays(availableDays)} scheduled you'll finish about ${Math.round(percentComplete)}% (${formatGp(gpProgress)}) and still need roughly ${formatDays(remainingDays)} later.`);
+              } else {
+                noteParts.push(`You can finish within the allotted ${formatDays(availableDays)} of downtime.`);
+              }
+            }
+
+            if (values.assistant) {
+              noteParts.push("A skilled assistant doubles your progress to 10 gp per day as long as they contribute their downtime.");
+            }
+            if (values.proficient) {
+              noteParts.push("Tool proficiency supports advantage when the DM allows and avoids mishaps.");
+            } else {
+              noteParts.push("Without the right tool proficiency the DM may impose disadvantage or additional complications.");
+            }
+
+            const headline = `Crafting ${formatGp(marketPrice)} item`;
+            const timeText = `${formatDays(totalDays)} of downtime at ${progressPerDay} gp progress per day.`;
+            const costText = `${formatGp(materialsCost)} in materials${values.guild ? " after the guild discount." : "."}`;
+            const checkText = `Ability check with the relevant artisan's tools vs. a DC the DM sets for the item's complexity${values.proficient ? "; you qualify for proficiency bonuses" : "."}`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Crafting`,
+              `Item market price: ${formatGp(marketPrice)}`,
+              `Daily progress: ${progressPerDay} gp`,
+              `Downtime required: ${formatDays(totalDays)}`,
+              availableDays ? `Scheduled now: ${formatDays(availableDays)}` : null,
+              `Materials needed: ${formatGp(materialsCost)}${values.guild ? " (25% guild discount)" : ""}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        scribing: {
+          label: "Scribing a spell",
+          reference: "SRD 5.1, Wizard Spellbook – Copying a Spell (Player's Handbook p. 114)",
+          fields: [
+            {
+              id: "scribe-level",
+              name: "spellLevel",
+              label: "Spell level",
+              type: "select",
+              options: [
+                { value: "0", label: "Cantrip" },
+                { value: "1", label: "1st level" },
+                { value: "2", label: "2nd level" },
+                { value: "3", label: "3rd level" },
+                { value: "4", label: "4th level" },
+                { value: "5", label: "5th level" },
+                { value: "6", label: "6th level" },
+                { value: "7", label: "7th level" },
+                { value: "8", label: "8th level" },
+                { value: "9", label: "9th level" },
+              ],
+              value: "1",
+            },
+            {
+              id: "scribe-count",
+              name: "copies",
+              label: "Number of spells",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 1,
+            },
+          ],
+          checkboxes: [
+            {
+              id: "scribe-tradition",
+              name: "traditionDiscount",
+              label: "Arcane tradition (e.g., School Savant) halves the gold and time",
+            },
+            {
+              id: "scribe-owned-source",
+              name: "ownSource",
+              label: "Copying from your own scroll or notes (time halved, gold unchanged)",
+            },
+          ],
+          compute(values) {
+            const level = Number(values.spellLevel ?? 0);
+            const copies = Math.max(0, Number(values.copies) || 0);
+
+            if (!copies) {
+              return {
+                headline: "Enter how many spells you're transcribing to see costs.",
+                timeText: "Awaiting input",
+                costText: "Inks and rare parchment cost unknown",
+                checkText: "No check is normally required; you spend the time and gold automatically.",
+                reference: this.reference,
+                note: "Scribing demands the spell must already be prepared or available to copy.",
+                copyText: "",
+              };
+            }
+
+            const baseLevelCost = level <= 0 ? 0 : level * 50;
+            const baseLevelHours = level <= 0 ? 0 : level * 2;
+            let totalCost = baseLevelCost * copies;
+            let totalHours = baseLevelHours * copies;
+
+            if (values.traditionDiscount) {
+              totalCost *= 0.5;
+              totalHours *= 0.5;
+            }
+            if (values.ownSource) {
+              totalHours *= 0.5;
+            }
+
+            const downtimeDays = totalHours / 8;
+            const timeText = totalHours > 0
+              ? `${formatHours(totalHours)} of focused writing (~${formatDays(Math.max(1, Math.ceil(downtimeDays || 0)))})`
+              : "No downtime needed; cantrips don't require copying in the SRD.";
+            const costText = totalCost > 0
+              ? `${formatGp(totalCost)} in inks and fine parchment.`
+              : "No gold cost for cantrips.";
+            const checkText = "No check required; failure only occurs if you lack time or the spell is higher level than you can prepare.";
+
+            const noteParts = [];
+            if (values.traditionDiscount) {
+              noteParts.push("Tradition features halve both cost and time.");
+            }
+            if (values.ownSource) {
+              noteParts.push("Copying from your own notes halves the remaining time requirement.");
+            }
+            if (level === 0) {
+              noteParts.push("Cantrips are usually gained through leveling, so copying rules may not apply—confirm with your DM.");
+            }
+
+            const headline = copies === 1
+              ? `Scribing a ${level === 0 ? "cantrip" : `${level}th-level`} spell`
+              : `Scribing ${copies} spells of level ${level}`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Scribing spells`,
+              `Spell level: ${level}`,
+              `Number of spells: ${copies}`,
+              `Time required: ${timeText}`,
+              `Cost: ${costText}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        training: {
+          label: "Training proficiency",
+          reference: "SRD 5.1, Downtime Activities – Training (Player's Handbook p. 187)",
+          fields: [
+            {
+              id: "training-focus",
+              name: "focus",
+              label: "Training goal",
+              type: "select",
+              options: [
+                { value: "tool", label: "Tool proficiency" },
+                { value: "language", label: "New language" },
+              ],
+              value: "tool",
+            },
+            {
+              id: "training-days",
+              name: "availableDays",
+              label: "Downtime days you can commit now",
+              type: "number",
+              min: 1,
+              step: 1,
+              placeholder: "Optional",
+              helper: "Track how long the current training block lasts.",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "training-mentor",
+              name: "mentor",
+              label: "Dedicated tutor speeds training (time halved, gold doubled per day)",
+            },
+            {
+              id: "training-related",
+              name: "related",
+              label: "Already proficient in a closely related skill (time reduced by 25%)",
+            },
+          ],
+          compute(values) {
+            const baseDays = 250;
+            let totalDays = baseDays;
+            let dailyCost = 1;
+
+            if (values.mentor) {
+              totalDays *= 0.5;
+              dailyCost = 2;
+            }
+            if (values.related) {
+              totalDays *= 0.75;
+            }
+
+            totalDays = Math.max(1, Math.ceil(totalDays));
+            const totalCost = totalDays * dailyCost;
+
+            const availableDays = Number.isFinite(values.availableDays) && values.availableDays > 0
+              ? values.availableDays
+              : null;
+
+            const noteParts = [];
+            if (values.mentor) {
+              noteParts.push("A tutor accelerates progress but charges 2 gp per day.");
+            }
+            if (values.related) {
+              noteParts.push("Related experience trims 25% off the schedule.");
+            }
+            if (availableDays) {
+              if (availableDays < totalDays) {
+                const remaining = Math.max(0, totalDays - availableDays);
+                noteParts.push(`After ${formatDays(availableDays)} you'll need about ${formatDays(remaining)} more to finish.`);
+              } else {
+                noteParts.push(`You can complete the training within ${formatDays(availableDays)}.`);
+              }
+            }
+
+            const focusText = values.focus === "language" ? "a new language" : "a tool proficiency";
+            const headline = `Training ${focusText}`;
+            const timeText = `${formatDays(totalDays)} of instruction at ${dailyCost} gp per day.`;
+            const costText = `${formatGp(totalCost)} total tuition.`;
+            const checkText = "No roll required; completion grants the proficiency after you invest the downtime and gold.";
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Training`,
+              `Goal: ${focusText}`,
+              `Downtime required: ${formatDays(totalDays)}`,
+              availableDays ? `Scheduled now: ${formatDays(availableDays)}` : null,
+              `Daily cost: ${formatGp(dailyCost)}`,
+              `Total cost: ${formatGp(totalCost)}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+      };
+
+      const buildFieldControl = (field) => {
+        const wrapper = document.createElement("label");
+        wrapper.htmlFor = field.id;
+        wrapper.appendChild(document.createTextNode(field.label));
+
+        let control;
+        if (field.type === "select") {
+          control = document.createElement("select");
+          control.id = field.id;
+          control.name = field.name;
+          field.options.forEach(opt => {
+            const option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.label;
+            control.appendChild(option);
+          });
+          if (field.value !== undefined) {
+            control.value = field.value;
+          }
+        } else {
+          control = document.createElement("input");
+          control.type = field.type || "text";
+          control.id = field.id;
+          control.name = field.name;
+          if (field.placeholder) control.placeholder = field.placeholder;
+          if (field.min !== undefined) control.min = field.min;
+          if (field.max !== undefined) control.max = field.max;
+          if (field.step !== undefined) control.step = field.step;
+          if (field.value !== undefined && field.value !== null) control.value = field.value;
+        }
+
+        wrapper.appendChild(control);
+
+        if (field.helper) {
+          const helper = document.createElement("span");
+          helper.style.fontSize = "0.75rem";
+          helper.style.opacity = "0.7";
+          helper.textContent = field.helper;
+          wrapper.appendChild(helper);
+        }
+
+        return wrapper;
+      };
+
+      const buildCheckboxControl = (checkbox) => {
+        const wrapper = document.createElement("label");
+        wrapper.htmlFor = checkbox.id;
+        const control = document.createElement("input");
+        control.type = "checkbox";
+        control.id = checkbox.id;
+        control.name = checkbox.name;
+        control.checked = Boolean(checkbox.defaultChecked);
+        wrapper.appendChild(control);
+        const text = document.createElement("span");
+        text.textContent = checkbox.label;
+        wrapper.appendChild(text);
+        return wrapper;
+      };
+
+      const renderDowntimeFields = (activityKey) => {
+        const config = DOWNTIME_CONFIG[activityKey];
+        downtimeDynamicFields.innerHTML = "";
+        if (!config) return;
+
+        config.fields?.forEach(field => {
+          const fieldControl = buildFieldControl(field);
+          downtimeDynamicFields.appendChild(fieldControl);
+        });
+
+        if (config.checkboxes?.length) {
+          const checkboxGroup = document.createElement("div");
+          checkboxGroup.className = "downtime-checkboxes";
+          config.checkboxes.forEach(box => {
+            const checkboxControl = buildCheckboxControl(box);
+            checkboxGroup.appendChild(checkboxControl);
+          });
+          downtimeDynamicFields.appendChild(checkboxGroup);
+        }
+      };
+
+      const collectDowntimeValues = (activityKey) => {
+        const config = DOWNTIME_CONFIG[activityKey];
+        const values = {};
+        if (!config) return values;
+        config.fields?.forEach(field => {
+          const control = downtimeForm.querySelector(`[name="${field.name}"]`);
+          if (!control) return;
+          if (field.type === "number") {
+            const raw = control.value.trim();
+            values[field.name] = raw === "" ? null : Number(raw);
+          } else {
+            values[field.name] = control.value;
+          }
+        });
+        config.checkboxes?.forEach(box => {
+          const control = downtimeForm.querySelector(`[name="${box.name}"]`);
+          if (!control) return;
+          values[box.name] = control.checked;
+        });
+        return values;
+      };
+
+      const updateDowntimeSummary = () => {
+        const activityKey = downtimeActivitySelect.value;
+        const config = DOWNTIME_CONFIG[activityKey];
+        if (!config) return;
+        const values = collectDowntimeValues(activityKey);
+        const result = config.compute(values);
+
+        downtimeSummary.innerHTML = `
+          <strong>${result.headline}</strong>
+          <dl>
+            <dt>Time required</dt>
+            <dd>${result.timeText}</dd>
+            <dt>Gold cost</dt>
+            <dd>${result.costText}</dd>
+            <dt>Checks</dt>
+            <dd>${result.checkText}</dd>
+            <dt>Reference</dt>
+            <dd>${result.reference}</dd>
+          </dl>
+          ${result.note ? `<p style="margin: 0; font-size: 0.8rem; opacity: 0.75;">${result.note}</p>` : ""}
+        `;
+
+        const copyText = result.copyText ?? "";
+        if (copyText) {
+          downtimeCopyBtn.disabled = false;
+          downtimeCopyBtn.dataset.summary = copyText;
+          downtimeCopyBtn.textContent = "Copy summary";
+        } else {
+          downtimeCopyBtn.disabled = true;
+          downtimeCopyBtn.dataset.summary = "";
+        }
+      };
+
+      downtimeActivitySelect.addEventListener("change", () => {
+        renderDowntimeFields(downtimeActivitySelect.value);
+        updateDowntimeSummary();
+      });
+
+      downtimeForm.addEventListener("input", () => {
+        updateDowntimeSummary();
+      });
+
+      downtimeForm.addEventListener("change", () => {
+        updateDowntimeSummary();
+      });
+
+      downtimeCopyBtn.addEventListener("click", async () => {
+        const summary = downtimeCopyBtn.dataset.summary;
+        if (!summary) return;
+        let copied = false;
+        if (navigator.clipboard?.writeText) {
+          try {
+            await navigator.clipboard.writeText(summary);
+            copied = true;
+          } catch (err) {
+            console.warn("Clipboard API failed, falling back", err);
+          }
+        }
+        if (!copied) {
+          const temp = document.createElement("textarea");
+          temp.value = summary;
+          temp.setAttribute("readonly", "readonly");
+          temp.style.position = "absolute";
+          temp.style.left = "-9999px";
+          document.body.appendChild(temp);
+          temp.select();
+          try {
+            document.execCommand("copy");
+            copied = true;
+          } catch (err) {
+            console.error("Fallback copy failed", err);
+          }
+          document.body.removeChild(temp);
+        }
+        if (copied) {
+          const originalText = downtimeCopyBtn.textContent;
+          downtimeCopyBtn.textContent = "Copied!";
+          downtimeCopyBtn.disabled = true;
+          setTimeout(() => {
+            downtimeCopyBtn.textContent = originalText;
+            downtimeCopyBtn.disabled = false;
+          }, 2000);
+        }
+      });
+
+      renderDowntimeFields(downtimeActivitySelect.value);
+      updateDowntimeSummary();
 
       const renderItems = () => {
         const query = itemQuery.value.toLowerCase().trim();
