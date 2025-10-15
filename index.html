@@ -150,6 +150,70 @@
         gap: 0.5rem;
       }
 
+      .encounter-filters {
+        display: grid;
+        gap: 0.45rem;
+        padding-top: 0.25rem;
+      }
+
+      .encounter-filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+
+      .encounter-filter-row label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.8rem;
+        opacity: 0.8;
+      }
+
+      .encounter-filter-row input {
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.45rem 0.6rem;
+        font-size: 0.9rem;
+        min-width: 4rem;
+      }
+
+      .encounter-role-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+      }
+
+      .encounter-role-filters label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.3rem 0.6rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(0, 0, 0, 0.35);
+        font-size: 0.8rem;
+        opacity: 0.85;
+      }
+
+      .encounter-role-filters input {
+        accent-color: var(--accent);
+      }
+
+      .encounter-search .encounter-show-more {
+        align-self: flex-start;
+        margin-top: 0.35rem;
+        background: transparent;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        padding: 0.4rem 0.9rem;
+        color: inherit;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
       .encounter-search input[type="search"] {
         border-radius: 12px;
         border: 1px solid rgba(255, 255, 255, 0.12);
@@ -496,6 +560,34 @@
         gap: 0.4rem;
       }
 
+      .custom-condition-input {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 999px;
+        padding: 0.25rem 0.5rem;
+      }
+
+      .custom-condition-input input {
+        background: transparent;
+        border: none;
+        color: inherit;
+        width: 110px;
+        font-size: 0.8rem;
+        outline: none;
+      }
+
+      .custom-condition-input button {
+        background: transparent;
+        border: none;
+        color: var(--accent);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
+      }
+
       .condition-chip {
         display: inline-flex;
         align-items: center;
@@ -690,8 +782,8 @@
 
       .status {
         display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
+        align-items: flex-start;
+        gap: 0.65rem;
         margin-top: 0.5rem;
         font-size: 0.85rem;
         opacity: 0.8;
@@ -705,8 +797,69 @@
         display: inline-block;
       }
 
+      .status-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .status-details strong {
+        font-size: 0.9rem;
+      }
+
+      .status-meta {
+        font-size: 0.75rem;
+        opacity: 0.75;
+      }
+
       .status.ready span { background: #31c48d; }
       .status.generating span { background: #ff7849; }
+
+      .model-settings {
+        margin-top: 0.75rem;
+        display: grid;
+        gap: 0.65rem;
+      }
+
+      .model-settings label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+      }
+
+      .model-settings select {
+        background: rgba(0, 0, 0, 0.45);
+        color: inherit;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        padding: 0.6rem 0.7rem;
+        font-size: 1rem;
+      }
+
+      .generation-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.85rem;
+      }
+
+      .generation-controls label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        opacity: 0.85;
+        min-width: 180px;
+      }
+
+      .generation-controls span {
+        font-variant-numeric: tabular-nums;
+      }
+
+      .generation-controls input[type="range"] {
+        accent-color: var(--accent);
+      }
 
       .chat-log {
         height: clamp(240px, 40vh, 420px);
@@ -786,6 +939,26 @@
       .chat-input button:not(:disabled):active {
         transform: translateY(1px);
         background: var(--accent-dark);
+      }
+
+      .quick-prompts-preferences {
+        margin-top: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .quick-prompts-preferences input {
+        accent-color: var(--accent);
+      }
+
+      .prompt-toast {
+        margin-top: 0.35rem;
+        font-size: 0.8rem;
+        opacity: 0.75;
+        transition: opacity 160ms ease;
       }
 
       .quick-prompts {
@@ -1507,7 +1680,44 @@
           role="status"
           aria-live="polite"
           aria-atomic="true"
-        ><span></span><strong>Initializing engine…</strong></div>
+        >
+          <span></span>
+          <div class="status-details">
+            <strong>Initializing engine…</strong>
+            <div id="status-meta" class="status-meta" hidden></div>
+          </div>
+        </div>
+        <div class="model-settings" aria-label="Model and generation preferences">
+          <label for="model-select">Model
+            <select id="model-select" name="model-select"></select>
+          </label>
+          <div class="generation-controls" role="group" aria-label="Generation controls">
+            <label for="temperature-slider">Temperature
+              <span id="temperature-display" aria-live="polite">0.5</span>
+              <input
+                type="range"
+                id="temperature-slider"
+                name="temperature"
+                min="0"
+                max="1"
+                step="0.05"
+                value="0.5"
+              />
+            </label>
+            <label for="max-tokens-slider">Max tokens
+              <span id="max-tokens-display" aria-live="polite">400</span>
+              <input
+                type="range"
+                id="max-tokens-slider"
+                name="max-tokens"
+                min="128"
+                max="1024"
+                step="16"
+                value="400"
+              />
+            </label>
+          </div>
+        </div>
         <div
           class="chat-log"
           id="chat-log"
@@ -1520,6 +1730,13 @@
           <textarea id="prompt" placeholder="Ask anything about D&D…" aria-label="Ask the DM"></textarea>
           <button id="send" disabled>Send</button>
         </div>
+        <div class="quick-prompts-preferences">
+          <label for="quick-prompt-auto-send">
+            <input type="checkbox" id="quick-prompt-auto-send" />
+            Auto-send quick prompts
+          </label>
+        </div>
+        <div id="prompt-toast" class="prompt-toast" role="status" aria-live="polite" hidden></div>
         <div class="quick-prompts" aria-label="Quick prompts"></div>
       </section>
 
@@ -1549,6 +1766,22 @@
             <div class="encounter-search">
               <label class="sr-only" for="encounter-monster-query">Search monsters for the encounter roster</label>
               <input type="search" id="encounter-monster-query" placeholder="Search monsters by name, role, or biome" autocomplete="off" />
+              <div class="encounter-filters" aria-label="Encounter filters">
+                <div class="encounter-filter-row">
+                  <label for="encounter-min-diff">Min CR difference
+                    <input type="number" id="encounter-min-diff" name="encounter-min-diff" min="0" step="0.5" placeholder="0" />
+                  </label>
+                  <label for="encounter-max-diff">Max CR difference
+                    <input type="number" id="encounter-max-diff" name="encounter-max-diff" min="0" step="0.5" placeholder="Any" />
+                  </label>
+                </div>
+                <div
+                  id="encounter-role-filters"
+                  class="encounter-role-filters"
+                  role="group"
+                  aria-label="Filter by combat role"
+                ></div>
+              </div>
               <div id="encounter-monster-results" class="encounter-search-results" aria-live="polite"></div>
             </div>
             <div class="encounter-roster">
@@ -1885,6 +2118,67 @@
       }
 
       const slugify = (value) => value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      const STORAGE_KEYS = {
+        activeSection: "dnd-companion-active-section",
+        legacyActiveTab: "dnd-active-tab",
+        model: "dnd-companion-llm-model",
+        generation: "dnd-companion-generation-settings",
+        quickPrompt: "dnd-companion-quick-prompt-auto-send",
+        customConditions: "dnd-companion-custom-conditions"
+      };
+
+      let storageAvailable = true;
+
+      const safeStorage = {
+        get(key) {
+          if (!storageAvailable) return null;
+          try {
+            return localStorage.getItem(key);
+          } catch (error) {
+            storageAvailable = false;
+            console.warn("Unable to access storage", error);
+            return null;
+          }
+        },
+        set(key, value) {
+          if (!storageAvailable) return;
+          try {
+            if (value === null || value === undefined) {
+              localStorage.removeItem(key);
+            } else {
+              localStorage.setItem(key, value);
+            }
+          } catch (error) {
+            storageAvailable = false;
+            console.warn("Unable to write to storage", error);
+          }
+        }
+      };
+
+      const readJSONFromStorage = (key, fallback = null) => {
+        const raw = safeStorage.get(key);
+        if (!raw) return fallback;
+        try {
+          return JSON.parse(raw);
+        } catch (error) {
+          console.warn(`Failed to parse stored JSON for ${key}`, error);
+          return fallback;
+        }
+      };
+
+      const writeJSONToStorage = (key, value) => {
+        try {
+          safeStorage.set(key, JSON.stringify(value));
+        } catch (error) {
+          console.warn(`Failed to persist JSON for ${key}`, error);
+        }
+      };
+
+      const clampNumber = (value, min, max) => {
+        if (!Number.isFinite(value)) return min;
+        return Math.min(Math.max(value, min), max);
+      };
 
       
 
@@ -2922,6 +3216,45 @@
 
           const monsterLookup = new Map(monsters.map(monster => [monster.id, monster]));
 
+          const storedCustomConditions = readJSONFromStorage(STORAGE_KEYS.customConditions, []);
+          let recentCustomConditions = Array.isArray(storedCustomConditions)
+            ? storedCustomConditions
+                .filter(item => typeof item === "string")
+                .map(item => item.trim())
+                .filter(Boolean)
+            : [];
+
+          recentCustomConditions = recentCustomConditions.filter((value, index, array) =>
+            array.findIndex(item => item.toLowerCase() === value.toLowerCase()) === index
+          );
+
+          const persistCustomConditions = () => {
+            writeJSONToStorage(STORAGE_KEYS.customConditions, recentCustomConditions);
+          };
+
+          const addCustomConditionToHistory = (label) => {
+            const trimmed = label.trim();
+            if (!trimmed) return;
+            const lower = trimmed.toLowerCase();
+            recentCustomConditions = recentCustomConditions.filter(item => item.toLowerCase() !== lower);
+            recentCustomConditions.unshift(trimmed);
+            if (recentCustomConditions.length > 10) {
+              recentCustomConditions = recentCustomConditions.slice(0, 10);
+            }
+            persistCustomConditions();
+          };
+
+          const applyCustomCondition = (participant, label) => {
+            const trimmed = label.trim();
+            if (!trimmed) return false;
+            const lower = trimmed.toLowerCase();
+            if (!participant.conditions.some(condition => condition.toLowerCase() === lower)) {
+              participant.conditions.push(trimmed);
+            }
+            addCustomConditionToHistory(trimmed);
+            return true;
+          };
+
           const PARTY_XP_THRESHOLDS = {
             1: { easy: 25, medium: 50, hard: 75, deadly: 100 },
             2: { easy: 50, medium: 100, hard: 150, deadly: 200 },
@@ -2965,6 +3298,55 @@
 
           encounterPartyLevelInput.value = String(encounterState.partyLevel);
           encounterPartySizeInput.value = String(encounterState.partySize);
+
+          const ENCOUNTER_PAGE_SIZE = 8;
+          const encounterSearchState = {
+            page: 1,
+            selectedRoles: new Set()
+          };
+
+          const parseDifferenceInput = (input) => {
+            if (!input) return null;
+            const raw = input.value.trim();
+            if (raw === "") return null;
+            const value = Number(raw);
+            if (!Number.isFinite(value) || value < 0) return null;
+            return value;
+          };
+
+          const resetEncounterPage = () => {
+            encounterSearchState.page = 1;
+          };
+
+          const renderRoleFilters = () => {
+            if (!encounterRoleFiltersContainer) return;
+            encounterRoleFiltersContainer.innerHTML = "";
+            const roleValues = Array.from(
+              new Set(
+                monsters.flatMap(monster => monster.role || [])
+              )
+            )
+              .filter(Boolean)
+              .sort((a, b) => a.localeCompare(b));
+
+            if (!roleValues.length) {
+              return;
+            }
+
+            roleValues.forEach(role => {
+              const label = document.createElement("label");
+              const checkbox = document.createElement("input");
+              checkbox.type = "checkbox";
+              checkbox.value = role;
+              checkbox.checked = encounterSearchState.selectedRoles.has(role.toLowerCase());
+              checkbox.id = `encounter-role-${slugify(role)}`;
+              label.appendChild(checkbox);
+              const text = document.createElement("span");
+              text.textContent = role;
+              label.appendChild(text);
+              encounterRoleFiltersContainer.appendChild(label);
+            });
+          };
 
           const formatXP = (value) => numberFormatter.format(Math.max(0, Math.round(value || 0)));
 
@@ -3219,12 +3601,28 @@
           };
 
           const renderEncounterSearch = () => {
+            if (!encounterResultsContainer) return;
             encounterResultsContainer.innerHTML = "";
             const query = encounterSearchInput.value.toLowerCase().trim();
             const targetCR = encounterState.partyLevel;
+            const minDiffRaw = parseDifferenceInput(encounterMinDiffInput);
+            const maxDiffRaw = parseDifferenceInput(encounterMaxDiffInput);
+            let minDiff = minDiffRaw;
+            let maxDiff = maxDiffRaw;
+            if (minDiff !== null && maxDiff !== null && maxDiff < minDiff) {
+              maxDiff = minDiff;
+            }
 
-            const results = monsters
+            const filtered = monsters
               .filter(monster => {
+                const diff = Math.abs((monster.crValue ?? parseCR(monster.challenge)) - targetCR);
+                if (minDiff !== null && diff < minDiff) return false;
+                if (maxDiff !== null && diff > maxDiff) return false;
+                if (encounterSearchState.selectedRoles.size) {
+                  const roles = (monster.role || []).map(role => role.toLowerCase());
+                  const matchesRole = Array.from(encounterSearchState.selectedRoles).some(role => roles.includes(role));
+                  if (!matchesRole) return false;
+                }
                 if (!query) return true;
                 const haystack = [
                   monster.name,
@@ -3244,16 +3642,21 @@
                   - Math.abs((b.crValue ?? parseCR(b.challenge)) - targetCR);
                 if (diff !== 0) return diff;
                 return a.name.localeCompare(b.name);
-              })
-              .slice(0, 8);
+              });
 
-            if (!results.length) {
+            if (!filtered.length) {
+              encounterSearchState.page = 1;
               const empty = document.createElement("p");
               empty.className = "roster-empty";
-              empty.textContent = "No monsters match that search. Try a different role, biome, or CR.";
+              empty.textContent = "No monsters match those filters. Broaden the CR range or uncheck some roles.";
               encounterResultsContainer.appendChild(empty);
               return;
             }
+
+            const totalPages = Math.max(1, Math.ceil(filtered.length / ENCOUNTER_PAGE_SIZE));
+            encounterSearchState.page = Math.min(encounterSearchState.page, totalPages);
+            const maxVisible = encounterSearchState.page * ENCOUNTER_PAGE_SIZE;
+            const results = filtered.slice(0, maxVisible);
 
             results.forEach(monster => {
               const result = document.createElement("div");
@@ -3285,6 +3688,18 @@
 
               encounterResultsContainer.appendChild(result);
             });
+
+            if (filtered.length > results.length) {
+              const remaining = filtered.length - results.length;
+              const showMore = document.createElement("button");
+              showMore.type = "button";
+              showMore.className = "encounter-show-more";
+              showMore.dataset.action = "show-more";
+              showMore.textContent = remaining > ENCOUNTER_PAGE_SIZE
+                ? `Show more (${remaining} more)`
+                : `Show remaining ${remaining}`;
+              encounterResultsContainer.appendChild(showMore);
+            }
           };
 
           const addMonsterToEncounter = (id) => {
@@ -3308,6 +3723,7 @@
             encounterState.partyLevel = clamp(parsed, 1, 20);
             encounterPartyLevelInput.value = String(encounterState.partyLevel);
             renderEncounterSummary();
+            resetEncounterPage();
             renderEncounterSearch();
           });
 
@@ -3319,12 +3735,46 @@
             renderEncounterSummary();
           });
 
-          encounterSearchInput.addEventListener("input", renderEncounterSearch);
+          encounterSearchInput.addEventListener("input", () => {
+            resetEncounterPage();
+            renderEncounterSearch();
+          });
+
+          encounterMinDiffInput?.addEventListener("input", () => {
+            resetEncounterPage();
+            renderEncounterSearch();
+          });
+
+          encounterMaxDiffInput?.addEventListener("input", () => {
+            resetEncounterPage();
+            renderEncounterSearch();
+          });
+
+          encounterRoleFiltersContainer?.addEventListener("change", (event) => {
+            const checkbox = event.target.closest("input[type=\"checkbox\"]");
+            if (!checkbox) return;
+            const value = checkbox.value?.toLowerCase();
+            if (!value) return;
+            if (checkbox.checked) {
+              encounterSearchState.selectedRoles.add(value);
+            } else {
+              encounterSearchState.selectedRoles.delete(value);
+            }
+            resetEncounterPage();
+            renderEncounterSearch();
+          });
 
           encounterResultsContainer.addEventListener("click", (event) => {
-            const button = event.target.closest("button[data-monster-id]");
-            if (!button) return;
-            addMonsterToEncounter(button.dataset.monsterId);
+            const addButton = event.target.closest("button[data-monster-id]");
+            if (addButton) {
+              addMonsterToEncounter(addButton.dataset.monsterId);
+              return;
+            }
+            const showMoreButton = event.target.closest("button[data-action=\"show-more\"]");
+            if (showMoreButton) {
+              encounterSearchState.page += 1;
+              renderEncounterSearch();
+            }
           });
 
           encounterRosterList.addEventListener("click", (event) => {
@@ -3367,9 +3817,11 @@
             encounterState.monsters = [];
             renderEncounterRoster();
             renderEncounterSummary();
+            resetEncounterPage();
             renderEncounterSearch();
           });
 
+          renderRoleFilters();
           ensureRosterSorted();
           renderEncounterRoster();
           renderEncounterSummary();
@@ -3433,12 +3885,26 @@
             placeholder.value = "";
             placeholder.textContent = "Add condition…";
             select.appendChild(placeholder);
+            if (recentCustomConditions.length) {
+              const customGroup = document.createElement("optgroup");
+              customGroup.label = "Recent custom";
+              recentCustomConditions.forEach(name => {
+                const option = document.createElement("option");
+                option.value = name;
+                option.textContent = name;
+                customGroup.appendChild(option);
+              });
+              select.appendChild(customGroup);
+            }
+            const baseGroup = document.createElement("optgroup");
+            baseGroup.label = "SRD conditions";
             conditions.forEach(condition => {
               const option = document.createElement("option");
               option.value = condition.name;
               option.textContent = condition.name;
-              select.appendChild(option);
+              baseGroup.appendChild(option);
             });
+            select.appendChild(baseGroup);
             return select;
           };
 
@@ -3533,6 +3999,23 @@
               conditionSelect.dataset.id = participant.id;
               actions.appendChild(conditionSelect);
 
+              const customCondition = document.createElement("div");
+              customCondition.className = "custom-condition-input";
+              const customInput = document.createElement("input");
+              customInput.type = "text";
+              customInput.placeholder = "Custom";
+              customInput.dataset.id = participant.id;
+              customInput.setAttribute("aria-label", `Custom condition for ${participant.name}`);
+              const customButton = document.createElement("button");
+              customButton.type = "button";
+              customButton.className = "custom-condition-add";
+              customButton.dataset.id = participant.id;
+              customButton.textContent = "Add";
+              customButton.setAttribute("aria-label", `Add custom condition to ${participant.name}`);
+              customCondition.appendChild(customInput);
+              customCondition.appendChild(customButton);
+              actions.appendChild(customCondition);
+
               const upButton = document.createElement("button");
               upButton.type = "button";
               upButton.dataset.action = "move-up";
@@ -3606,12 +4089,20 @@
               saveInitiativeState();
             } else if (event.target.matches(".condition-selector")) {
               const condition = event.target.value;
-              if (condition && !participant.conditions.includes(condition)) {
-                participant.conditions.push(condition);
-                renderInitiative();
-                saveInitiativeState();
-              }
               event.target.value = "";
+              const trimmed = condition.trim();
+              if (!trimmed) return;
+              const lower = trimmed.toLowerCase();
+              const isStandard = conditions.some(entry => entry.name.toLowerCase() === lower);
+              if (!participant.conditions.some(name => name.toLowerCase() === lower)) {
+                participant.conditions.push(trimmed);
+              }
+              if (!isStandard) {
+                addCustomConditionToHistory(trimmed);
+              }
+              renderInitiative();
+              saveInitiativeState();
+              return;
             }
           });
 
@@ -3620,6 +4111,21 @@
             if (!item) return;
             const participant = initiativeState.participants.find(p => p.id === item.dataset.id);
             if (!participant) return;
+
+            if (event.target.classList.contains("custom-condition-add")) {
+              const wrapper = event.target.closest(".custom-condition-input");
+              const input = wrapper?.querySelector("input");
+              const value = input?.value ?? "";
+              if (applyCustomCondition(participant, value)) {
+                renderInitiative();
+                saveInitiativeState();
+              }
+              if (input) {
+                input.value = "";
+                input.focus();
+              }
+              return;
+            }
 
             if (event.target.classList.contains("condition-remove")) {
               const condition = event.target.parentElement?.dataset.condition;
@@ -3649,6 +4155,22 @@
 
             renderInitiative();
             saveInitiativeState();
+          });
+
+          initiativeList.addEventListener("keydown", (event) => {
+            if (!event.target.matches(".custom-condition-input input")) return;
+            if (event.key !== "Enter") return;
+            event.preventDefault();
+            const item = event.target.closest("li[data-id]");
+            if (!item) return;
+            const participant = initiativeState.participants.find(p => p.id === item.dataset.id);
+            if (!participant) return;
+            const value = event.target.value ?? "";
+            if (applyCustomCondition(participant, value)) {
+              renderInitiative();
+              saveInitiativeState();
+            }
+            event.target.value = "";
           });
 
           initiativeSortButton.addEventListener("click", () => {
@@ -3986,20 +4508,19 @@
         compare: initializeRulesPanel
       };
 
-      const TAB_STORAGE_KEY = "dnd-active-tab";
       const tabs = Array.from(document.querySelectorAll('nav [role="tab"]'));
       const panels = Array.from(document.querySelectorAll('main [role="tabpanel"]'));
 
-      let storageAvailable = true;
+      const storeActiveSection = (targetId) => {
+        if (!targetId) return;
+        safeStorage.set(STORAGE_KEYS.activeSection, targetId);
+      };
 
-      const storeActiveTab = (tabId) => {
-        if (!storageAvailable) return;
-        try {
-          localStorage.setItem(TAB_STORAGE_KEY, tabId);
-        } catch (error) {
-          storageAvailable = false;
-          console.warn("Unable to store active tab", error);
-        }
+      const getStoredActiveSection = () => {
+        return (
+          safeStorage.get(STORAGE_KEYS.activeSection)
+          ?? safeStorage.get(STORAGE_KEYS.legacyActiveTab)
+        );
       };
 
       const activateTab = (tab, { focusPanel = false, persist = false } = {}) => {
@@ -4030,7 +4551,8 @@
         panelInitializers[targetId]?.();
 
         if (persist) {
-          storeActiveTab(tab.id);
+          const storedTarget = tab.dataset.target || targetId || tab.id;
+          storeActiveSection(storedTarget);
         }
       };
 
@@ -4040,6 +4562,21 @@
         tab.focus();
         activateTab(tab, { persist: true });
       };
+
+      const storedSectionTarget = getStoredActiveSection();
+      const initialTab =
+        (storedSectionTarget
+          && tabs.find(tab =>
+            tab.dataset.target === storedSectionTarget
+            || tab.getAttribute("aria-controls") === storedSectionTarget
+            || tab.id === storedSectionTarget
+          ))
+        || tabs.find(tab => tab.classList.contains("active"))
+        || tabs[0];
+
+      if (initialTab) {
+        activateTab(initialTab, { persist: false });
+      }
 
       tabs.forEach((tab, index) => {
         tab.addEventListener("click", () => {
@@ -4066,16 +4603,6 @@
         });
       });
 
-      let initialTabId = null;
-      if (storageAvailable) {
-        try {
-          initialTabId = localStorage.getItem(TAB_STORAGE_KEY);
-        } catch (error) {
-          storageAvailable = false;
-          console.warn("Unable to read stored active tab", error);
-        }
-      }
-
       const monsterQuery = document.getElementById("monster-query");
       const monsterCRSelect = document.getElementById("monster-cr-filter");
       const monsterTerrainSelect = document.getElementById("monster-terrain-filter");
@@ -4086,6 +4613,9 @@
       const encounterPartySizeInput = document.getElementById("encounter-party-size");
       const encounterSearchInput = document.getElementById("encounter-monster-query");
       const encounterResultsContainer = document.getElementById("encounter-monster-results");
+      const encounterMinDiffInput = document.getElementById("encounter-min-diff");
+      const encounterMaxDiffInput = document.getElementById("encounter-max-diff");
+      const encounterRoleFiltersContainer = document.getElementById("encounter-role-filters");
       const encounterRosterList = document.getElementById("encounter-roster");
       const encounterSummaryContainer = document.getElementById("encounter-summary");
       const encounterClearButton = document.getElementById("encounter-clear");
@@ -4666,6 +5196,406 @@
       const promptEl = document.getElementById("prompt");
       const sendBtn = document.getElementById("send");
       const statusEl = document.getElementById("status");
+      const statusMetaEl = document.getElementById("status-meta");
+      const modelSelect = document.getElementById("model-select");
+      const temperatureSlider = document.getElementById("temperature-slider");
+      const maxTokensSlider = document.getElementById("max-tokens-slider");
+      const temperatureDisplay = document.getElementById("temperature-display");
+      const maxTokensDisplay = document.getElementById("max-tokens-display");
+      const quickPromptAutoSendToggle = document.getElementById("quick-prompt-auto-send");
+      const promptToastEl = document.getElementById("prompt-toast");
+
+      let availableModels = [];
+      let promptToastTimeout;
+      let autoSendQuickPrompts = false;
+      let webllmModule;
+      let webllmLoadPromise;
+      let activeModelId = null;
+      let loadingModelId = null;
+      let queuedModelId = null;
+      let pendingModelReload = null;
+
+      const defaultGenerationSettings = { temperature: 0.5, maxTokens: 400 };
+      const storedGenerationSettings = readJSONFromStorage(STORAGE_KEYS.generation, null);
+      let generationSettings = { ...defaultGenerationSettings };
+
+      if (storedGenerationSettings && typeof storedGenerationSettings === "object") {
+        if (Number.isFinite(storedGenerationSettings.temperature)) {
+          generationSettings.temperature = clampNumber(Number(storedGenerationSettings.temperature), 0, 2);
+        }
+        if (Number.isFinite(storedGenerationSettings.maxTokens)) {
+          generationSettings.maxTokens = clampNumber(Number(storedGenerationSettings.maxTokens), 16, 4096);
+        }
+      }
+
+      const persistGenerationSettings = () => {
+        writeJSONToStorage(STORAGE_KEYS.generation, generationSettings);
+      };
+
+      const setTemperature = (value, { persist = true } = {}) => {
+        const sliderMin = Number(temperatureSlider?.min ?? 0);
+        const sliderMax = Number(temperatureSlider?.max ?? 1);
+        const sanitized = clampNumber(Number(value), sliderMin, sliderMax);
+        const rounded = Math.round(sanitized * 100) / 100;
+        generationSettings.temperature = rounded;
+        if (temperatureSlider && Number(temperatureSlider.value) !== rounded) {
+          temperatureSlider.value = rounded.toString();
+        }
+        if (temperatureDisplay) {
+          temperatureDisplay.textContent = rounded.toFixed(2);
+        }
+        if (persist) {
+          persistGenerationSettings();
+        }
+      };
+
+      const setMaxTokens = (value, { persist = true } = {}) => {
+        const sliderMin = Number(maxTokensSlider?.min ?? 1);
+        const sliderMax = Number(maxTokensSlider?.max ?? 1024);
+        const step = Number(maxTokensSlider?.step ?? 1);
+        const clamped = clampNumber(Number(value), sliderMin, sliderMax);
+        const stepped = Math.round(clamped / step) * step;
+        const sanitized = Math.max(step, Math.round(stepped));
+        generationSettings.maxTokens = sanitized;
+        if (maxTokensSlider && Number(maxTokensSlider.value) !== sanitized) {
+          maxTokensSlider.value = sanitized.toString();
+        }
+        if (maxTokensDisplay) {
+          maxTokensDisplay.textContent = sanitized.toString();
+        }
+        if (persist) {
+          persistGenerationSettings();
+        }
+      };
+
+      const getGenerationOptions = () => {
+        const tempMin = Number(temperatureSlider?.min ?? 0);
+        const tempMax = Number(temperatureSlider?.max ?? 1);
+        const tokenMin = Number(maxTokensSlider?.min ?? 16);
+        const tokenMax = Number(maxTokensSlider?.max ?? 2048);
+        const temperature = clampNumber(
+          Number(generationSettings.temperature ?? defaultGenerationSettings.temperature),
+          tempMin,
+          tempMax
+        );
+        const maxTokens = clampNumber(
+          Number(generationSettings.maxTokens ?? defaultGenerationSettings.maxTokens),
+          tokenMin,
+          tokenMax
+        );
+        return {
+          temperature: Math.round(temperature * 100) / 100,
+          max_tokens: Math.max(16, Math.round(maxTokens))
+        };
+      };
+
+      setTemperature(generationSettings.temperature, { persist: false });
+      setMaxTokens(generationSettings.maxTokens, { persist: false });
+
+      const storedPromptPreference = safeStorage.get(STORAGE_KEYS.quickPrompt);
+      autoSendQuickPrompts = storedPromptPreference === "1" || storedPromptPreference === "true";
+      if (quickPromptAutoSendToggle) {
+        quickPromptAutoSendToggle.checked = autoSendQuickPrompts;
+      }
+
+      const showPromptToast = (message) => {
+        if (!promptToastEl) return;
+        clearTimeout(promptToastTimeout);
+        if (!message) {
+          promptToastEl.hidden = true;
+          promptToastEl.textContent = "";
+          return;
+        }
+        promptToastEl.hidden = false;
+        promptToastEl.style.opacity = "1";
+        promptToastEl.textContent = message;
+        promptToastTimeout = setTimeout(() => {
+          if (!promptToastEl) return;
+          promptToastEl.style.opacity = "0";
+          promptToastTimeout = setTimeout(() => {
+            if (!promptToastEl) return;
+            promptToastEl.hidden = true;
+            promptToastEl.style.opacity = "";
+          }, 200);
+        }, 2200);
+      };
+
+      const ensureWebLLMModule = async () => {
+        if (webllmModule) {
+          return webllmModule;
+        }
+        if (!webllmLoadPromise) {
+          webllmLoadPromise = import("https://esm.run/@mlc-ai/web-llm")
+            .then(mod => {
+              webllmModule = mod;
+              return mod;
+            })
+            .catch(error => {
+              webllmLoadPromise = null;
+              throw error;
+            });
+        }
+        return webllmLoadPromise;
+      };
+
+      const disposeEngine = async () => {
+        if (!engine) return;
+        const disposalMethods = ["unload", "dispose", "destroy", "reset"];
+        const tasks = disposalMethods
+          .map(method => {
+            const fn = engine?.[method];
+            if (typeof fn === "function") {
+              try {
+                return Promise.resolve(fn.call(engine));
+              } catch (error) {
+                console.warn(`Engine ${method} failed synchronously`, error);
+              }
+            }
+            return null;
+          })
+          .filter(Boolean);
+        if (tasks.length) {
+          await Promise.allSettled(tasks);
+        }
+        engine = null;
+      };
+
+      temperatureSlider?.addEventListener("input", () => {
+        setTemperature(temperatureSlider.value);
+      });
+
+      maxTokensSlider?.addEventListener("input", () => {
+        setMaxTokens(maxTokensSlider.value);
+      });
+
+      quickPromptAutoSendToggle?.addEventListener("change", () => {
+        autoSendQuickPrompts = quickPromptAutoSendToggle.checked;
+        safeStorage.set(STORAGE_KEYS.quickPrompt, autoSendQuickPrompts ? "1" : "0");
+        showPromptToast(
+          autoSendQuickPrompts
+            ? "Quick prompts will now auto-send."
+            : "Quick prompts will prefill the chat box."
+        );
+      });
+
+      const setStatusMeta = (text) => {
+        if (!statusMetaEl) return;
+        if (text) {
+          statusMetaEl.hidden = false;
+          statusMetaEl.textContent = text;
+        } else {
+          statusMetaEl.hidden = true;
+          statusMetaEl.textContent = "";
+        }
+      };
+
+      const formatBytesReadable = (bytes) => {
+        if (!Number.isFinite(bytes) || bytes <= 0) return null;
+        const units = ["B", "KB", "MB", "GB", "TB"];
+        let value = bytes;
+        let unitIndex = 0;
+        while (value >= 1024 && unitIndex < units.length - 1) {
+          value /= 1024;
+          unitIndex += 1;
+        }
+        const precision = value >= 10 || unitIndex === 0 ? 0 : 1;
+        return `${value.toFixed(precision)} ${units[unitIndex]}`;
+      };
+
+      const getModelSizeBytes = (model) => {
+        const candidates = [
+          model?.estimated_vram_bytes,
+          model?.model_size_in_bytes,
+          model?.estimated_total_weight_size,
+          model?.estimated_total_weight_size_bytes,
+          model?.size_in_bytes,
+          model?.file_size_bytes
+        ];
+        for (const candidate of candidates) {
+          const value = Number(candidate);
+          if (Number.isFinite(value) && value > 0) {
+            return value;
+          }
+        }
+        if (Number.isFinite(model?.estimated_vram_gb)) {
+          return Number(model.estimated_vram_gb) * 1024 ** 3;
+        }
+        if (Number.isFinite(model?.estimated_vram_mb)) {
+          return Number(model.estimated_vram_mb) * 1024 ** 2;
+        }
+        return null;
+      };
+
+      const getModelContextTokens = (model) => {
+        const candidates = [
+          model?.context_window_size,
+          model?.context_length,
+          model?.max_window_size,
+          model?.prefill_context,
+          model?.max_total_tokens,
+          model?.max_tokens
+        ];
+        for (const candidate of candidates) {
+          const value = Number(candidate);
+          if (Number.isFinite(value) && value > 0) {
+            return Math.round(value);
+          }
+        }
+        return null;
+      };
+
+      const getModelDisplayName = (model) => {
+        return (
+          model?.display_name
+          ?? model?.name
+          ?? model?.model_name
+          ?? model?.model_id
+          ?? "Model"
+        );
+      };
+
+      const buildModelOptionLabel = (model) => {
+        const name = getModelDisplayName(model);
+        const sizeBytes = getModelSizeBytes(model);
+        const contextTokens = getModelContextTokens(model);
+        const notes = [];
+        if (sizeBytes) {
+          notes.push(`≈${formatBytesReadable(sizeBytes)}`);
+        }
+        if (contextTokens) {
+          notes.push(`${contextTokens.toLocaleString()} token ctx`);
+        }
+        return notes.length ? `${name} (${notes.join(" · ")})` : name;
+      };
+
+      const updateModelMetadata = (model) => {
+        if (!model) {
+          setStatusMeta("");
+          return;
+        }
+        const parts = [];
+        const contextTokens = getModelContextTokens(model);
+        if (contextTokens) {
+          parts.push(`Context ${contextTokens.toLocaleString()} tokens`);
+        }
+        const sizeBytes = getModelSizeBytes(model);
+        if (sizeBytes) {
+          parts.push(`≈${formatBytesReadable(sizeBytes)}`);
+        }
+        setStatusMeta(parts.join(" · "));
+      };
+
+      const loadEngineForModel = async (model, { userInitiated = false } = {}) => {
+        if (!model?.model_id) {
+          reportEngineFailure(
+            "No model selected to load.",
+            "Choose a model from the dropdown so I know which brain to summon."
+          );
+          return false;
+        }
+
+        const targetModelId = model.model_id;
+        const displayName = getModelDisplayName(model);
+        queuedModelId = null;
+        pendingModelReload = null;
+        engineInitializing = true;
+        engineInitFailed = false;
+        loadingModelId = targetModelId;
+        sendBtn.disabled = true;
+        if (modelSelect) {
+          modelSelect.disabled = true;
+        }
+
+        updateModelMetadata(model);
+        updateStatus(userInitiated ? `Switching to ${displayName}…` : `Initializing ${displayName}…`);
+
+        try {
+          await disposeEngine();
+          activeModelId = null;
+
+          const webllm = await ensureWebLLMModule();
+
+          engine = await webllm.CreateMLCEngine(targetModelId, {
+            initProgressCallback: (p) => {
+              const progress = Math.floor((p.progress ?? 0) * 100);
+              const stage = p.text || p.stage || "Loading";
+              updateStatus(`${progress}% · ${stage}`);
+              updateModelMetadata(model);
+            }
+          });
+
+          activeModelId = targetModelId;
+          const readyLabel = `Ready to answer questions · ${displayName}`;
+          updateStatus(readyLabel, "ready");
+          sendBtn.disabled = false;
+          engineInitFailed = false;
+          return true;
+        } catch (error) {
+          console.error(error);
+          engine = null;
+          const statusText = userInitiated
+            ? `Failed to load ${displayName}`
+            : "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.";
+          const logText = userInitiated
+            ? `I couldn't switch to ${displayName}. Please try again in a moment or refresh and choose a model once more.`
+            : "I couldn't initialize the model. Please refresh after confirming WebGPU is enabled, then I'll be ready to help.";
+          reportEngineFailure(statusText, logText);
+          return false;
+        } finally {
+          engineInitializing = false;
+          loadingModelId = null;
+          if (modelSelect) {
+            modelSelect.disabled = false;
+          }
+          if (queuedModelId && queuedModelId !== activeModelId) {
+            const nextModel = availableModels.find(item => item.model_id === queuedModelId);
+            queuedModelId = null;
+            if (nextModel) {
+              loadEngineForModel(nextModel, { userInitiated: true });
+            }
+          }
+        }
+      };
+
+      const getSelectedModel = () => {
+        if (!availableModels.length) return null;
+        const selectedId = modelSelect?.value;
+        if (selectedId) {
+          const match = availableModels.find(model => model.model_id === selectedId);
+          if (match) return match;
+        }
+        return availableModels[0];
+      };
+
+      modelSelect?.addEventListener("change", () => {
+        const model = getSelectedModel();
+        if (!model) return;
+        const { model_id: modelId } = model;
+        safeStorage.set(STORAGE_KEYS.model, modelId);
+        updateModelMetadata(model);
+
+        if (modelId === activeModelId && !engineInitFailed) {
+          return;
+        }
+
+        if (engineInitializing) {
+          if (modelId !== loadingModelId) {
+            queuedModelId = modelId;
+          }
+          return;
+        }
+
+        const isGenerating = statusEl?.classList.contains("generating");
+        if (isGenerating) {
+          pendingModelReload = modelId;
+          showPromptToast?.(
+            `Switching to ${getModelDisplayName(model)} after this reply finishes.`
+          );
+          return;
+        }
+
+        loadEngineForModel(model, { userInitiated: true });
+      });
 
       const messages = [
         {
@@ -4684,28 +5614,6 @@ Stay family friendly and inclusive.`
         if (askButton && !askButton.classList.contains("active")) {
           askButton.click();
         }
-      }
-
-      document.addEventListener("click", (event) => {
-        const trigger = event.target.closest("[data-prompt]");
-        if (!trigger) return;
-        const prompt = trigger.dataset.prompt?.trim();
-        if (!prompt) return;
-        if (trigger.tagName === "A") {
-          event.preventDefault();
-        }
-        openAskTab();
-        promptEl.value = prompt;
-        promptEl.focus();
-        document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      });
-
-      const initialTab = tabs.find(tab => tab.id === initialTabId)
-        || tabs.find(tab => tab.classList.contains("active"))
-        || tabs[0];
-
-      if (initialTab) {
-        activateTab(initialTab, { persist: false });
       }
 
       const createMessageElements = (role, content = "") => {
@@ -4749,9 +5657,6 @@ Stay family friendly and inclusive.`
         setLogBusy(state === "generating");
       };
 
-      let engine;
-      let engineInitFailed = false;
-
       const reportEngineFailure = (statusText, logText) => {
         updateStatus(statusText);
         sendBtn.disabled = true;
@@ -4761,8 +5666,16 @@ Stay family friendly and inclusive.`
         engineInitFailed = true;
       };
 
+      let engine;
+      let engineInitFailed = false;
+      let engineInitializing = false;
+
       async function setupWebLLM() {
         if (!logEl || !promptEl || !sendBtn || !statusEl) {
+          return;
+        }
+
+        if (engineInitializing || loadingModelId) {
           return;
         }
 
@@ -4771,43 +5684,87 @@ Stay family friendly and inclusive.`
             "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
             "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
           );
-          throw new Error("WebGPU unavailable");
+          return;
         }
 
-        updateStatus("Initializing engine…");
+        if (modelSelect) {
+          modelSelect.disabled = true;
+        }
 
-        let webllm;
+        let runtime;
         try {
-          webllm = await import("https://esm.run/@mlc-ai/web-llm");
+          runtime = await ensureWebLLMModule();
         } catch (error) {
           console.error(error);
           reportEngineFailure(
             "Failed to download the WebLLM runtime. Check your connection and refresh.",
             "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again."
           );
-          throw new Error("Failed to download WebLLM runtime");
+          if (modelSelect) {
+            modelSelect.disabled = false;
+          }
+          return;
         }
 
-        const models = webllm.prebuiltAppConfig.model_list;
-        const selectedModel =
-          models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
-          ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
-          ?? models[0].model_id;
+        availableModels = Array.isArray(runtime?.prebuiltAppConfig?.model_list)
+          ? runtime.prebuiltAppConfig.model_list
+          : [];
 
-        try {
-          engine = await webllm.CreateMLCEngine(selectedModel, {
-            initProgressCallback: (p) => updateStatus(`${Math.floor((p.progress ?? 0) * 100)}% · ${p.text || p.stage || "Loading"}`)
+        if (modelSelect) {
+          modelSelect.innerHTML = "";
+          const fragment = document.createDocumentFragment();
+          availableModels.forEach(model => {
+            const option = document.createElement("option");
+            option.value = model.model_id;
+            option.textContent = buildModelOptionLabel(model);
+            fragment.appendChild(option);
           });
-          updateStatus("Ready to answer questions", "ready");
-          sendBtn.disabled = false;
-        } catch (err) {
-          console.error(err);
-          reportEngineFailure(
-            "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.",
-            "I couldn't initialize the model. Please refresh after confirming WebGPU is enabled, then I'll be ready to help."
-          );
-          throw new Error("Failed to initialize WebLLM");
+          modelSelect.appendChild(fragment);
         }
+
+        if (!availableModels.length) {
+          reportEngineFailure(
+            "No models available to load.",
+            "I couldn't find any compatible models to initialize. Please refresh once your connection is stable."
+          );
+          if (modelSelect) {
+            modelSelect.disabled = false;
+          }
+          return;
+        }
+
+        let preferredModelId = safeStorage.get(STORAGE_KEYS.model);
+        if (!preferredModelId || !availableModels.some(model => model.model_id === preferredModelId)) {
+          preferredModelId =
+            availableModels.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
+            ?? availableModels.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
+            ?? availableModels[0]?.model_id;
+        }
+
+        if (modelSelect && preferredModelId) {
+          modelSelect.value = preferredModelId;
+        }
+
+        const selectedModel = getSelectedModel();
+        if (!selectedModel) {
+          reportEngineFailure(
+            "No model selected to load.",
+            "Choose a model from the dropdown so I know which brain to summon."
+          );
+          if (modelSelect) {
+            modelSelect.disabled = false;
+          }
+          return;
+        }
+
+        safeStorage.set(STORAGE_KEYS.model, selectedModel.model_id);
+        updateModelMetadata(selectedModel);
+
+        if (modelSelect) {
+          modelSelect.disabled = false;
+        }
+
+        await loadEngineForModel(selectedModel);
       }
 
       async function streamReply(messages, opts = {}) {
@@ -4821,12 +5778,12 @@ Stay family friendly and inclusive.`
           throw error;
         }
 
+        const generationOpts = getGenerationOptions();
         const chunks = await engine.chat.completions.create({
           messages,
-          temperature: 0.5,
-          max_tokens: 400,
           stream: true,
           stream_options: { include_usage: true },
+          ...generationOpts,
           ...opts
         });
         let out = "";
@@ -4872,12 +5829,71 @@ Stay family friendly and inclusive.`
             updateStatus("Encountered an error");
           }
         } finally {
-          sendBtn.disabled = !engine;
-          if (!statusEl.classList.contains("generating")) {
+          const isGenerating = statusEl.classList.contains("generating");
+          if (!isGenerating) {
             setLogBusy(false);
           }
+
+          if (
+            pendingModelReload
+            && !engineInitializing
+            && !isGenerating
+          ) {
+            const nextModelId = pendingModelReload;
+            pendingModelReload = null;
+            const nextModel = availableModels.find(model => model.model_id === nextModelId);
+            if (nextModel) {
+              await loadEngineForModel(nextModel, { userInitiated: true });
+            }
+          }
+
+          sendBtn.disabled = !engine;
         }
       };
+
+      const handlePromptPrefill = (prompt) => {
+        if (!promptEl) return;
+        openAskTab();
+        promptEl.value = prompt;
+        promptEl.focus();
+        document.getElementById("ask")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+        if (!autoSendQuickPrompts) {
+          showPromptToast("Prompt ready to edit.");
+          return;
+        }
+
+        if (engineInitFailed) {
+          showPromptToast("Engine failed to load. Prompt saved for later.");
+          return;
+        }
+
+        if (!engine) {
+          showPromptToast("Prompt queued—engine is still loading.");
+          return;
+        }
+
+        if (sendBtn.disabled) {
+          showPromptToast("Prompt queued until the current reply finishes.");
+          return;
+        }
+
+        showPromptToast("Prompt sent automatically.");
+        sendPrompt();
+      };
+
+      function wirePromptPrefill() {
+        document.addEventListener("click", (event) => {
+          const trigger = event.target.closest("[data-prompt]");
+          if (!trigger) return;
+          const prompt = trigger.dataset.prompt?.trim();
+          if (!prompt) return;
+          if (trigger.tagName === "A") {
+            event.preventDefault();
+          }
+          handlePromptPrefill(prompt);
+        });
+      }
 
       sendBtn.addEventListener("click", sendPrompt);
       promptEl.addEventListener("keydown", (ev) => {
@@ -4886,6 +5902,8 @@ Stay family friendly and inclusive.`
           sendPrompt();
         }
       });
+
+      wirePromptPrefill();
 
       setupWebLLM().catch(err => {
         console.error("WebLLM setup failed", err);
