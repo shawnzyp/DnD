@@ -242,5 +242,31 @@ export default [
         prompt: "Compare overland travel pacing in B/X, 3.5e, 5e, and 2024 with guidance for mixing expectations."
       }
     ]
+  },
+  {
+    theme: "Monsters & Villains",
+    description: "Frame lairs, legendary options, and motivations for iconic foes or allies.",
+    prompts: [
+      {
+        label: "Celestial summit brief",
+        prompt: "Outline how a Solar or ancient metallic dragon hosts a diplomatic summit, including lair effects that keep negotiations peaceful."
+      },
+      {
+        label: "Legendary action remix",
+        prompt: "Suggest cross-edition tweaks to legendary actions for a kraken or empyrean so they support heroic PCs instead of crushing them."
+      },
+      {
+        label: "Villain lair escalation",
+        prompt: "Detail three lair action phases for a death knight citadel, referencing 4e encounter pacing and 5e regional effects."
+      },
+      {
+        label: "Mastery-aware strike team",
+        prompt: "Plan a Metallic Dragonborn council strike force that leverages 2024 weapon mastery tags alongside classic DMG magic swords."
+      },
+      {
+        label: "Motivation inversion",
+        prompt: "Provide motivations for a redeemed tarrasque handler or a fallen giant champion, and note which edition stat blocks best support each arc."
+      }
+    ]
   }
 ];
