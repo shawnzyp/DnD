@@ -295,6 +295,66 @@ export default [
           ]
         },
         {
+          editionKey: "1e",
+          edition: "AD&D 1st Edition",
+          tagline: "Gygaxian tournament-era rules emphasizing player skill, rulings, and lethal dungeon delves.",
+          released: "Original boxed OD&D 1974 · AD&D core hardcovers 1977–1979 · Unearthed Arcana 1985",
+          playstyle: [
+            "Open-table dungeon expeditions where resource tracking and timekeeping matter",
+            "Rulings-first adjudication guided by the 1e DMG's procedures and random tables",
+            "High-lethality combat balanced by henchmen, hirelings, and domain ambitions"
+          ],
+          adventureHooks: [
+            "Rumors of the Tomb of Horrors lure foolhardy delvers seeking Acererak's fabled riches",
+            "The Temple of Elemental Evil stirs again, and Hommlet's elders plead for vigilant adventurers",
+            "Rulers of the Flanaess bid heroes reclaim the Ghost Tower of Inverness before Iggwilv's agents"
+          ],
+          keySystems: [
+            "Race and class restrictions with level caps for non-humans",
+            "THAC0-derived attack matrices and weapon vs. armor type modifiers",
+            "Segment-based initiative and spell interruption",
+            "Training costs and downtime requirements for leveling",
+            "Comprehensive random dungeon, wilderness, and planar generation tables"
+          ],
+          expansions: [
+            "Player's Handbook (1978)",
+            "Dungeon Master's Guide (1979)",
+            "Monster Manual (1977)",
+            "Unearthed Arcana (1985)",
+            "Manual of the Planes, Deities & Demigods"
+          ],
+          settings: [
+            {
+              name: "World of Greyhawk",
+              tone: "Sword & sorcery warfare among the Flanaess' nations with sprawling dungeon megasites.",
+              source: {
+                label: "World of Greyhawk Folio",
+                url: "https://dnd.wizards.com/products/world-greyhawk"
+              }
+            },
+            {
+              name: "Forgotten Realms (early Realms)",
+              tone: "High-magic frontiers revealed through Dragon articles and the 1987 boxed set crossover.",
+              source: {
+                label: "Forgotten Realms Campaign Set (1987)",
+                url: "https://dnd.wizards.com/products/forgotten-realms-boxed-set"
+              }
+            },
+            {
+              name: "Blackmoor & Mystara",
+              tone: "Proto-D&D science-fantasy mixing crashed starships, baronies, and emerging Immortal plots.",
+              source: {
+                label: "DA Series & BECMI crossovers",
+                url: "https://dnd.wizards.com/products/mystara"
+              }
+            }
+          ],
+          srds: [
+            { label: "Original Edition Rules (Free PDF)", url: "https://media.wizards.com/2015/downloads/dnd/ODnD_1974.zip" },
+            { label: "AD&D 1e Core Scans", url: "https://www.dmsguild.com/product/17003/Players-Handbook-1e" }
+          ]
+        },
+        {
           editionKey: "2e",
           edition: "AD&D 2nd Edition",
           tagline: "THAC0-based combat, proficiencies, and classic campaign settings like Planescape and Dark Sun.",
