@@ -6273,7 +6273,7 @@ Stay family friendly and inclusive.`
           return;
         }
 
-        if (!("gpu" in navigator)) {
+        if (typeof navigator === "undefined" || !navigator?.gpu) {
           reportEngineFailure(
             "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
             "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
