@@ -2220,6 +2220,26 @@
         "Standard"
       ];
 
+      const DEFAULT_ITEM_TYPES = [
+        "Armor",
+        "Bastion Facility",
+        "Bastion Project",
+        "Bastion Reagent",
+        "Bastion Upgrade",
+        "Consumable (Alchemical Capsule)",
+        "Consumable (Oil)",
+        "Consumable (Poison)",
+        "Consumable (Potion)",
+        "Consumable (Scroll)",
+        "Gear",
+        "Gear (Weapon)",
+        "Magical Tattoo",
+        "Rune (Inscription)",
+        "Staff",
+        "Weapon",
+        "Wondrous Item"
+      ];
+
       const spellQuery = document.getElementById("spell-query");
       const spellLevelSelect = document.getElementById("spell-level-filter");
       const spellSchoolSelect = document.getElementById("spell-school-filter");
@@ -4240,24 +4260,8 @@
         try {
           const items = await loadData("items");
 
-          if (raritySelect) {
-            rarityOptions.forEach(rarity => {
-              const option = document.createElement("option");
-              option.value = rarity;
-              option.textContent = rarity;
-              raritySelect.appendChild(option);
-            });
-          }
-
-          if (typeSelect) {
-            const uniqueTypes = Array.from(new Set(items.map(item => item.type))).sort((a, b) => a.localeCompare(b));
-            uniqueTypes.forEach(type => {
-              const option = document.createElement("option");
-              option.value = type;
-              option.textContent = type;
-              typeSelect.appendChild(option);
-            });
-          }
+          ensureRarityOptions();
+          buildItemFilters(items);
 
           if (editionSelect) {
             const uniqueEditions = Array.from(new Set(items.map(item => item.edition))).sort((a, b) => a.localeCompare(b));
@@ -4667,12 +4671,49 @@
       const typeSelect = document.getElementById("item-type-filter");
       const editionSelect = document.getElementById("edition-filter");
       const contentTagSelect = document.getElementById("content-tag-filter");
-      rarityOptions.forEach(rarity => {
-        const option = document.createElement("option");
-        option.value = rarity;
-        option.textContent = rarity;
-        raritySelect.appendChild(option);
-      });
+
+      function ensureRarityOptions() {
+        if (!raritySelect) return;
+        const existingValues = new Set(Array.from(raritySelect.options).map(option => option.value));
+        rarityOptions.forEach(rarity => {
+          if (existingValues.has(rarity)) return;
+          const option = document.createElement("option");
+          option.value = rarity;
+          option.textContent = rarity;
+          raritySelect.appendChild(option);
+        });
+      }
+
+      function buildItemFilters(items = []) {
+        if (!typeSelect) return;
+        const previousValue = typeSelect.value || "all";
+        const typeSet = new Set(DEFAULT_ITEM_TYPES);
+        items.forEach(item => {
+          if (item && typeof item.type === "string") {
+            typeSet.add(item.type);
+          }
+        });
+        const sortedTypes = Array.from(typeSet).sort((a, b) => a.localeCompare(b));
+        typeSelect.innerHTML = "";
+        const allOption = document.createElement("option");
+        allOption.value = "all";
+        allOption.textContent = "All item types";
+        typeSelect.appendChild(allOption);
+        sortedTypes.forEach(type => {
+          const option = document.createElement("option");
+          option.value = type;
+          option.textContent = type;
+          typeSelect.appendChild(option);
+        });
+        if (previousValue !== "all" && sortedTypes.includes(previousValue)) {
+          typeSelect.value = previousValue;
+        } else {
+          typeSelect.value = "all";
+        }
+      }
+
+      ensureRarityOptions();
+      buildItemFilters();
 
       const itemsList = document.getElementById("items-list");
       const itemQuery = document.getElementById("item-query");

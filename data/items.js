@@ -39,6 +39,19 @@ export default [
     editionSpecific: true
   },
   {
+    name: "Midnight Tears",
+    type: "Consumable (Poison)",
+    rarity: "Very Rare",
+    edition: "5e/2024",
+    description: "A slow-acting toxin that becomes lethal when midnight strikes, dealing necrotic damage to the unwary.",
+    source: "Dungeon Master's Guide",
+    attunement: "No attunement; the poison must be ingested to take effect.",
+    attunementTag: "none",
+    cost: "Typically valued near 1,500 gp per dose under DMG poison craft guidelines.",
+    notes: "Creatures that consume the poison unknowingly make a DC 17 Constitution save at the stroke of midnight, taking 9d6 necrotic damage on a failure or half as much on a success.",
+    editionSpecific: false
+  },
+  {
     name: "Spell Scroll (Revivify)",
     type: "Consumable (Scroll)",
     rarity: "Rare",
@@ -63,6 +76,32 @@ export default [
     cost: "Typically 500 gp per flask in 5e pricing variants; AD&D treated it as treasure only.",
     notes: "2024 wording references the Freedom of Movement spell but otherwise mirrors SRD text.",
     editionSpecific: true
+  },
+  {
+    name: "Eldritch Claw Tattoo",
+    type: "Magical Tattoo",
+    rarity: "Uncommon",
+    edition: "5e/2024",
+    description: "Animated ink crawls across the skin to enhance unarmed strikes and extend their reach with arcane talons.",
+    source: "Tasha's Cauldron of Everything",
+    attunement: "Requires attunement by a creature, the magic bonding to their skin during the inking ritual.",
+    attunementTag: "required",
+    cost: "Commissioning an uncommon tattoo generally costs 500–1,000 gp in magical inks and artisan fees.",
+    notes: "While attuned, the wearer gains a +1 bonus to attack and damage rolls with unarmed strikes and natural weapons, and can make them reach 15 feet once per day for 1 minute.",
+    editionSpecific: false
+  },
+  {
+    name: "Rune of the Frost Giant",
+    type: "Rune (Inscription)",
+    rarity: "Rare",
+    edition: "5e/2024",
+    description: "A frigid giant rune that can be etched onto gear, awakening icy resilience and battlefield control when invoked.",
+    source: "Bigby's Presents: Glory of the Giants",
+    attunement: "Conditional attunement; requires attunement while the rune is scribed onto equipment you wear or wield.",
+    attunementTag: "conditional",
+    cost: "Usually traded for 2,000–4,000 gp or as a favor among giant sages and rune keepers.",
+    notes: "As a bonus action, you can invoke the rune to gain cold resistance and cause weapon hits to chill foes for 10 minutes; once invoked, the rune can't be used again until you finish a short or long rest.",
+    editionSpecific: false
   },
   {
     name: "Vorpal Sword",
@@ -104,6 +143,22 @@ export default [
     editionSpecific: true
   },
   {
+    name: "Aegis Turret Retrofit",
+    type: "Bastion Upgrade",
+    rarity: "Standard",
+    edition: "UA Playtest 6",
+    description: "An automated bastion upgrade that outfits parapets with sentry ballistae tied to your bastion's defense score.",
+    source: "Unearthed Arcana: Bastions and Cantrips (Playtest 6)",
+    attunement: "No attunement; installed during the bastion development phase.",
+    attunementTag: "none",
+    cost: "Cost: 60 Bastion Points plus 750 gp in reinforced struts and siege parts.",
+    constructionTime: "Construction: 1 bastion turn (7 days) once engineering staff begin work.",
+    tierRequirement: "Requires Bastion Tier 2+ and an active defensive wall or tower.",
+    notes: "While active, the upgrade grants a +2 bonus to Bastion Defense tests and lets defenders unleash 2d10 force damage volleys that apply Push mastery riders when attackers fail their save.",
+    tags: ["Bastion", "Upgrade"],
+    editionSpecific: true
+  },
+  {
     name: "Heward's Handy Haversack",
     type: "Wondrous Item",
     rarity: "Rare",
@@ -127,6 +182,19 @@ export default [
     attunementTag: "none",
     cost: "About 4,000 gp in 3.5e; often gifted to rangers.",
     notes: "2024 drafts reference weapon mastery interactions when drawing ammunition, but storage capacity remains.",
+    editionSpecific: true
+  },
+  {
+    name: "Thunderstone Capsule",
+    type: "Consumable (Alchemical Capsule)",
+    rarity: "Common",
+    edition: "5e/2024",
+    description: "A metal sphere packed with resonant salts that detonates into a concussive burst when thrown.",
+    source: "Keys from the Golden Vault / 2024 DMG preview",
+    attunement: "No attunement; arm and throw as an action.",
+    attunementTag: "none",
+    cost: "Generally sold for 50 gp each by guild alchemists or espionage suppliers.",
+    notes: "On impact the capsule forces creatures in a small radius to succeed on a DC 15 Constitution save or become deafened and unable to take reactions until the end of their next turn.",
     editionSpecific: true
   },
   {
