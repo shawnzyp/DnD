@@ -1858,6 +1858,9 @@
           <select id="edition-filter" aria-label="Filter edition availability">
             <option value="all">All editions</option>
           </select>
+          <select id="content-tag-filter" aria-label="Filter special content">
+            <option value="all">All content</option>
+          </select>
         </div>
         <div class="downtime-tool" aria-live="polite">
           <div>
@@ -2753,7 +2756,20 @@
                 return;
               }
 
-              results.forEach(setting => {
+              const getEraYear = (eraText) => {
+                if (!eraText) return Number.MAX_SAFE_INTEGER;
+                const match = eraText.match(/\d{4}/);
+                return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+              };
+
+              const sortedResults = [...results].sort((a, b) => {
+                const eraA = getEraYear(a.era);
+                const eraB = getEraYear(b.era);
+                if (eraA !== eraB) return eraA - eraB;
+                return (a.name || "").localeCompare(b.name || "");
+              });
+
+              sortedResults.forEach(setting => {
                 const details = document.createElement("article");
                 details.className = "setting-card";
 
@@ -4253,12 +4269,25 @@
             });
           }
 
+          if (contentTagSelect) {
+            const uniqueTags = Array.from(
+              new Set(items.flatMap(item => item.tags || []).filter(Boolean))
+            ).sort((a, b) => a.localeCompare(b));
+            uniqueTags.forEach(tag => {
+              const option = document.createElement("option");
+              option.value = tag;
+              option.textContent = tag;
+              contentTagSelect.appendChild(option);
+            });
+          }
+
           const renderItems = () => {
             const query = itemQuery?.value.toLowerCase().trim() ?? "";
             const rarity = raritySelect?.value ?? "all";
             const attunement = attunementSelect?.value ?? "all";
             const type = typeSelect?.value ?? "all";
             const edition = editionSelect?.value ?? "all";
+            const contentTag = contentTagSelect?.value ?? "all";
 
             itemsList.innerHTML = "";
             const results = items.filter(item => {
@@ -4271,7 +4300,9 @@
               const matchesAttunement = attunement === "all" || item.attunementTag === attunement;
               const matchesType = type === "all" || item.type === type;
               const matchesEdition = edition === "all" || item.edition === edition;
-              return matchesQuery && matchesRarity && matchesAttunement && matchesType && matchesEdition;
+              const normalizedTags = item.tags || [];
+              const matchesTag = contentTag === "all" || normalizedTags.includes(contentTag);
+              return matchesQuery && matchesRarity && matchesAttunement && matchesType && matchesEdition && matchesTag;
             });
 
             if (!results.length) {
@@ -4305,7 +4336,10 @@
                 <p>${item.description}</p>
                 <p><strong>Attunement:</strong> ${item.attunement}</p>
                 <p><strong>Cost:</strong> ${item.cost}</p>
+                ${item.constructionTime ? `<p><strong>Construction:</strong> ${item.constructionTime}</p>` : ""}
+                ${item.tierRequirement ? `<p><strong>Tier Requirement:</strong> ${item.tierRequirement}</p>` : ""}
                 <p><strong>Notes:</strong> ${item.notes}</p>
+                ${item.tags?.length ? `<div class="tag-row">${item.tags.map(tag => `<span class=\"pill\">${tag}</span>`).join(" ")}</div>` : ""}
                 <p style="font-size: 0.85rem; opacity: 0.7;"><strong>Source:</strong> ${item.source}</p>
               `;
               itemsList.appendChild(card);
@@ -4317,6 +4351,7 @@
           attunementSelect?.addEventListener("change", renderItems);
           typeSelect?.addEventListener("change", renderItems);
           editionSelect?.addEventListener("change", renderItems);
+          contentTagSelect?.addEventListener("change", renderItems);
 
           renderItems();
         } catch (error) {
@@ -4631,6 +4666,7 @@
       const attunementSelect = document.getElementById("attunement-filter");
       const typeSelect = document.getElementById("item-type-filter");
       const editionSelect = document.getElementById("edition-filter");
+      const contentTagSelect = document.getElementById("content-tag-filter");
       rarityOptions.forEach(rarity => {
         const option = document.createElement("option");
         option.value = rarity;
