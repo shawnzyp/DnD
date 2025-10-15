@@ -252,6 +252,84 @@ export default [
           ]
         },
         {
+          name: "Wolf",
+          size: "Medium",
+          creatureType: "Beast",
+          alignment: "Unaligned",
+          challenge: "1/4",
+          crValue: 0.25,
+          terrain: ["Forest", "Tundra", "Grassland"],
+          role: ["Skirmisher", "Tracker"],
+          overview: "Pack hunters that pressure scouting parties; SRD profiles mirror B/X wolves while 4e Monster Vault highlights their teamwork-driven mobility.",
+          signatureAbilities: [
+            "Pack Tactics: Advantage when adjacent to an ally underscores their encircling tactics for exploration-era ambushes.",
+            "Keen Hearing and Smell: Grants advantage on Perception checks, reinforcing tracking scenes across editions.",
+            "Trip on a Bite: On-hit Strength saves knock prey prone, encouraging quick resolutions before reinforcements arrive."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Rules Cyclopedia", url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia-Basic" }
+          ]
+        },
+        {
+          name: "Giant Spider",
+          size: "Large",
+          creatureType: "Beast",
+          alignment: "Unaligned",
+          challenge: "1",
+          terrain: ["Forest", "Underdark", "Ruins"],
+          role: ["Controller", "Ambusher"],
+          overview: "Ceiling-crawling predators whose web cocoons foreshadow subterranean lairs; 4e Monster Vault venom riders inspire modern restraint conditions.",
+          signatureAbilities: [
+            "Web (Recharge 5–6): Ranged restraint enforces positioning puzzles for exploration-heavy crawls.",
+            "Spider Climb: Ignores vertical obstacles, letting it strike from unseen perches and escape pursuit.",
+            "Poisoned Fangs: On-hit Constitution saves deal ongoing poison damage, echoing AD&D's paralytic fangs."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Vault (4e)", url: "https://www.dmsguild.com/product/177603/Monster-Vault-Threats-to-the-Nentir-Vale-4e" }
+          ]
+        },
+        {
+          name: "Giant Eagle",
+          size: "Large",
+          creatureType: "Beast",
+          alignment: "Neutral good",
+          challenge: "1",
+          terrain: ["Mountain", "Coastal", "Sky"],
+          role: ["Scout", "Support"],
+          overview: "Intelligent raptors that ferry heroes or reconnoiter wilderness routes; their cooperative instincts date back to Tolkien-inspired OD&D entries.",
+          signatureAbilities: [
+            "Keen Sight: Advantage on sight-based Perception bolsters aerial reconnaissance for sandbox expeditions.",
+            "Flyby Support: High speed and dive attacks let them harry foes then withdraw without provoking opportunity attacks, mirroring 2024 exploration tweaks.",
+            "Allied Speech: Communicate with characters who know a language, reinforcing negotiation options with nature allies."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Boar",
+          size: "Medium",
+          creatureType: "Beast",
+          alignment: "Unaligned",
+          challenge: "1/4",
+          crValue: 0.25,
+          terrain: ["Forest", "Grassland", "Swamp"],
+          role: ["Brute", "Hazard"],
+          overview: "Ill-tempered foragers whose charges complicate hunting expeditions; OD&D to 2024 stat blocks emphasize their relentless endurance.",
+          signatureAbilities: [
+            "Charge: Closing 20 feet adds damage and can knock creatures prone, stressing bushwhack tactics.",
+            "Relentless (Recharges after a Short Rest): Prevents the boar from dropping below 1 hp once, mirroring AD&D ferocity.",
+            "Tusk Gore: Steady damage output punishes careless low-level explorers moving through dense undergrowth."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Rules Cyclopedia", url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia-Basic" }
+          ]
+        },
+        {
           name: "Skeleton Archer",
           size: "Medium",
           creatureType: "Undead",
@@ -726,6 +804,101 @@ export default [
           sources: [
             { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
             { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Solar",
+          size: "Large",
+          creatureType: "Celestial",
+          alignment: "Lawful good",
+          challenge: "21",
+          terrain: ["Heavenly", "Planar", "Sanctum"],
+          role: ["Solo", "Champion"],
+          overview: "Radiant generals of the Upper Planes whose interventions anchor peace accords and rescue missions for planar allies in peril.",
+          signatureAbilities: [
+            "Flame of Justice: Slaying longbow shots or greatsword strikes ignite foes while healing nearby allies, dramatizing the Solar's battlefield triage.",
+            "Searing Burst: Channel divinity to detonate radiant shockwaves that cleanse fiendish influence without harming good-aligned forces.",
+            "Lair & Regional Effects: Sanctified lairs grant sunlight and suppress charm or fear, reinforcing negotiation sanctuaries for epic diplomacy."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Mordenkainen Presents: Monsters of the Multiverse", url: "https://www.dndbeyond.com/sources/monsters-of-the-multiverse" }
+          ]
+        },
+        {
+          name: "Empyrean",
+          size: "Huge",
+          creatureType: "Celestial",
+          alignment: "Chaotic good",
+          challenge: "23",
+          terrain: ["Planar", "Mythic Battlefield", "Sky"],
+          role: ["Solo", "Support"],
+          overview: "Children of the gods whose mood-driven miracles swing between wrath and mercy, often mediating cosmic truces with overwhelming presence.",
+          signatureAbilities: [
+            "Divine Might: Thunderous maul strikes or radiant bolts smite threats while bolstering sworn allies with temporary hit points.",
+            "Legendary Miracle: Legendary actions reshape terrain with gusts, healing rains, or restraining vines, echoing One D&D 2024 preview tweaks.",
+            "Regional Blessings: Domains around an empyrean radiate calm emotions, advantage on diplomacy checks, and difficult terrain for fiends."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Mordenkainen Presents: Monsters of the Multiverse", url: "https://www.dndbeyond.com/sources/monsters-of-the-multiverse" }
+          ]
+        },
+        {
+          name: "Ancient Gold Dragon",
+          size: "Gargantuan",
+          creatureType: "Dragon",
+          alignment: "Lawful good",
+          challenge: "24",
+          terrain: ["Mountain", "Coastal", "Planar"],
+          role: ["Solo", "Negotiator"],
+          overview: "Benevolent dragon sages who arbitrate between kingdoms and celestials, inviting heroes into lairs that double as embassies to the heavens.",
+          signatureAbilities: [
+            "Weakening & Fire Breath: Alternating breath weapons debuff tyrants or purge undead, letting allies press the diplomatic advantage.",
+            "Shape Change Diplomat: Assuming humanoid forms opens councils or infiltration missions with patient, ancient insight.",
+            "Lair Concords: Lair actions conjure radiant auroras or restraining geysers that deter violence while negotiations proceed."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Fizban's Treasury of Dragons", url: "https://www.dndbeyond.com/sources/ftod" }
+          ]
+        },
+        {
+          name: "Ancient Silver Dragon",
+          size: "Gargantuan",
+          creatureType: "Dragon",
+          alignment: "Lawful good",
+          challenge: "23",
+          terrain: ["Mountain", "Tundra", "Planar"],
+          role: ["Solo", "Defender"],
+          overview: "Chivalric guardians who shelter mortals from planar incursions, pairing sky patrols with wise counsel for epic treaty summits.",
+          signatureAbilities: [
+            "Paralyzing Breath: Nonlethal cone that incapacitates aggressors without derailing parley scenes, echoing 2024 mastery-friendly combat pacing.",
+            "Protective Cloud: Cold breath freezes terrain into cover for allies while chilling fiends, and legendary wing beats reposition negotiators.",
+            "Regional Effects: Mountain fastnesses gain everbright skies, safe weather, and teleportation wards that secure summit locations."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Mordenkainen Presents: Monsters of the Multiverse", url: "https://www.dndbeyond.com/sources/monsters-of-the-multiverse" }
+          ]
+        },
+        {
+          name: "Metallic Dragonborn Council",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Neutral good",
+          challenge: "18",
+          terrain: ["Urban", "Citadel", "Planar"],
+          role: ["Leader", "Support"],
+          overview: "A conclave of metallic dragonborn emissaries wielding coordinated breath weapons and bastion resources to broker alliances between planes.",
+          signatureAbilities: [
+            "Council Volley: Coordinated breath strikes (acid, cold, fire, lightning) create zones keyed to weapon mastery riders that allies exploit.",
+            "Battlefield Directives: Legendary reactions grant allies advantage on Diplomacy or Initiative checks, keeping peacekeepers a step ahead.",
+            "Lair Logistics: Meeting halls function like bastions—granting safe teleport circles, regional aura of courage, and rapid planar reinforcement calls."
+          ],
+          sources: [
+            { label: "Fizban's Treasury of Dragons", url: "https://www.dndbeyond.com/sources/ftod" },
+            { label: "2024 Dungeon Master's Guide Preview", url: "https://www.dndbeyond.com/posts/1598-dungeon-masters-guide-2024-preview" }
           ]
         },
         {
