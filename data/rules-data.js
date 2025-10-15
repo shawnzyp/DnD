@@ -236,6 +236,7 @@ export default [
           ]
         },
         {
+          editionKey: "4e",
           edition: "4th Edition",
           tagline: "Tactical, power-card driven combat with roles and structured encounters.",
           released: "Core launch 2008 · Essentials refresh 2010 · Digital tools sunset 2016",
