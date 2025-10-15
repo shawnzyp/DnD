@@ -12,6 +12,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["force", "auto-hit", "damage"]
         },
         {
@@ -27,6 +28,7 @@ export default [
           components: "V, S, M (a bat guano and sulfur pellet)",
           savingThrow: "Dexterity half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["fire", "area", "damage"]
         },
         {
@@ -42,6 +44,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Basic/Expert Set",
+          ritual: false,
           keywords: ["healing", "support", "touch"]
         },
         {
@@ -57,6 +60,7 @@ export default [
           components: "V, S, M (a straight iron bar)",
           savingThrow: "Wisdom negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "paralysis", "concentration"]
         },
         {
@@ -72,6 +76,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: true,
           keywords: ["utility", "detection", "ritual"]
         },
         {
@@ -87,6 +92,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["defense", "reaction", "abjuration"]
         },
         {
@@ -102,6 +108,7 @@ export default [
           components: "V, S, M (a crystal or glass cone)",
           savingThrow: "Constitution half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["cold", "area", "damage"]
         },
         {
@@ -117,6 +124,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "utility", "area"]
         },
         {
@@ -132,6 +140,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["utility", "manipulation", "cantrip"]
         },
         {
@@ -147,6 +156,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["support", "buff", "cantrip"]
         },
         {
@@ -162,6 +172,7 @@ export default [
           components: "V, S",
           savingThrow: "Ranged spell attack",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 8",
+          ritual: false,
           keywords: ["damage", "cold", "debuff"]
         },
         {
@@ -177,6 +188,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["healing", "support", "cantrip"]
         },
         {
@@ -192,6 +204,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 5",
+          ritual: false,
           keywords: ["utility", "flavor", "cantrip"]
         },
         {
@@ -207,6 +220,7 @@ export default [
           components: "V, S, M (a sprinkling of holy water)",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["buff", "support", "concentration"]
         },
         {
@@ -222,6 +236,7 @@ export default [
           components: "V",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["healing", "support", "reactionary"]
         },
         {
@@ -237,6 +252,7 @@ export default [
           components: "V, S, M (the petrified eye of a newt)",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Warlock & Wizard",
+          ritual: false,
           keywords: ["damage", "debuff", "concentration"]
         },
         {
@@ -252,7 +268,24 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "obscurement", "area"]
+        },
+        {
+          name: "Tasha's Caustic Brew",
+          level: 1,
+          school: "Evocation",
+          classes: ["Artificer", "Sorcerer", "Wizard"],
+          edition: "Tasha's Cauldron of Everything (2020) · 2024 PHB preview",
+          summary: "Unleash a 30-foot line of acid that clings until creatures spend actions to scrape it away; One D&D previews keep the line template but clarify that new saves occur only when creatures end turns coated in acid.",
+          castingTime: "1 action",
+          range: "Self (30-foot line)",
+          duration: "Concentration, up to 1 minute",
+          components: "V, S, M (a bit of rotten food)",
+          savingThrow: "Dexterity negates initial coating",
+          source: "Tasha's Cauldron of Everything p. 115; Unearthed Arcana: Players Handbook Playtest 8",
+          ritual: false,
+          keywords: ["acid", "control", "concentration", "tashas"]
         },
         {
           name: "Tasha's Hideous Laughter",
@@ -267,6 +300,7 @@ export default [
           components: "V, S, M (tiny tarts and a feather)",
           savingThrow: "Wisdom negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "enchantment", "concentration"]
         },
         {
@@ -282,6 +316,7 @@ export default [
           components: "V",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 5",
+          ritual: false,
           keywords: ["mobility", "teleportation", "bonus action"]
         },
         {
@@ -297,6 +332,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["healing", "support", "condition removal"]
         },
         {
@@ -312,6 +348,7 @@ export default [
           components: "V, S",
           savingThrow: "Melee spell attack",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["damage", "support", "bonus action"]
         },
         {
@@ -327,7 +364,24 @@ export default [
           components: "V, S, M (a pinch of talc and powdered silver)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["detection", "utility", "vision"]
+        },
+        {
+          name: "Vortex Warp",
+          level: 2,
+          school: "Conjuration",
+          classes: ["Artificer", "Sorcerer", "Wizard"],
+          edition: "Strixhaven: A Curriculum of Chaos (2021) · 2024 PHB preview",
+          summary: "Teleport a willing creature or force a Constitution save on an unwilling target to relocate them within range; later errata clarifies the move counts as forced movement and never provokes opportunity attacks.",
+          castingTime: "1 action",
+          range: "90 feet",
+          duration: "Instantaneous",
+          components: "V, S, M (a spool of thread)",
+          savingThrow: "Constitution negates (willing creatures can opt out)",
+          source: "Strixhaven: A Curriculum of Chaos p. 38; Unearthed Arcana: Travelers of the Multiverse",
+          ritual: false,
+          keywords: ["teleport", "control", "forced movement", "strixhaven"]
         },
         {
           name: "Counterspell",
@@ -342,6 +396,7 @@ export default [
           components: "S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["defense", "reaction", "abjuration"]
         },
         {
@@ -357,7 +412,24 @@ export default [
           components: "V, S, M (a holy symbol)",
           savingThrow: "Wisdom half",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["damage", "control", "concentration"]
+        },
+        {
+          name: "Summon Fey",
+          level: 3,
+          school: "Conjuration",
+          classes: ["Druid", "Ranger", "Sorcerer", "Warlock", "Wizard"],
+          edition: "Tasha's Cauldron of Everything (2020) · 2024 PHB preview",
+          summary: "Call forth a fey spirit with fuming, mirthful, or tricksy demeanor options; 2024 updates align the summoned stat block with the unified Summon template and cap attack scaling at proficiency bonus.",
+          castingTime: "1 action",
+          range: "90 feet",
+          duration: "Concentration, up to 1 hour",
+          components: "V, S, M (a gilded flower worth at least 200 gp)",
+          savingThrow: "None",
+          source: "Tasha's Cauldron of Everything p. 112; Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
+          keywords: ["summoning", "fey", "concentration", "tashas"]
         },
         {
           name: "Leomund's Tiny Hut",
@@ -372,6 +444,7 @@ export default [
           components: "V, S, M (a small crystal bead)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: true,
           keywords: ["utility", "defense", "ritual"]
         },
         {
@@ -387,6 +460,7 @@ export default [
           components: "V, S, M (diamonds worth 300 gp)",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["healing", "revival", "emergency"]
         },
         {
@@ -402,6 +476,7 @@ export default [
           components: "V, S, M (a caterpillar cocoon)",
           savingThrow: "Wisdom negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "buff", "transformation"]
         },
         {
@@ -417,6 +492,7 @@ export default [
           components: "V, S, M (an item distasteful to the target)",
           savingThrow: "Charisma negates",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 6",
+          ritual: false,
           keywords: ["control", "banish", "concentration"]
         },
         {
@@ -432,6 +508,7 @@ export default [
           components: "V",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["mobility", "teleportation", "utility"]
         },
         {
@@ -447,6 +524,7 @@ export default [
           components: "V",
           savingThrow: "Dexterity half",
           source: "SRD 5.1, Unearthed Arcana: Cleric & Revised Species",
+          ritual: false,
           keywords: ["damage", "control", "divine"]
         },
         {
@@ -462,7 +540,24 @@ export default [
           components: "V, S, M (a pinch of powdered diamond)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "defense", "force"]
+        },
+        {
+          name: "Steel Wind Strike",
+          level: 5,
+          school: "Conjuration",
+          classes: ["Ranger", "Sorcerer", "Wizard"],
+          edition: "Xanathar's Guide to Everything (2017) · 2024 PHB preview",
+          summary: "Teleport through up to five creatures, dealing 6d10 force damage before reappearing beside one target; 2024 revisions maintain the damage die but specify you can land in any space within 5 feet of a struck creature for cleaner positioning.",
+          castingTime: "1 action",
+          range: "30 feet",
+          duration: "Instantaneous",
+          components: "V, S, M (a melee weapon worth at least 1 sp)",
+          savingThrow: "Melee spell attack",
+          source: "Xanathar's Guide to Everything p. 170; Unearthed Arcana: Players Handbook Playtest 8",
+          ritual: false,
+          keywords: ["force", "teleport", "multi-target", "xanathars"]
         },
         {
           name: "Greater Restoration",
@@ -477,6 +572,7 @@ export default [
           components: "V, S, M (diamond dust worth 100 gp)",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["healing", "support", "restoration"]
         },
         {
@@ -492,6 +588,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["summoning", "damage", "control"]
         },
         {
@@ -507,6 +604,7 @@ export default [
           components: "V, S",
           savingThrow: "Intelligence half",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 8",
+          ritual: false,
           keywords: ["damage", "debuff", "psychic"]
         },
         {
@@ -522,6 +620,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["healing", "support", "burst"]
         },
         {
@@ -537,6 +636,7 @@ export default [
           components: "V, S, M (a bit of fur and amber)",
           savingThrow: "Dexterity half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["damage", "area", "lightning"]
         },
         {
@@ -552,6 +652,7 @@ export default [
           components: "V, S, M (a jeweled bowl worth 1,000 gp)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: true,
           keywords: ["buff", "support", "ritual"]
         },
         {
@@ -567,6 +668,7 @@ export default [
           components: "V, S",
           savingThrow: "Dexterity half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "damage", "area"]
         },
         {
@@ -582,7 +684,24 @@ export default [
           components: "V, S, M (a glass or crystal bead)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["defense", "abjuration", "concentration"]
+        },
+        {
+          name: "Fizban's Platinum Shield",
+          level: 6,
+          school: "Abjuration",
+          classes: ["Sorcerer", "Wizard"],
+          edition: "Fizban's Treasury of Dragons (2021) · 2024 PHB preview",
+          summary: "Wrap an ally in a spectral dragon that grants +2 AC, resistance to breath weapons, and reactive damage reduction; 2024 notes clarify concentration interactions and treat the shield as a distinct source for stacking resistance.",
+          castingTime: "1 bonus action",
+          range: "60 feet",
+          duration: "Concentration, up to 1 minute",
+          components: "V, S, M (a platinum-plated dragon scale worth 500 gp)",
+          savingThrow: "None",
+          source: "Fizban's Treasury of Dragons p. 21; Unearthed Arcana: Heroes of Krynn Revisited",
+          ritual: false,
+          keywords: ["defense", "buff", "concentration", "fizbans"]
         },
         {
           name: "Plane Shift",
@@ -597,6 +716,7 @@ export default [
           components: "V, S, M (a forked metal rod attuned to the destination plane)",
           savingThrow: "Charisma negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["travel", "banish", "utility"]
         },
         {
@@ -612,6 +732,7 @@ export default [
           components: "V, S, M (ruby dust worth 1,500 gp)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "prison", "force"]
         },
         {
@@ -627,6 +748,7 @@ export default [
           components: "V, S, M (a diamond worth at least 1,000 gp)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: true,
           keywords: ["healing", "revival", "ritual"]
         },
         {
@@ -642,6 +764,7 @@ export default [
           components: "V",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["travel", "mobility", "utility"]
         },
         {
@@ -657,6 +780,7 @@ export default [
           components: "V, S, M (a lodestone and iron filings)",
           savingThrow: "Dexterity negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "area", "environment"]
         },
         {
@@ -672,6 +796,7 @@ export default [
           components: "V, S, M (a pinch of dirt, a piece of rock, and a lump of clay)",
           savingThrow: "Dexterity negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["control", "environment", "damage"]
         },
         {
@@ -687,6 +812,7 @@ export default [
           components: "V, S, M (sunstone dust)",
           savingThrow: "Constitution half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["damage", "radiant", "area"]
         },
         {
@@ -702,6 +828,7 @@ export default [
           components: "V, S, M (a handful of clay, crystal, glass, or mineral spheres)",
           savingThrow: "Intelligence negates",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["debuff", "enchantment", "psychic"]
         },
         {
@@ -717,6 +844,7 @@ export default [
           components: "S",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["utility", "storage", "planar"]
         },
         {
@@ -732,6 +860,7 @@ export default [
           components: "V, S",
           savingThrow: "Dexterity half",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["damage", "fire", "area"]
         },
         {
@@ -747,6 +876,7 @@ export default [
           components: "V",
           savingThrow: "Varies",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["utility", "reality", "legendary"]
         },
         {
@@ -762,6 +892,7 @@ export default [
           components: "V, S, M (a piece of crystal or glass prism)",
           savingThrow: "Varies by layer",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["defense", "damage", "abjuration"]
         },
         {
@@ -777,6 +908,7 @@ export default [
           components: "V, S",
           savingThrow: "None",
           source: "SRD 5.1, Unearthed Arcana: Players Handbook Playtest 7",
+          ritual: false,
           keywords: ["healing", "support", "burst"]
         },
         {
@@ -792,6 +924,38 @@ export default [
           components: "V, S, M (a hummingbird feather)",
           savingThrow: "None",
           source: "SRD 5.1, d20 SRD",
+          ritual: false,
           keywords: ["buff", "support", "divination"]
         }
       ];
+
+export const supplementCoverageGaps = [
+  {
+    supplement: "Xanathar's Guide to Everything",
+    missingClasses: ["Cleric", "Paladin"],
+    missingSchools: ["Abjuration", "Necromancy"],
+    note:
+      "Still lacks divine staples such as Holy Weapon or Toll the Dead variants—additions would round out Xanathar's coverage beyond arcane gish options."
+  },
+  {
+    supplement: "Tasha's Cauldron of Everything",
+    missingClasses: ["Paladin", "Bard"],
+    missingSchools: ["Abjuration"],
+    note:
+      "Future updates should include utility spells like Aura of Vitality (reprint) or Tasha's Otherworldly Guise so every list gains a marquee Tasha's option."
+  },
+  {
+    supplement: "Fizban's Treasury of Dragons",
+    missingClasses: ["Cleric", "Paladin"],
+    missingSchools: ["Transmutation"],
+    note:
+      "Consider adding Draconic Transformation or Ashardalon's Stride to showcase Fizban's offensive tools alongside the new shield spell."
+  },
+  {
+    supplement: "2024 PHB preview",
+    missingClasses: ["Artificer", "Paladin"],
+    missingSchools: ["Illusion"],
+    note:
+      "Most preview material is arcane; capturing martial-support options like new Smite variants or updated Illusions would help conversion planning."
+  }
+];

@@ -2695,5 +2695,381 @@ export default {
               }
             ]
           }
+        ],
+        "1e": [
+          {
+            name: "Fighting-Man (Fighter)",
+            role: "Frontline bruiser & domain warlord",
+            primaryAbility: "Strength",
+            hitDie: "d8 (OD&D) / d10 (AD&D)",
+            summary:
+              "Humans advance without limit while dwarves and halflings top out around name level, trading maximum levels for early access to plate, multiple attacks versus 1 HD foes, and stronghold dominions at 9th level.",
+            signatureFeatures: [
+              "Uses attack matrices/THAC0 that improve by 1 every level or two depending on era, with weapon vs. armor adjustments in AD&D",
+              "Establishes a keep at 9th level, attracting men-at-arms and taxing a conquered hex per the 1e DMG procedures",
+              "Eligible for multi-class combinations with most demihumans but subject to level caps from the 1974 boxed set and AD&D PHB"
+            ],
+            sources: [
+              {
+                label: "Men & Magic (1974)",
+                url: "https://www.dmsguild.com/product/110274/ODD-Original-Edition-Rules"
+              },
+              {
+                label: "AD&D Player's Handbook (1978)",
+                url: "https://www.dmsguild.com/product/17003/Players-Handbook-1e"
+              }
+            ],
+            comparison: {
+              note:
+                "Convert THAC0 by subtracting the listed value from 20 to find a 5e-style attack bonus, then layer a Fighting Style or Battle Master maneuvers to emulate weapon specialization from Unearthed Arcana.",
+              link: {
+                label: "5e Fighter (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Fighter"
+              }
+            }
+          },
+          {
+            name: "Magic-User",
+            role: "Vancian artillery & utility scholar",
+            primaryAbility: "Intelligence",
+            hitDie: "d4",
+            summary:
+              "Prepares a handful of memorized spells from a limited book, researches new magic at significant gold costs, and relies on henchman protection through the fragile early levels before reality-bending power arrives at high level.",
+            signatureFeatures: [
+              "Spell slots refresh only after full rest and re-memorization per Men & Magic",
+              "Research and scroll transcription costs scale with spell level, anchoring downtime pacing",
+              "Elves can multi-class but cap around 11th level, while humans advance without limit"
+            ],
+            sources: [
+              {
+                label: "Men & Magic (1974)",
+                url: "https://www.dmsguild.com/product/110274/ODD-Original-Edition-Rules"
+              },
+              {
+                label: "AD&D Dungeon Master's Guide (1979)",
+                url: "https://www.dmsguild.com/product/17004/Dungeon-Masters-Guide-1e"
+              }
+            ],
+            comparison: {
+              note:
+                "Treat each memorized spell as a single prepared slot, then translate casting by matching spell levels to 5e slots; apply the Arcane Tradition features closest to the original school (e.g., Diviner for crystal ball specialists).",
+              link: {
+                label: "5e Wizard (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Wizard"
+              }
+            }
+          },
+          {
+            name: "Cleric",
+            role: "Divine buffer & undead repellent",
+            primaryAbility: "Wisdom",
+            hitDie: "d6 (OD&D) / d8 (AD&D)",
+            summary:
+              "Human-only in the 1974 rules, clerics gain spellcasting at 2nd level, wield blunt weapons, and turn undead using 2d6 tables that escalate into outright destruction at higher tiers.",
+            signatureFeatures: [
+              "Turn or command undead using percentile-style turn matrices tied to level and undead HD",
+              "Armor and shield use from level 1 balances early lack of spell slots",
+              "Level caps hit demihuman clerics introduced later, making human advancement and domain play the default"
+            ],
+            sources: [
+              {
+                label: "Men & Magic (1974)",
+                url: "https://www.dmsguild.com/product/110274/ODD-Original-Edition-Rules"
+              },
+              {
+                label: "AD&D Player's Handbook (1978)",
+                url: "https://www.dmsguild.com/product/17003/Players-Handbook-1e"
+              }
+            ],
+            comparison: {
+              note:
+                "Map turn undead table results to 5e's Channel Divinity: Turn Undead by treating a full destruction result as an automatic Destroy Undead on CR-appropriate foes.",
+              link: {
+                label: "5e Cleric (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Cleric"
+              }
+            }
+          },
+          {
+            name: "Thief",
+            role: "Scout & trap specialist",
+            primaryAbility: "Dexterity",
+            hitDie: "d4",
+            summary:
+              "Introduced in Greyhawk for OD&D, thieves advance quickly with generous XP tables, unlocks percentile skills for traps, stealth, and climbing, and cap at level 14 for non-humans.",
+            signatureFeatures: [
+              "Percentile skills improve each level, with racial bonuses for halflings and dwarves",
+              "Backstab multiplies damage (x2 to x5) when attacking unaware foes",
+              "Can read scrolls at high level, inching toward Magic-User versatility"
+            ],
+            sources: [
+              {
+                label: "Supplement I: Greyhawk (1975)",
+                url: "https://www.dmsguild.com/product/228484/ODD-Supplement-I-Greyhawk"
+              },
+              {
+                label: "AD&D Dungeon Master's Guide (1979)",
+                url: "https://www.dmsguild.com/product/17004/Dungeon-Masters-Guide-1e"
+              }
+            ],
+            comparison: {
+              note:
+                "Translate percentile skills by granting expertise in equivalent 5e skills and treating backstab as Sneak Attack dice equal to double the thief's level progression when converting adventures.",
+              link: {
+                label: "5e Rogue (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Rogue"
+              }
+            }
+          },
+          {
+            name: "Elf (Fighter/Magic-User)",
+            role: "Hybrid spellblade & explorer",
+            primaryAbility: "Strength & Intelligence",
+            hitDie: "d6",
+            summary:
+              "Race-as-class in the 1974 rules lets elves alternate advancement between Fighting-Man and Magic-User, with level caps around 4–8 depending on campaign allowances and magic item research to extend growth.",
+            signatureFeatures: [
+              "Switches between martial and arcane XP tables each session, sharing a single pool",
+              "Inherits elven immunities to sleep and charm while wielding longswords and bows",
+              "Stronghold rules encourage establishing a sylvan fastness at Name level"
+            ],
+            sources: [
+              {
+                label: "Men & Magic (1974)",
+                url: "https://www.dmsguild.com/product/110274/ODD-Original-Edition-Rules"
+              },
+              {
+                label: "AD&D Player's Handbook (1978)",
+                url: "https://www.dmsguild.com/product/17003/Players-Handbook-1e"
+              }
+            ],
+            comparison: {
+              note:
+                "Model the race-as-class chassis as a 5e Eldritch Knight or Bladesinger multiclass, limiting spell slots to 4th level to reflect the original cap and adjusting proficiency bonus to mirror THAC0 progression.",
+              link: {
+                label: "Eldritch Knight (5e SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/subclasses#FighterMartialArchetypes"
+              }
+            }
+          }
+        ],
+        "becmi": [
+          {
+            name: "Fighter",
+            role: "Tiered warlord & dominion founder",
+            primaryAbility: "Strength",
+            hitDie: "d8",
+            summary:
+              "Covers Basic through Master play, with attack ranks extending past level 26, domain management unlocked at 9th, and Weapon Mastery options in the Master Set for tailored combat tricks.",
+            signatureFeatures: [
+              "Name level at 9th grants a stronghold and loyal troops per the Companion Set",
+              "Battle Tactics and Weapon Mastery from the Master set add cleave, disarm, and parry maneuvers",
+              "Human fighters advance to level 36; dwarves acting as fighters cap at 12 with Attack Rank progression"
+            ],
+            sources: [
+              {
+                label: "BECMI Basic Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17171/Basic-Dungeons--Dragons-Rulebook-BECMI"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Map the Attack Rank chart to 5e proficiency + Strength, and treat Weapon Mastery maneuvers as Battlemaster superiority dice keyed to the mastery tier.",
+              link: {
+                label: "5e Battlemaster", 
+                url: "https://www.dndbeyond.com/sources/srd/subclasses#FighterMartialArchetypes"
+              }
+            }
+          },
+          {
+            name: "Cleric",
+            role: "Divine support & dominion steward",
+            primaryAbility: "Wisdom",
+            hitDie: "d6",
+            summary:
+              "BECMI clerics start spellcasting at 2nd level, reach 7th-level miracles by 21st, and shepherd congregations with dominion income as part of the Companion Set realm rules.",
+            signatureFeatures: [
+              "Turn Undead table scales into Destroy Undead at higher circles",
+              "Spontaneous spell reversal from the Rules Cyclopedia enables offensive variants",
+              "Race-as-class restrictions mean only humans become clerics, while dwarf clerics emerge only in Gazetteers"
+            ],
+            sources: [
+              {
+                label: "BECMI Expert Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17182/Expert-Set-Basic"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Treat spell preparation as 5e prepared spells equal to level + Wisdom, and reskin Channel Divinity uses to reproduce the BECMI turn table results at equivalent CR bands.",
+              link: {
+                label: "5e Cleric (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Cleric"
+              }
+            }
+          },
+          {
+            name: "Magic-User",
+            role: "Battlefield controller & ritual scholar",
+            primaryAbility: "Intelligence",
+            hitDie: "d4",
+            summary:
+              "Advances to 36th level with tiered spell progressions, can craft magical items by Master level, and studies complicated spell research costs outlined in the Companion/Master rules.",
+            signatureFeatures: [
+              "Spell slots expand through all tiers, with rituals like Permanency arriving at 9th level",
+              "Tower dominions grant research bonuses and apprentices at 18th level",
+              "Elves mirror many features but cap at 10th level, making humans the premier archmages"
+            ],
+            sources: [
+              {
+                label: "BECMI Companion Set (1984)",
+                url: "https://www.dmsguild.com/product/17181/Companion-Set-Basic"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Model BECMI ritual research as 5e downtime activities with gold cost equivalents, and cap spell slots at 9th level to align with 5e's top-end spellcasting.",
+              link: {
+                label: "5e Wizard (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Wizard"
+              }
+            }
+          },
+          {
+            name: "Thief",
+            role: "Heist planner & explorer",
+            primaryAbility: "Dexterity",
+            hitDie: "d4",
+            summary:
+              "Thieves sprint up the XP ladder, improving percentile skills to triple digits by level 25 and unlocking Hear Noise, Move Silently, and Set Traps adjustments by race from the Basic set.",
+            signatureFeatures: [
+              "Skill tables rise every level and can surpass 100%, enabling automatic success with penalties",
+              "Backstab scales up to x5 damage and grants automatic initiative in certain Companion modules",
+              "Halflings cap at 12th level but gain stealth bonuses, while dwarves rarely enter the class"
+            ],
+            sources: [
+              {
+                label: "BECMI Basic Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17171/Basic-Dungeons--Dragons-Rulebook-BECMI"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Convert percentile skills into expertise in Stealth, Sleight of Hand, and Thieves' Tools, and represent backstab multipliers with Sneak Attack dice equal to twice the thief's BECMI attack rank tier.",
+              link: {
+                label: "5e Rogue (SRD)",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Rogue"
+              }
+            }
+          },
+          {
+            name: "Elf",
+            role: "Race-as-class gish",
+            primaryAbility: "Intelligence & Strength",
+            hitDie: "d6",
+            summary:
+              "Elves blend fighter attack progressions with spellcasting to 5th-level spells, but cap at level 10 (with attack ranks extending play) and must balance armor with spell reliability.",
+            signatureFeatures: [
+              "Can wear armor yet cast, though Rules Cyclopedia imposes casting checks in metal for variant settings",
+              "Automatic Detect Secret Doors and immunity to ghoul paralysis bolster dungeon delving",
+              "Dominion play focuses on establishing sylvan realms tied to Immortal patrons"
+            ],
+            sources: [
+              {
+                label: "BECMI Expert Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17182/Expert-Set-Basic"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Convert BECMI elves to a 5e Bladesinger or Paladin/Wizard multiclass, capping spells at 5th level and using proficiency bonus scaling to mirror Attack Rank improvements after level 10.",
+              link: {
+                label: "Bladesinging (5e)",
+                url: "https://www.dndbeyond.com/sources/tcoe/subclasses#WizardArcaneTraditions"
+              }
+            }
+          },
+          {
+            name: "Dwarf",
+            role: "Stout defender & tunnel lord",
+            primaryAbility: "Constitution & Strength",
+            hitDie: "d8",
+            summary:
+              "Race-as-class dwarves cap at level 12, shift into Attack Rank advancements thereafter, and lean on exceptional saves plus underground detection bonuses to anchor front lines.",
+            signatureFeatures: [
+              "Detect slopes, traps, and new construction on a 1-2 on d6",
+              "Gain attack ranks A–E beyond level cap to keep pace with human fighters",
+              "Establish clanholds tied to gold piece value collected during dominion turns"
+            ],
+            sources: [
+              {
+                label: "BECMI Basic Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17171/Basic-Dungeons--Dragons-Rulebook-BECMI"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Translate Attack Rank bonuses into 5e proficiency plus a +2 defensive fighting style, and reskin Stonecunning to capture BECMI's automatic tunnel detection.",
+              link: {
+                label: "5e Dwarf Fighter", 
+                url: "https://www.dndbeyond.com/sources/srd/races#Dwarf"
+              }
+            }
+          },
+          {
+            name: "Halfling",
+            role: "Skirmisher & scout",
+            primaryAbility: "Dexterity",
+            hitDie: "d6",
+            summary:
+              "Halflings top out at level 8 with attack ranks to extend play, excel at missile combat, and gain 90% concealment in natural terrain according to the Basic wilderness rules.",
+            signatureFeatures: [
+              "+1 to individual initiative and missile attacks when wielding slings or shortbows",
+              "Stealth bonuses in woods grant 90% surprise avoidance",
+              "Stronghold play centers on shires that attract 2d12 halfling families"
+            ],
+            sources: [
+              {
+                label: "BECMI Basic Rulebook (1983)",
+                url: "https://www.dmsguild.com/product/17171/Basic-Dungeons--Dragons-Rulebook-BECMI"
+              },
+              {
+                label: "Rules Cyclopedia (1991)",
+                url: "https://www.dmsguild.com/product/17171/Rules-Cyclopedia"
+              }
+            ],
+            comparison: {
+              note:
+                "Model halflings as 5e Rogues or Rangers with the Skirmisher fighting style, limiting class level to tier 2 to echo the classic level cap while boosting stealth with expertise to reflect 90% concealment.",
+              link: {
+                label: "5e Halfling Rogue",
+                url: "https://www.dndbeyond.com/sources/srd/races#Halfling"
+              }
+            }
+          }
         ]
       };
