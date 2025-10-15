@@ -687,6 +687,14 @@
         border: 1px solid rgba(255, 255, 255, 0.06);
       }
 
+      .message {
+        display: flex;
+      }
+
+      .message.user {
+        justify-content: flex-end;
+      }
+
       .bubble {
         padding: 0.85rem 1rem;
         border-radius: 12px;
@@ -695,7 +703,6 @@
       }
 
       .bubble.user {
-        align-self: flex-end;
         background: rgba(217, 109, 40, 0.18);
         border-top-right-radius: 4px;
       }
@@ -1461,8 +1468,21 @@
       <section id="ask" class="card active" role="tabpanel" tabindex="0" aria-labelledby="tab-ask">
         <h2>Ask the DM</h2>
         <p>Chat with a lore-savvy Dungeon Master powered by an on-device LLM. Ask about rules, ruling conflicts, worldbuilding prompts, or create custom content for any edition.</p>
-        <div class="status" id="status"><span></span><strong>Initializing engine…</strong></div>
-        <div class="chat-log" id="chat-log"></div>
+        <div
+          class="status"
+          id="status"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        ><span></span><strong>Initializing engine…</strong></div>
+        <div
+          class="chat-log"
+          id="chat-log"
+          role="log"
+          aria-live="polite"
+          aria-relevant="additions text"
+          aria-busy="false"
+        ></div>
         <div class="chat-input">
           <textarea id="prompt" placeholder="Ask anything about D&D…" aria-label="Ask the DM"></textarea>
           <button id="send" disabled>Send</button>
@@ -6991,20 +7011,45 @@ Stay family friendly and inclusive.`
       wirePromptPrefill(quickPromptButtons);
       wirePromptPrefill(document.querySelectorAll(".setting-prompt"));
 
-      const appendMessage = (role, content) => {
+      const createMessageElements = (role, content = "") => {
+        const container = document.createElement("article");
+        container.className = `message ${role}`;
+        container.setAttribute("role", "article");
+        const roleLabel =
+          role === "assistant"
+            ? "Dungeon Master response"
+            : role === "user"
+            ? "Player message"
+            : "System message";
+        container.setAttribute("aria-label", roleLabel);
+
         const bubble = document.createElement("div");
         bubble.className = `bubble ${role}`;
         bubble.textContent = content;
-        logEl.appendChild(bubble);
+        container.appendChild(bubble);
+
+        return { container, bubble };
+      };
+
+      const appendMessage = (role, content) => {
+        const { container } = createMessageElements(role, content);
+        logEl.appendChild(container);
         logEl.scrollTop = logEl.scrollHeight;
       };
 
       appendMessage("assistant", "Welcome, adventurer! I'm your digital Dungeon Master. Ask me about any rule, edition, or item and I'll guide you to the right table, chapter, or adjudication.");
 
+      const setLogBusy = (busy) => {
+        if (logEl) {
+          logEl.setAttribute("aria-busy", busy ? "true" : "false");
+        }
+      };
+
       const updateStatus = (text, state = "") => {
         statusEl.classList.remove("ready", "generating");
         if (state) statusEl.classList.add(state);
         statusEl.querySelector("strong").textContent = text;
+        setLogBusy(state === "generating");
       };
 
       let engine;
@@ -7088,18 +7133,16 @@ Stay family friendly and inclusive.`
           ...opts
         });
         let out = "";
+        let streamMessage;
         for await (const c of chunks) {
           const delta = c.choices?.[0]?.delta?.content || "";
           out += delta;
           if (delta) {
-            if (!logEl.lastChild || !logEl.lastChild.classList.contains("assistant")) {
-              const bubble = document.createElement("div");
-              bubble.className = "bubble assistant";
-              bubble.textContent = delta;
-              logEl.appendChild(bubble);
-            } else {
-              logEl.lastChild.textContent += delta;
+            if (!streamMessage) {
+              streamMessage = createMessageElements("assistant");
+              logEl.appendChild(streamMessage.container);
             }
+            streamMessage.bubble.textContent += delta;
             logEl.scrollTop = logEl.scrollHeight;
           }
           updateStatus("Generating response…", "generating");
@@ -7115,6 +7158,7 @@ Stay family friendly and inclusive.`
         messages.push({ role: "user", content: text });
         sendBtn.disabled = true;
         try {
+          setLogBusy(true);
           const reply = await streamReply(messages);
           if (reply) {
             messages.push({ role: "assistant", content: reply });
@@ -7132,6 +7176,9 @@ Stay family friendly and inclusive.`
           }
         } finally {
           sendBtn.disabled = !engine;
+          if (!statusEl.classList.contains("generating")) {
+            setLogBusy(false);
+          }
         }
       };
 
