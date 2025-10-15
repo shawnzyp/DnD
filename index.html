@@ -6870,29 +6870,78 @@ Stay family friendly and inclusive.`
         statusEl.querySelector("strong").textContent = text;
       };
 
-      updateStatus("Initializing engine…");
-
-      const webllm = await import("https://esm.run/@mlc-ai/web-llm");
-      const models = webllm.prebuiltAppConfig.model_list;
-      const selectedModel =
-        models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
-        ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
-        ?? models[0].model_id;
-
       let engine;
-      try {
-        engine = await webllm.CreateMLCEngine(selectedModel, {
-          initProgressCallback: (p) => updateStatus(`${Math.floor(p.progress * 100)}% · ${p.text || p.stage}`)
-        });
-        updateStatus("Ready to answer questions", "ready");
-        sendBtn.disabled = false;
-      } catch (err) {
-        console.error(err);
-        updateStatus("Failed to load WebLLM. Refresh and ensure WebGPU is enabled.");
-        return;
+      let engineInitFailed = false;
+
+      const reportEngineFailure = (statusText, logText) => {
+        updateStatus(statusText);
+        sendBtn.disabled = true;
+        if (!engineInitFailed && logText) {
+          appendMessage("assistant", logText);
+        }
+        engineInitFailed = true;
+      };
+
+      async function setupWebLLM() {
+        if (!logEl || !promptEl || !sendBtn || !statusEl) {
+          return;
+        }
+
+        if (!("gpu" in navigator)) {
+          reportEngineFailure(
+            "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
+            "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
+          );
+          throw new Error("WebGPU unavailable");
+        }
+
+        updateStatus("Initializing engine…");
+
+        let webllm;
+        try {
+          webllm = await import("https://esm.run/@mlc-ai/web-llm");
+        } catch (error) {
+          console.error(error);
+          reportEngineFailure(
+            "Failed to download the WebLLM runtime. Check your connection and refresh.",
+            "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again."
+          );
+          throw new Error("Failed to download WebLLM runtime");
+        }
+
+        const models = webllm.prebuiltAppConfig.model_list;
+        const selectedModel =
+          models.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
+          ?? models.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
+          ?? models[0].model_id;
+
+        try {
+          engine = await webllm.CreateMLCEngine(selectedModel, {
+            initProgressCallback: (p) => updateStatus(`${Math.floor((p.progress ?? 0) * 100)}% · ${p.text || p.stage || "Loading"}`)
+          });
+          updateStatus("Ready to answer questions", "ready");
+          sendBtn.disabled = false;
+        } catch (err) {
+          console.error(err);
+          reportEngineFailure(
+            "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.",
+            "I couldn't initialize the model. Please refresh after confirming WebGPU is enabled, then I'll be ready to help."
+          );
+          throw new Error("Failed to initialize WebLLM");
+        }
       }
 
       async function streamReply(messages, opts = {}) {
+        if (!engine) {
+          if (!engineInitFailed) {
+            appendMessage("assistant", "The DM brain isn't ready yet. Please wait for the engine to finish loading.");
+          }
+          const error = new Error(engineInitFailed ? "engine-init-failed" : "engine-not-ready");
+          error.name = "WebLLMUnavailableError";
+          error.code = engineInitFailed ? "engine-init-failed" : "engine-not-ready";
+          throw error;
+        }
+
         const chunks = await engine.chat.completions.create({
           messages,
           temperature: 0.5,
@@ -6930,14 +6979,22 @@ Stay family friendly and inclusive.`
         sendBtn.disabled = true;
         try {
           const reply = await streamReply(messages);
-          messages.push({ role: "assistant", content: reply });
+          if (reply) {
+            messages.push({ role: "assistant", content: reply });
+          }
           updateStatus("Ready", "ready");
         } catch (error) {
           console.error(error);
-          appendMessage("assistant", "I ran into an error generating that response. Please try again.");
-          updateStatus("Encountered an error");
+          if (error?.code === "engine-not-ready") {
+            updateStatus("Initializing engine…");
+          } else if (error?.code === "engine-init-failed") {
+            updateStatus("Engine failed to start");
+          } else {
+            appendMessage("assistant", "I ran into an error generating that response. Please try again.");
+            updateStatus("Encountered an error");
+          }
         } finally {
-          sendBtn.disabled = false;
+          sendBtn.disabled = !engine;
         }
       };
 
@@ -6947,6 +7004,10 @@ Stay family friendly and inclusive.`
           ev.preventDefault();
           sendPrompt();
         }
+      });
+
+      setupWebLLM().catch(err => {
+        console.error("WebLLM setup failed", err);
       });
 
     </script>
