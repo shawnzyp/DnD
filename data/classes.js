@@ -2063,6 +2063,240 @@ export default {
             ]
           }
         ],
+        "4e": [
+          {
+            name: "Fighter",
+            role: "Martial Defender & battlefield controller",
+            primaryAbility: "Strength or Dexterity",
+            hitDie: "HP: 15 + Con score; +6 per level",
+            summary:
+              "Lock foes in place with marks and martial power cards that reward tactical positioning across the grid.",
+            signatureFeatures: [
+              "Combat Challenge marks enemies and punishes them for shifting or attacking allies",
+              "Combat Superiority boosts opportunity attack accuracy and enables forced-movement riders",
+              "At-will, encounter, and daily exploits offer reliable lockdown tailored to defender duties"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (4e)",
+                url: "https://www.dmsguild.com/product/125228/Players-Handbook-4e"
+              },
+              {
+                label: "Martial Power",
+                url: "https://www.dmsguild.com/product/125235/Martial-Power"
+              }
+            ],
+            comparison: {
+              note:
+                "5e fighters lean on Action Surge and subclass dice for burst turns; the 4e chassis revolves around sticky marks and immediate interrupts, so forward conversions often graft on 2024 weapon masteries or Sentinel-style feats to keep that control identity.",
+              link: {
+                label: "Fighter Class (5e Basic Rules)",
+                url: "https://www.dndbeyond.com/sources/basic-rules/classes#Fighter"
+              }
+            },
+            subclasses: [
+              {
+                name: "Battlerager Vigor",
+                spotlight:
+                  "Spiked-armor bruiser build that turns punishment into temp HP and retaliation swings.",
+                features: [
+                  "Battlerager Vigor grants temp HP whenever you hit with an invigorating power or absorb a marked foe's blow",
+                  "Spiked armor training adds splash damage and forced-movement payoffs for charging into enemy lines"
+                ],
+                sources: [
+                  {
+                    label: "Martial Power",
+                    url: "https://www.dmsguild.com/product/125235/Martial-Power"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "5e's Battlerager Barbarian mimics the temp HP loop but lacks defender marks; porting the build forward usually means pairing the Barbarian with Sentinel or Shield Master to replicate 4e's stickiness.",
+                  link: {
+                    label: "Battlerager Barbarian (SCAG)",
+                    url: "https://www.dndbeyond.com/sources/scag/classes#BarbarianPrimalPaths"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Cleric",
+            role: "Divine Leader & battlefield coach",
+            primaryAbility: "Wisdom",
+            hitDie: "HP: 12 + Con score; +5 per level",
+            summary:
+              "Channel the divine power source to heal, buff, and direct allies with radiant prayers and Channel Divinity tricks.",
+            signatureFeatures: [
+              "Healer's Lore adds Wisdom to each healing power, stretching party surges",
+              "Channel Divinity and Turn Undead arrive as encounter powers for tactical spikes",
+              "Leader prayers layer attack bonuses, saving throws, and free movement onto the team"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (4e)",
+                url: "https://www.dmsguild.com/product/125228/Players-Handbook-4e"
+              },
+              {
+                label: "Divine Power",
+                url: "https://www.dmsguild.com/product/125237/Divine-Power"
+              }
+            ],
+            comparison: {
+              note:
+                "5e clerics focus on prepared spell slots and fewer Channel Divinity uses each rest; 4e clerics hand out bonuses every round, so modern tables often borrow Tasha's optional domain features to keep that constant support cadence.",
+              link: {
+                label: "Cleric Class (5e Basic Rules)",
+                url: "https://www.dndbeyond.com/sources/basic-rules/classes#Cleric"
+              }
+            },
+            subclasses: [
+              {
+                name: "Battle Cleric's Lore (Warpriest)",
+                spotlight:
+                  "Essentials Warpriest build that trades heavier armor and melee accuracy for weapon-infused prayers.",
+                features: [
+                  "Battle Cleric's Lore grants scale armor proficiency and Strength-based bonuses on at-will attacks",
+                  "Domain powers swap daily slots for themed attack riders like Sun Burst or Storm Hammer"
+                ],
+                sources: [
+                  {
+                    label: "Heroes of the Fallen Lands",
+                    url: "https://www.dmsguild.com/product/101891/Heroes-of-the-Fallen-Lands"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "5e's War Domain captures the same martial-cleric fantasy but drops the automatic +2 AC from Battle Cleric's Lore; conversions usually lean on Fighting Initiate or Blessed Warrior fighting styles to bridge the gap.",
+                  link: {
+                    label: "War Domain (5e SRD)",
+                    url: "https://www.dndbeyond.com/sources/srd/subclasses#ClericDivineDomains"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Wizard",
+            role: "Arcane Controller & ritual savant",
+            primaryAbility: "Intelligence",
+            hitDie: "HP: 10 + Con score; +4 per level",
+            summary:
+              "Master the arcane power source with spellbook-prepared power cards that reshape the battlefield each round.",
+            signatureFeatures: [
+              "Spellbook lets you reselect daily and utility powers after each extended rest",
+              "Implement mastery (orb, staff, wand) modifies control riders like save penalties or AC bonuses",
+              "Built-in Ritual Casting unlocks an expansive utility library without extra feats"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (4e)",
+                url: "https://www.dmsguild.com/product/125228/Players-Handbook-4e"
+              },
+              {
+                label: "Arcane Power",
+                url: "https://www.dmsguild.com/product/125236/Arcane-Power"
+              }
+            ],
+            comparison: {
+              note:
+                "5e wizards juggle spell slots and concentration checks, whereas 4e wizards rotate encounter powers and save-ends control; bridging editions often means translating key encounter powers into once-per-short-rest options with baked-in riders.",
+              link: {
+                label: "Wizard Class (5e Basic Rules)",
+                url: "https://www.dndbeyond.com/sources/basic-rules/classes#Wizard"
+              }
+            },
+            subclasses: [
+              {
+                name: "Orb of Imposition",
+                spotlight:
+                  "Control-focused build that deepens save-ends effects through orb implement mastery.",
+                features: [
+                  "Once per encounter you extend or intensify a save-ends condition, keeping solos locked down",
+                  "Synergizes with powers like Sleep and Maze of Mirrors to stack hefty attack penalties"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook (4e)",
+                    url: "https://www.dmsguild.com/product/125228/Players-Handbook-4e"
+                  },
+                  {
+                    label: "Arcane Power",
+                    url: "https://www.dmsguild.com/product/125236/Arcane-Power"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Later-edition controllers depend on concentration or limited spell-save DC boosts; Orb wizards stack recurring penalties, so conversions often borrow 2024 Sustained Spell previews or homebrew exhaustion riders to emulate that inevitability.",
+                  link: {
+                    label: "2024 Wizard Preview",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-7/wizard"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Ranger",
+            role: "Martial Striker & mobile hunter",
+            primaryAbility: "Dexterity or Strength",
+            hitDie: "HP: 12 + Con score; +5 per level",
+            summary:
+              "Lean on the martial power source for high-accuracy skirmishes, stacking Hunter's Quarry damage while darting around the map.",
+            signatureFeatures: [
+              "Hunter's Quarry adds d6 precision damage once per round against a focused target",
+              "Fighting Style features bake in two-weapon or archery bonuses to at-will exploits",
+              "Utility powers grant shifting, stealth edges, and terrain traversal to keep you elusive"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (4e)",
+                url: "https://www.dmsguild.com/product/125228/Players-Handbook-4e"
+              },
+              {
+                label: "Martial Power 2",
+                url: "https://www.dmsguild.com/product/125241/Martial-Power-2"
+              }
+            ],
+            comparison: {
+              note:
+                "5e rangers regained reliable damage through Tasha's optional features, but 4e assumes guaranteed quarry dice each round; when updating forward, many DMs graft Favored Foe (Tasha's) or Hunter's Mark at-will usage to sustain that striker cadence.",
+              link: {
+                label: "Ranger Class (5e Basic Rules)",
+                url: "https://www.dndbeyond.com/sources/basic-rules/classes#Ranger"
+              }
+            },
+            subclasses: [
+              {
+                name: "Beastmaster",
+                spotlight:
+                  "Companion-focused build that commands an animal ally alongside your own skirmisher attacks.",
+                features: [
+                  "Shared standard actions let the beast strike whenever you do, keeping striker DPR high without sacrificing your turn",
+                  "Companion choices (wolf, raptor, bear, panther) add flanking, flight, or knockdown utility keyed to role"
+                ],
+                sources: [
+                  {
+                    label: "Martial Power",
+                    url: "https://www.dmsguild.com/product/125235/Martial-Power"
+                  },
+                  {
+                    label: "Martial Power 2",
+                    url: "https://www.dmsguild.com/product/125241/Martial-Power-2"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "5e's original Beast Master split actions awkwardly until Tasha's overhaul; the 4e Beastmaster always shares attacks with its companion, so modern adaptations lean on Primal Companion rules or custom bonus-action riders to mimic that responsiveness.",
+                  link: {
+                    label: "Beast Master (Tasha's Cauldron)",
+                    url: "https://www.dndbeyond.com/sources/tcoe/subclasses-ranger#BeastMasterConclave"
+                  }
+                }
+              }
+            ]
+          }
+        ],
         "2e": [
           {
             name: "Cleric",
