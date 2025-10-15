@@ -122,6 +122,84 @@ export default [
     ]
   },
   {
+    theme: "Bastion Projects",
+    description: "Sequence upgrades, projects, and staffing from the UA/2024 bastion rules.",
+    prompts: [
+      {
+        label: "Tier 2 upgrade cadence",
+        prompt: "Outline a tier 2 bastion schedule that spends 50 BP per bastion turn on Patrol Routes, Supply Drops, and Guest Wing refurbishments from UA Playtest 6."
+      },
+      {
+        label: "Crisis response planning",
+        prompt: "Draft a bastion event response guide that uses Command Center rerolls and Barracks countermeasures per 2024 Dungeon Master's Guide previews."
+      },
+      {
+        label: "Heroic statue dedication",
+        prompt: "Detail the benefits of completing the Hall of Heroes project, including monument ceremonies and morale boons tied to bastion tier unlocks."
+      },
+      {
+        label: "Retainer rotation brief",
+        prompt: "Design a week-by-week roster that leverages Chapel invocations and Workshop schematics to refresh retainers between bastion turns."
+      },
+      {
+        label: "Seasonal upkeep tracker",
+        prompt: "Produce an upkeep ledger that tracks BP income, facility upkeep, and reagents gained from bastion harvest projects every other turn."
+      }
+    ]
+  },
+  {
+    theme: "Weapon Mastery Spotlights",
+    description: "Showcase the 2024 Player's Handbook mastery tags in memorable encounters.",
+    prompts: [
+      {
+        label: "Flex masterclass",
+        prompt: "Build a duel where enemy champions exploit the Flex mastery tag to threaten crit fishing while PCs counter with Disarm tactics."
+      },
+      {
+        label: "Sap and Slow combo",
+        prompt: "Stage an urban ambush that highlights Sap and Slow mastery interplay, including saving throw riders from the 2024 fighter chassis."
+      },
+      {
+        label: "Nick skirmish puzzle",
+        prompt: "Devise a multi-level battlefield where rogues swap weapons to trigger Nick and Topple mastery triggers in alternating rounds."
+      },
+      {
+        label: "Push the siege",
+        prompt: "Create a keep assault where Push mastery and Siege Weapon rules from 5e/2024 combine to shift defenders off ramparts."
+      },
+      {
+        label: "Cleave-lair synergy",
+        prompt: "Explain how a dragon's lair actions can escalate when PCs leverage Cleave mastery alongside spell slot nova rounds."
+      }
+    ]
+  },
+  {
+    theme: "Cross-Edition Skill Challenges",
+    description: "Blend 4e-style progress tracks with modern ability check guidance.",
+    prompts: [
+      {
+        label: "Rescue countdown",
+        prompt: "Run a tier 3 rescue skill challenge using a 4e-style success track with 5e/2024 tool proficiencies for alternate approaches."
+      },
+      {
+        label: "Hex crawl hazards",
+        prompt: "Design a wilderness skill montage that mixes 4e primary/secondary skill definitions with 2024 exploration activity bonuses."
+      },
+      {
+        label: "Social intrigue ladder",
+        prompt: "Map a faction negotiation that uses 4e complexity ratings while rewarding Bastion Favor expenditures as automatic successes."
+      },
+      {
+        label: "Planar skill relay",
+        prompt: "Combine 3.5e skill synergy bonuses with 2024 DC tables to adjudicate a multi-portal chase through Sigil."
+      },
+      {
+        label: "Downtime project audit",
+        prompt: "Explain how to track progress on a massive crafting effort using 4e extended checks alongside 2024 downtime complication tables."
+      }
+    ]
+  },
+  {
     theme: "Session Zero & Safety",
     description: "Align expectations, boundaries, and collaborative worldbuilding tools.",
     prompts: [
