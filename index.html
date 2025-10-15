@@ -6871,6 +6871,16 @@ Stay family friendly and inclusive.`
       };
 
       let engine;
+      let engineInitFailed = false;
+
+      const reportEngineFailure = (statusText, logText) => {
+        updateStatus(statusText);
+        sendBtn.disabled = true;
+        if (!engineInitFailed && logText) {
+          appendMessage("assistant", logText);
+        }
+        engineInitFailed = true;
+      };
 
       async function setupWebLLM() {
         if (!logEl || !promptEl || !sendBtn || !statusEl) {
@@ -6878,9 +6888,11 @@ Stay family friendly and inclusive.`
         }
 
         if (!("gpu" in navigator)) {
-          updateStatus("WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.");
-          sendBtn.disabled = true;
-          return;
+          reportEngineFailure(
+            "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
+            "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
+          );
+          throw new Error("WebGPU unavailable");
         }
 
         updateStatus("Initializing engine…");
@@ -6890,9 +6902,11 @@ Stay family friendly and inclusive.`
           webllm = await import("https://esm.run/@mlc-ai/web-llm");
         } catch (error) {
           console.error(error);
-          updateStatus("Failed to download the WebLLM runtime. Check your connection and refresh.");
-          sendBtn.disabled = true;
-          return;
+          reportEngineFailure(
+            "Failed to download the WebLLM runtime. Check your connection and refresh.",
+            "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again."
+          );
+          throw new Error("Failed to download WebLLM runtime");
         }
 
         const models = webllm.prebuiltAppConfig.model_list;
@@ -6909,15 +6923,23 @@ Stay family friendly and inclusive.`
           sendBtn.disabled = false;
         } catch (err) {
           console.error(err);
-          updateStatus("Failed to load WebLLM. Refresh and ensure WebGPU is enabled.");
-          sendBtn.disabled = true;
+          reportEngineFailure(
+            "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.",
+            "I couldn't initialize the model. Please refresh after confirming WebGPU is enabled, then I'll be ready to help."
+          );
+          throw new Error("Failed to initialize WebLLM");
         }
       }
 
       async function streamReply(messages, opts = {}) {
         if (!engine) {
-          appendMessage("assistant", "The DM brain isn't ready yet. Please wait for the engine to finish loading.");
-          return "";
+          if (!engineInitFailed) {
+            appendMessage("assistant", "The DM brain isn't ready yet. Please wait for the engine to finish loading.");
+          }
+          const error = new Error(engineInitFailed ? "engine-init-failed" : "engine-not-ready");
+          error.name = "WebLLMUnavailableError";
+          error.code = engineInitFailed ? "engine-init-failed" : "engine-not-ready";
+          throw error;
         }
 
         const chunks = await engine.chat.completions.create({
@@ -6963,8 +6985,14 @@ Stay family friendly and inclusive.`
           updateStatus("Ready", "ready");
         } catch (error) {
           console.error(error);
-          appendMessage("assistant", "I ran into an error generating that response. Please try again.");
-          updateStatus("Encountered an error");
+          if (error?.code === "engine-not-ready") {
+            updateStatus("Initializing engine…");
+          } else if (error?.code === "engine-init-failed") {
+            updateStatus("Engine failed to start");
+          } else {
+            appendMessage("assistant", "I ran into an error generating that response. Please try again.");
+            updateStatus("Encountered an error");
+          }
         } finally {
           sendBtn.disabled = !engine;
         }
@@ -6978,7 +7006,9 @@ Stay family friendly and inclusive.`
         }
       });
 
-      setupWebLLM();
+      setupWebLLM().catch(err => {
+        console.error("WebLLM setup failed", err);
+      });
 
     </script>
   </body>
