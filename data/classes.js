@@ -24,10 +24,10 @@ export default {
             ],
             comparison: {
               note:
-                "The One D&D 2024 Barbarian keeps Rage scaling but folds weapon mastery options directly into class progression, tightening the gap between primal and martial kits.",
+                "Compared to 3.5e barbarians who tracked daily rage uses and risked post-battle fatigue, 5e refreshes Rage on long rests and drops the exhaustion crash so you can unleash fury more often.",
               link: {
-                label: "Playtest 8 Barbarian",
-                url: "https://www.dndbeyond.com/sources/ua/ph-playtest-8/barbarian"
+                label: "3.5e Barbarian (SRD)",
+                url: "https://www.d20srd.org/srd/classes/barbarian.htm"
               }
             },
             subclasses: [
@@ -70,10 +70,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "Shares the chaos niche with the 2024 Path of the World Tree but keeps surges swingier, so tables wanting steadier reliability might prefer the newer design.",
+                    "Calls back to AD&D wild surge tables and 3.5e wild mage antics, but houses the chaos inside a martial chassis rather than a full spellcaster.",
                   link: {
-                    label: "World Tree Barbarian Preview",
-                    url: "https://www.dndbeyond.com/posts/1560-barbarian-class-features-in-one-dnd"
+                    label: "Complete Arcane Wild Mage (3.5e)",
+                    url: "https://www.dndbeyond.com/posts/1185-wild-magic-through-the-editions"
                   }
                 }
               }
@@ -126,10 +126,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "One D&D retools the ward to scale with proficiency, so legacy 5e abjurers may feel swingier but reward heavy spell-slot investment.",
+                    "AD&D abjurers specialized by giving up other schools; 5e lets you keep broad spell access while gaining the Arcane Ward durability package.",
                   link: {
-                    label: "2024 Wizard Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-7/wizard"
+                    label: "AD&D Specialist Wizard",
+                    url: "https://www.dmsguild.com/product/17529/The-Complete-Wizard-Handbook-2e"
                   }
                 }
               },
@@ -182,10 +182,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Bard shifts inspiration to attack rolls only, leaning into reaction-based support while 5e's version spreads buffs across more checks.",
+                "3.5e bards juggled daily music uses and incremental song bonuses, while 5e bards lean on short-rest inspiration dice and broader spell access for flexible support.",
               link: {
-                label: "One D&D Bard Preview",
-                url: "https://www.dndbeyond.com/posts/1500-bard-class-features-in-one-dnd"
+                label: "3.5e Bard Overview",
+                url: "https://www.d20srd.org/srd/classes/bard.htm"
               }
             },
             subclasses: [
@@ -228,10 +228,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "2024 Valor bards fold weapon masteries into subclass features, whereas 5e relies on allies to exploit inspiration dice offensively.",
+                    "4e skald bards filled a similar melee-support niche, but 5e's Valor bards keep spell versatility while adding Extra Attack to stay in the fray.",
                   link: {
-                    label: "2024 Bard Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/expert"
+                    label: "4e Bard (Skald)",
+                    url: "https://www.dmsguild.com/product/125230/Players-Handbook-2-4e"
                   }
                 }
               }
@@ -261,10 +261,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Cleric pushes subclass access to 3rd level and unifies Channel Divinity, while 5e's version delivers domain identity at level 1.",
+                "Compared to 3.5e clerics juggling multiple domain spell slots and turn undead for divine feats, 5e offers fewer daily prep decisions but quicker access to Channel Divinity options.",
               link: {
-                label: "One D&D Cleric Update",
-                url: "https://www.dndbeyond.com/posts/1464-cleric-class-features-in-one-dnd"
+                label: "3.5e Cleric (SRD)",
+                url: "https://www.d20srd.org/srd/classes/cleric.htm"
               }
             },
             subclasses: [
@@ -307,10 +307,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "The One D&D Light domain folds Faerie Fire equivalents into Channel Divinity, while 5e keeps them as bonus spells for broader utility.",
+                    "4e invokers and clerics leaned on radiant blasts too, but 5e's Light domain retains classic bonus spells and Warding Flare for a more reactive defense toolkit.",
                   link: {
-                    label: "2024 Cleric Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-1/cleric"
+                    label: "4e Invoker Preview",
+                    url: "https://www.dmsguild.com/product/125230/Players-Handbook-2-4e"
                   }
                 }
               }
@@ -340,10 +340,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Druid streamlines Wild Shape templates, whereas 5e relies on beast statblocks for granular customization.",
+                "3.5e druids also drew from beast stat blocks but layered templates and feats; 5e pares that back, keeping forms accessible while still rewarding Moon Circle investment.",
               link: {
-                label: "One D&D Druid Preview",
-                url: "https://www.dndbeyond.com/posts/1536-druid-class-features-in-one-dnd"
+                label: "3.5e Druid Overview",
+                url: "https://www.d20srd.org/srd/classes/druid.htm"
               }
             },
             subclasses: [
@@ -363,10 +363,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "2024 Moon druids adopt fixed stat blocks to curb tankiness, so 5e variants can still abuse high-CR beast defenses.",
+                    "3.5e wild shape stacking with prestige classes like Master of Many Forms let druids overshadow martials; 5e's Moon druids keep power high but within bounded accuracy.",
                   link: {
-                    label: "2024 Druid Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/priest"
+                    label: "Master of Many Forms (3.5e)",
+                    url: "https://www.d20srd.org/srd/prestigeClasses/masterOfManyForms.htm"
                   }
                 }
               },
@@ -419,10 +419,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Fighter bakes weapon masteries into the base chassis, while 5e leans on subclasses and feats for control riders.",
+                "4e fighters used marks and encounter powers to force positioning; 5e keeps things lighter, letting subclasses and feats layer control onto a straightforward action-surge chassis.",
               link: {
-                label: "One D&D Warrior Playtest",
-                url: "https://www.dndbeyond.com/sources/ua/ph-playtest-6/warrior"
+                label: "4e Fighter Overview",
+                url: "https://www.dmsguild.com/product/125149/Players-Handbook-4e"
               }
             },
             subclasses: [
@@ -442,10 +442,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "The 2024 Champion adds exploit dice for extra control, whereas 5e keeps its simplicity ideal for new players.",
+                    "3.5e weapon masters chased crit range stacking too, but 5e's Champion keeps the play pattern streamlined without juggling feat chains.",
                   link: {
-                    label: "2024 Fighter Preview",
-                    url: "https://www.dndbeyond.com/posts/1561-fighter-class-features-in-one-dnd"
+                    label: "3.5e Weapon Master",
+                    url: "https://www.dmsguild.com/product/23731/Dungeon-Masters-Guide-v35"
                   }
                 }
               },
@@ -498,10 +498,10 @@ export default {
             ],
             comparison: {
               note:
-                "One D&D's monk boosts weapon damage and ki regeneration, while 5e's version rewards finesse with precise ki budgeting.",
+                "3.5e monks wrestled with multi-ability dependence and flurry penalties; 5e smooths the math with proficiency scaling and ki-fueled bonus actions.",
               link: {
-                label: "One D&D Monk Preview",
-                url: "https://www.dndbeyond.com/posts/1562-monk-class-features-in-one-dnd"
+                label: "3.5e Monk (SRD)",
+                url: "https://www.d20srd.org/srd/classes/monk.htm"
               }
             },
             subclasses: [
@@ -577,10 +577,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Paladin shifts smite to weapon attack triggers only, while 5e allows critical nova combos with smite-on-hit flexibility.",
+                "Compared to 3.5e paladins who burned spell slots for smite attempts a few times per day, 5e paladins convert any spell slot into radiant burst damage on demand.",
               link: {
-                label: "One D&D Paladin Preview",
-                url: "https://www.dndbeyond.com/posts/1559-paladin-class-features-in-one-dnd"
+                label: "3.5e Paladin (SRD)",
+                url: "https://www.d20srd.org/srd/classes/paladin.htm"
               }
             },
             subclasses: [
@@ -623,10 +623,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "2024 Vengeance paladins gain weapon mastery synergies, while 5e's build relies on polearm and sentinel feats for lockdown.",
+                    "3.5e avengers and paladins leaned on swift smite feats; 5e's Vengeance oath captures that relentless hunter vibe with Vow of Enmity and mobility tricks.",
                   link: {
-                    label: "2024 Paladin Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/priest"
+                    label: "3.5e Complete Champion",
+                    url: "https://www.dmsguild.com/product/19834/Complete-Champion"
                   }
                 }
               }
@@ -656,10 +656,10 @@ export default {
             ],
             comparison: {
               note:
-                "The One D&D Ranger solidifies expertise and weapon masteries, while 5e's original chassis often leans on optional class feature variants to keep pace.",
+                "3.5e rangers juggled favored enemy bonuses and two-weapon feat chains; 5e trims the bookkeeping and front-loads exploration perks with optional features from Tasha's.",
               link: {
-                label: "One D&D Ranger Preview",
-                url: "https://www.dndbeyond.com/posts/1537-ranger-class-features-in-one-dnd"
+                label: "3.5e Ranger Overview",
+                url: "https://www.d20srd.org/srd/classes/ranger.htm"
               }
             },
             subclasses: [
@@ -702,7 +702,7 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "2024 Beast Masters inherit Primal Companion templates that streamline stats; 5e's default relies on beast stat blocks and DM leniency.",
+                    "Tasha's Cauldron of Everything already offered Primal Companion updates, so 5e Beast Masters can emulate the smoother pet rules without waiting for later editions.",
                   link: {
                     label: "Tasha's Ranger Optional Features",
                     url: "https://www.dndbeyond.com/sources/tcoe/ranger"
@@ -735,10 +735,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Rogue grants weapon mastery and steady aim baked in, while 5e relies on cunning action and party coordination for advantage.",
+                "AD&D thieves wrestled with percentile skills and backstab positioning; 5e rogues simplify stealth with proficiency scaling and Sneak Attack once per turn.",
               link: {
-                label: "One D&D Rogue Preview",
-                url: "https://www.dndbeyond.com/posts/1501-rogue-class-features-in-one-dnd"
+                label: "AD&D Thief Skills",
+                url: "https://www.dmsguild.com/product/17065/ADnD-Players-Handbook-2e"
               }
             },
             subclasses: [
@@ -814,10 +814,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Sorcerer expands spell known totals and rebalances metamagic costs, while 5e's iteration rewards tight spell selection and sorcery point management.",
+                "3.5e sorcerers learned fewer spells than wizards but cast more often; 5e keeps spontaneous casting while giving metamagic knobs to customize each slot.",
               link: {
-                label: "One D&D Sorcerer Preview",
-                url: "https://www.dndbeyond.com/posts/1538-sorcerer-class-features-in-one-dnd"
+                label: "3.5e Sorcerer (SRD)",
+                url: "https://www.d20srd.org/srd/classes/sorcerer.htm"
               }
             },
             subclasses: [
@@ -860,10 +860,10 @@ export default {
                 ],
                 comparison: {
                   note:
-                    "The 2024 Wild Magic sorcerer gets curated surge lists, while 5e revels in swingy outcomes that can reshape encounters.",
+                    "AD&D wild mages inspired the same chaotic table; 5e keeps the surges unpredictable, rewarding tables that enjoy dramatic swings.",
                   link: {
-                    label: "2024 Sorcerer Playtest",
-                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-7/sorcerer"
+                    label: "AD&D Wild Mage",
+                    url: "https://www.dmsguild.com/product/17529/The-Complete-Wizard-Handbook-2e"
                   }
                 }
               }
@@ -893,10 +893,10 @@ export default {
             ],
             comparison: {
               note:
-                "The 2024 Warlock regains half-caster spell slot scaling, while 5e's version relies on high-level Mystic Arcanum and Agonizing Blast combos.",
+                "3.5e warlocks introduced at-will eldritch blast, but 5e refines the pact magic cadence with short-rest slots and customizable invocations.",
               link: {
-                label: "One D&D Warlock Preview",
-                url: "https://www.dndbeyond.com/posts/1539-warlock-class-features-in-one-dnd"
+                label: "3.5e Warlock (Complete Arcane)",
+                url: "https://www.dmsguild.com/product/28938/Complete-Arcane-35"
               }
             },
             subclasses: [
@@ -947,9 +947,96 @@ export default {
                 }
               }
             ]
+          },
+          {
+            name: "Artificer",
+            role: "Arcane inventor & support engineer",
+            primaryAbility: "Intelligence",
+            hitDie: "d8",
+            summary:
+              "Engineer arcane gadgets, infuse allies' gear, and blend spells with expertise to solve any problem.",
+            signatureFeatures: [
+              "Infuse Item turns mundane gear into temporary magic for your team",
+              "Tool Expertise doubles proficiency with artisan's tools for superior crafting checks",
+              "Prepared half-caster spellcasting fueled by Intelligence and unique cantrips"
+            ],
+            sources: [
+              {
+                label: "Eberron: Rising from the Last War",
+                url: "https://dnd.wizards.com/products/eberron-rising-last-war"
+              },
+              {
+                label: "Systems Reference Document 5.1 (Artificer)",
+                url: "https://media.wizards.com/2023/downloads/dnd/SRD_CC_v5.1.pdf"
+              }
+            ],
+            comparison: {
+              note:
+                "3.5e artificers paid XP to craft permanent items; 5e trades that bookkeeping for reusable infusions and a half-caster spell list.",
+              link: {
+                label: "Eberron Campaign Setting (3.5e)",
+                url: "https://www.dmsguild.com/product/28489/Eberron-Campaign-Setting-3e"
+              }
+            },
+            subclasses: [
+              {
+                name: "Alchemist",
+                spotlight:
+                  "Potion-slinging support who brews elixirs and battlefield acids to aid allies.",
+                features: [
+                  "Experimental Elixirs grant daily buffs ranging from healing to flight",
+                  "Alchemical Savant boosts healing and damage from spells that rely on your crafted reagents"
+                ],
+                sources: [
+                  {
+                    label: "Eberron: Rising from the Last War",
+                    url: "https://dnd.wizards.com/products/eberron-rising-last-war"
+                  },
+                  {
+                    label: "Tasha's Cauldron of Everything",
+                    url: "https://dnd.wizards.com/products/tashas-cauldron-everything"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Unearthed Arcana versions relied on random elixir tables; the finalized Alchemist offers guaranteed formulas so support players can plan ahead.",
+                  link: {
+                    label: "Unearthed Arcana: Artificer (2019)",
+                    url: "https://media.wizards.com/2019/dnd/downloads/UA-Artificer.pdf"
+                  }
+                }
+              },
+              {
+                name: "Battle Smith",
+                spotlight:
+                  "Field commander fighting beside a Steel Defender while empowering weapon attacks.",
+                features: [
+                  "Steel Defender acts as a construct companion that obeys your bonus action commands",
+                  "Arcane Jolt lets you heal allies or add force damage whenever you land weapon strikes"
+                ],
+                sources: [
+                  {
+                    label: "Eberron: Rising from the Last War",
+                    url: "https://dnd.wizards.com/products/eberron-rising-last-war"
+                  },
+                  {
+                    label: "Tasha's Cauldron of Everything",
+                    url: "https://dnd.wizards.com/products/tashas-cauldron-everything"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "4e artificers empowered allies with infusions and constructs; 5e's Battle Smith keeps that vibe with a persistent defender instead of daily healing infusions.",
+                  link: {
+                    label: "Eberron Player's Guide (4e)",
+                    url: "https://www.dmsguild.com/product/124484/Eberron-Players-Guide-4e"
+                  }
+                }
+              }
+            ]
           }
         ],
-        onednd: [
+        "2024": [
           {
             name: "Barbarian",
             role: "Weapon mastery bruiser",
