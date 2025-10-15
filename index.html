@@ -1909,6 +1909,11 @@
           <select id="spell-edition-filter" aria-label="Filter spell edition">
             <option value="all">All editions</option>
           </select>
+          <select id="spell-ritual-filter" aria-label="Filter ritual casting">
+            <option value="all">All casting modes</option>
+            <option value="ritual">Rituals only</option>
+            <option value="non">Exclude rituals</option>
+          </select>
         </div>
         <div id="spells-list" style="margin-top: 1rem; display: grid; gap: 0.75rem;"></div>
       </section>
@@ -2249,6 +2254,7 @@
       const spellSchoolSelect = document.getElementById("spell-school-filter");
       const spellClassSelect = document.getElementById("spell-class-filter");
       const spellEditionSelect = document.getElementById("spell-edition-filter");
+      const spellRitualSelect = document.getElementById("spell-ritual-filter");
       const spellsList = document.getElementById("spells-list");
 
       const conditionQuery = document.getElementById("condition-query");
@@ -4410,7 +4416,28 @@
         showLoadingIndicator(spellsList, "Loading spells…");
 
         try {
-          const spells = await loadData("spells");
+          const rawSpells = await loadData("spells");
+          const spells = rawSpells.map(spell => {
+            const combinedTags = Array.from(
+              new Set([
+                ...(spell.tags || []),
+                ...(spell.keywords || []),
+                ...(spell.sourceTags || []),
+                spell.ritual ? "Ritual" : null
+              ].filter(Boolean))
+            );
+
+            return {
+              ...spell,
+              componentsText: spell.componentsText ?? spell.components ?? "—",
+              save: spell.save ?? spell.savingThrow ?? "",
+              source: spell.source ?? "",
+              edition: spell.edition ?? "Unspecified",
+              classes: Array.isArray(spell.classes) ? spell.classes : [],
+              ritual: spell.ritual === true,
+              tags: combinedTags
+            };
+          });
           const formatSpellLevel = (level) => (Number(level) === 0 ? "Cantrip" : `Level ${level}`);
 
           if (spellLevelSelect) {
@@ -4459,19 +4486,32 @@
             const schoolFilter = spellSchoolSelect?.value ?? "all";
             const classFilter = spellClassSelect?.value ?? "all";
             const editionFilter = spellEditionSelect?.value ?? "all";
+            const ritualFilter = spellRitualSelect?.value ?? "all";
 
             spellsList.innerHTML = "";
             const results = spells.filter(spell => {
               const matchesQuery =
                 !query ||
-                [spell.name, spell.summary, spell.componentsText, ...(spell.tags || [])]
+                [
+                  spell.name,
+                  spell.summary,
+                  spell.componentsText,
+                  spell.source,
+                  spell.edition,
+                  spell.classes?.join(", "),
+                  ...(spell.tags || [])
+                ]
                   .filter(Boolean)
                   .some(field => field.toLowerCase().includes(query));
               const matchesLevel = levelFilter === "all" || String(spell.level) === levelFilter;
               const matchesSchool = schoolFilter === "all" || spell.school === schoolFilter;
               const matchesClass = classFilter === "all" || (spell.classes || []).includes(classFilter);
               const matchesEdition = editionFilter === "all" || spell.edition === editionFilter;
-              return matchesQuery && matchesLevel && matchesSchool && matchesClass && matchesEdition;
+              const matchesRitual =
+                ritualFilter === "all"
+                || (ritualFilter === "ritual" && spell.ritual)
+                || (ritualFilter === "non" && !spell.ritual);
+              return matchesQuery && matchesLevel && matchesSchool && matchesClass && matchesEdition && matchesRitual;
             });
 
             if (!results.length) {
@@ -4515,6 +4555,7 @@
           spellSchoolSelect?.addEventListener("change", renderSpells);
           spellClassSelect?.addEventListener("change", renderSpells);
           spellEditionSelect?.addEventListener("change", renderSpells);
+          spellRitualSelect?.addEventListener("change", renderSpells);
 
           renderSpells();
         } catch (error) {
