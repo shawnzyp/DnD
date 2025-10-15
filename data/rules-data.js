@@ -60,7 +60,7 @@ export default [
           ]
         },
         {
-          editionKey: "onednd",
+          editionKey: "2024",
           edition: "One D&D / 2024 Core Rules",
           tagline: "Upcoming refresh with revised classes, species terminology, and weapon masteries.",
           released: "Player's Handbook 2024 · Dungeon Master's Guide 2024 · Monster Manual 2025",
