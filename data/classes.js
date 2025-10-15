@@ -157,6 +157,796 @@ export default {
                 }
               }
             ]
+          },
+          {
+            name: "Bard",
+            role: "Support caster & skill maestro",
+            primaryAbility: "Charisma",
+            hitDie: "d8",
+            summary:
+              "Inspire allies, weave enchantments, and flex into any role with magical secrets and expansive expertise.",
+            signatureFeatures: [
+              "Bardic Inspiration fuels clutch saves and attacks as a reaction",
+              "Jack of All Trades boosts nearly every ability check",
+              "Magical Secrets poach spells from any list for ultimate flexibility"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Bard",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Bard"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Bard shifts inspiration to attack rolls only, leaning into reaction-based support while 5e's version spreads buffs across more checks.",
+              link: {
+                label: "One D&D Bard Preview",
+                url: "https://www.dndbeyond.com/posts/1500-bard-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "College of Lore",
+                spotlight:
+                  "Blend battlefield control and social dominance with cutting words and early magical secrets.",
+                features: [
+                  "Cutting Words subtracts from enemy rolls as a reaction, echoing 4e leader debuffs",
+                  "Additional Magical Secrets at 6th level accelerate access to off-list spells"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to AD&D bards who required multiclass hoops, Lore bards front-load skills and magic from a single progression.",
+                  link: {
+                    label: "AD&D Bard Overview",
+                    url: "https://www.dmsguild.com/product/17065/ADnD-Players-Handbook-2e"
+                  }
+                }
+              },
+              {
+                name: "College of Valor",
+                spotlight:
+                  "March into melee with extra attack, battle magic, and team-wide weapon competence.",
+                features: [
+                  "Combat Inspiration empowers allies with damage boosts and AC reactions",
+                  "Extra Attack at 6th level parallels 4e skald bard striker hybrids"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "2024 Valor bards fold weapon masteries into subclass features, whereas 5e relies on allies to exploit inspiration dice offensively.",
+                  link: {
+                    label: "2024 Bard Playtest",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/expert"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Cleric",
+            role: "Divine healer & adaptable spellcaster",
+            primaryAbility: "Wisdom",
+            hitDie: "d8",
+            summary:
+              "Channel divine power to heal, ward, and smite with domain-flavored miracles tailored to your deity.",
+            signatureFeatures: [
+              "Channel Divinity offers scaling burst healing, damage, or utility",
+              "Prepared spell list flexes daily prayers to fit the adventure",
+              "Divine Intervention delivers dramatic deus ex machina moments at higher levels"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Cleric",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Cleric"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Cleric pushes subclass access to 3rd level and unifies Channel Divinity, while 5e's version delivers domain identity at level 1.",
+              link: {
+                label: "One D&D Cleric Update",
+                url: "https://www.dndbeyond.com/posts/1464-cleric-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Life Domain",
+                spotlight:
+                  "Maximize healing throughput and protect allies with divine vitality.",
+                features: [
+                  "Disciple of Life adds flat bonuses to every healing spell",
+                  "Blessed Healer splashes self-healing when you restore others"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to 3.5e healbots who spammed cure wands, Life clerics keep pace with damage curves via scaling dice and bonuses.",
+                  link: {
+                    label: "3.5 Cleric Overview",
+                    url: "https://www.d20srd.org/srd/classes/cleric.htm"
+                  }
+                }
+              },
+              {
+                name: "Light Domain",
+                spotlight:
+                  "Blast foes with radiant fire and illuminate shadows while shielding allies.",
+                features: [
+                  "Warding Flare imposes disadvantage like 4e defender marks",
+                  "Corona of Light at high levels supercharges radiant damage against big bads"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "The One D&D Light domain folds Faerie Fire equivalents into Channel Divinity, while 5e keeps them as bonus spells for broader utility.",
+                  link: {
+                    label: "2024 Cleric Playtest",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-1/cleric"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Druid",
+            role: "Nature spellcaster & shapeshifting controller",
+            primaryAbility: "Wisdom",
+            hitDie: "d8",
+            summary:
+              "Command primal magic, wild shape into beasts, and sustain allies with versatile elemental support.",
+            signatureFeatures: [
+              "Wild Shape transforms you into beasts for scouting, combat, or utility",
+              "Druidic spellcasting covers healing, control, and summoning",
+              "Timeless Body and Beast Spells keep you relevant into high tiers"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Druid",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Druid"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Druid streamlines Wild Shape templates, whereas 5e relies on beast statblocks for granular customization.",
+              link: {
+                label: "One D&D Druid Preview",
+                url: "https://www.dndbeyond.com/posts/1536-druid-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Circle of the Moon",
+                spotlight:
+                  "Dominate frontline combat via beefy beast forms and swift transformations.",
+                features: [
+                  "Combat Wild Shape lets you shift as a bonus action and spend spell slots for healing",
+                  "Elemental Wild Shape unlocks versatile forms reminiscent of 3.5e elemental wilding"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "2024 Moon druids adopt fixed stat blocks to curb tankiness, so 5e variants can still abuse high-CR beast defenses.",
+                  link: {
+                    label: "2024 Druid Playtest",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/priest"
+                  }
+                }
+              },
+              {
+                name: "Circle of the Land",
+                spotlight:
+                  "Specialize in regional spell themes and sustain spell slots with natural recovery.",
+                features: [
+                  "Natural Recovery mimics wizard Arcane Recovery for druid spell slots",
+                  "Land's Stride keeps you mobile through magical and natural hazards"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to AD&D druids bound by strict hierarchies, Land druids focus on spell variety over political advancement.",
+                  link: {
+                    label: "AD&D Druid Class",
+                    url: "https://www.dmsguild.com/product/17065/ADnD-Players-Handbook-2e"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Fighter",
+            role: "Martial striker & tactical generalist",
+            primaryAbility: "Strength or Dexterity",
+            hitDie: "d10",
+            summary:
+              "Master weapons and tactics with extra attacks, action surges, and feats that define the battlefield.",
+            signatureFeatures: [
+              "Fighting Style customizes defense, archery, or dueling specializations",
+              "Action Surge grants burst turns reminiscent of 4e encounter powers",
+              "Extra Attack scales faster than any other martial class"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Fighter",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Fighter"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Fighter bakes weapon masteries into the base chassis, while 5e leans on subclasses and feats for control riders.",
+              link: {
+                label: "One D&D Warrior Playtest",
+                url: "https://www.dndbeyond.com/sources/ua/ph-playtest-6/warrior"
+              }
+            },
+            subclasses: [
+              {
+                name: "Champion",
+                spotlight:
+                  "Critical-hit specialist with passive boosts perfect for straightforward martial play.",
+                features: [
+                  "Improved Critical doubles your crit range, echoing 3.5e's keen weapon stacking",
+                  "Remarkable Athlete fills in skill gaps for strength-based heroes"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "The 2024 Champion adds exploit dice for extra control, whereas 5e keeps its simplicity ideal for new players.",
+                  link: {
+                    label: "2024 Fighter Preview",
+                    url: "https://www.dndbeyond.com/posts/1561-fighter-class-features-in-one-dnd"
+                  }
+                }
+              },
+              {
+                name: "Battle Master",
+                spotlight:
+                  "Command superiority dice to control positioning, protect allies, and outmaneuver foes.",
+                features: [
+                  "Superiority dice fuel maneuvers for damage, control, and utility",
+                  "Know Your Enemy gleans intel similar to 4e tactical assessment features"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "3.5e fighters relied on feat chains; Battle Masters concentrate that complexity into a reusable maneuver economy.",
+                  link: {
+                    label: "3.5 Fighter Overview",
+                    url: "https://www.d20srd.org/srd/classes/fighter.htm"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Monk",
+            role: "Mobile striker & skirmisher",
+            primaryAbility: "Dexterity & Wisdom",
+            hitDie: "d8",
+            summary:
+              "Channel ki into rapid strikes, mobility, and defensive stances to dismantle foes up close.",
+            signatureFeatures: [
+              "Martial Arts enables bonus-action strikes scaling with level",
+              "Ki points fuel Flurry of Blows, Step of the Wind, and Patient Defense",
+              "Deflect Missiles and Evasion keep monks agile against ranged and area threats"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Monk",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Monk"
+              }
+            ],
+            comparison: {
+              note:
+                "One D&D's monk boosts weapon damage and ki regeneration, while 5e's version rewards finesse with precise ki budgeting.",
+              link: {
+                label: "One D&D Monk Preview",
+                url: "https://www.dndbeyond.com/posts/1562-monk-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Way of the Open Hand",
+                spotlight:
+                  "Knock foes down, shove them away, and disrupt ki to control the battlefield.",
+                features: [
+                  "Open Hand Technique adds rider effects to Flurry of Blows",
+                  "Quivering Palm delivers lethal finishing moves reminiscent of classic wuxia tales"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "AD&D monks shared stunning fists but lacked the control riders modern Open Hand techniques provide.",
+                  link: {
+                    label: "AD&D Monk Class",
+                    url: "https://www.dmsguild.com/product/17065/ADnD-Players-Handbook-2e"
+                  }
+                }
+              },
+              {
+                name: "Way of Shadow",
+                spotlight:
+                  "Blend stealth, teleportation, and ki-fueled illusions for ninja-style tactics.",
+                features: [
+                  "Shadow Step teleports between dim light areas like a short-range misty step",
+                  "Cloak of Shadows grants invisibility without concentration for infiltration"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to 4e's assassin hybrids, Way of Shadow keeps damage modest but multiplies utility via ki-powered spells.",
+                  link: {
+                    label: "4e Shadow Assassin",
+                    url: "https://www.dndbeyond.com/compendium/dnd4e/classes/assassin"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Paladin",
+            role: "Divine striker & frontline defender",
+            primaryAbility: "Strength & Charisma",
+            hitDie: "d10",
+            summary:
+              "Smite enemies with radiant bursts while protecting allies through auras and healing magic.",
+            signatureFeatures: [
+              "Divine Smite converts spell slots into radiant burst damage",
+              "Lay on Hands provides a versatile pool of healing and condition removal",
+              "Aura of Protection boosts party saving throws within your presence"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Paladin",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Paladin"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Paladin shifts smite to weapon attack triggers only, while 5e allows critical nova combos with smite-on-hit flexibility.",
+              link: {
+                label: "One D&D Paladin Preview",
+                url: "https://www.dndbeyond.com/posts/1559-paladin-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Oath of Devotion",
+                spotlight:
+                  "Classic holy knight with radiant weapons and protection against deception.",
+                features: [
+                  "Sacred Weapon adds Charisma to attack rolls and shines light like classic paladin blessings",
+                  "Aura of Devotion shields allies from charm effects reminiscent of 3.5e aura abilities"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to BECMI paladins limited by strict codes, Devotion offers broader spellcasting and oath spells for modern campaigns.",
+                  link: {
+                    label: "BECMI Paladin Overview",
+                    url: "https://www.drivethrurpg.com/product/17171/Basic-Dungeons--Dragons-Set-Rulebook-BECMI"
+                  }
+                }
+              },
+              {
+                name: "Oath of Vengeance",
+                spotlight:
+                  "Relentless hunter focused on single-target burst and pursuit.",
+                features: [
+                  "Vow of Enmity grants advantage against priority foes, mirroring 4e avenger mechanics",
+                  "Relentless Avenger extends opportunity attacks into forced movement for chase scenes"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "2024 Vengeance paladins gain weapon mastery synergies, while 5e's build relies on polearm and sentinel feats for lockdown.",
+                  link: {
+                    label: "2024 Paladin Playtest",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-5/priest"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Ranger",
+            role: "Martial scout & nature-themed striker",
+            primaryAbility: "Dexterity & Wisdom",
+            hitDie: "d10",
+            summary:
+              "Track prey, cast primal spells, and leverage favored terrain to control the wilds.",
+            signatureFeatures: [
+              "Favored Enemy and Natural Explorer tailor exploration benefits",
+              "Fighting Style and Hunter's Mark amplify weapon damage",
+              "Primeval Awareness and spellcasting provide utility scouting"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Ranger",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Ranger"
+              }
+            ],
+            comparison: {
+              note:
+                "The One D&D Ranger solidifies expertise and weapon masteries, while 5e's original chassis often leans on optional class feature variants to keep pace.",
+              link: {
+                label: "One D&D Ranger Preview",
+                url: "https://www.dndbeyond.com/posts/1537-ranger-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Hunter",
+                spotlight:
+                  "Customizable predator that picks defensive or offensive tactics to match threats.",
+                features: [
+                  "Hunter's Prey choices provide burst damage or control riders",
+                  "Multiattack Defense scales survivability in drawn-out fights"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "3.5e rangers relied on combat style feat chains; Hunter condenses options into level-based choices for streamlined prep.",
+                  link: {
+                    label: "3.5 Ranger Overview",
+                    url: "https://www.d20srd.org/srd/classes/ranger.htm"
+                  }
+                }
+              },
+              {
+                name: "Beast Master",
+                spotlight:
+                  "Fight alongside a loyal animal companion with coordinated strikes and shared defenses.",
+                features: [
+                  "Ranger's Companion fights independently as you level, especially with Tasha's optional rules",
+                  "Bestial Fury adds extra attacks and mobility to your team"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "2024 Beast Masters inherit Primal Companion templates that streamline stats; 5e's default relies on beast stat blocks and DM leniency.",
+                  link: {
+                    label: "Tasha's Ranger Optional Features",
+                    url: "https://www.dndbeyond.com/sources/tcoe/ranger"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Rogue",
+            role: "Stealth striker & skill specialist",
+            primaryAbility: "Dexterity",
+            hitDie: "d8",
+            summary:
+              "Sneak past danger, deliver precision damage, and solve problems with a deep skill toolkit.",
+            signatureFeatures: [
+              "Sneak Attack adds scaling burst damage once per turn",
+              "Cunning Action fuels bonus-action mobility and utility",
+              "Evasion and Uncanny Dodge mitigate incoming damage"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Rogue",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Rogue"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Rogue grants weapon mastery and steady aim baked in, while 5e relies on cunning action and party coordination for advantage.",
+              link: {
+                label: "One D&D Rogue Preview",
+                url: "https://www.dndbeyond.com/posts/1501-rogue-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Thief",
+                spotlight:
+                  "Master of infiltration and item manipulation with unparalleled mobility.",
+                features: [
+                  "Fast Hands expands bonus-action utility for traps and items",
+                  "Second-Story Work boosts climbing and jumping like classic AD&D burglars"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to B/X thieves tied to percentile skills, 5e Thieves leverage proficiency bonuses and Cunning Action for broader competence.",
+                  link: {
+                    label: "B/X Thief Overview",
+                    url: "https://basicfantasy.org/downloads.html"
+                  }
+                }
+              },
+              {
+                name: "Assassin",
+                spotlight:
+                  "Strike from surprise with devastating alpha damage and social infiltration tools.",
+                features: [
+                  "Assassinate grants advantage and auto-crit against surprised foes",
+                  "Infiltration Expertise builds custom identities for long cons"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "3.5e assassins were prestige classes; 5e folds the killer fantasy into a level 3 subclass without alignment restrictions.",
+                  link: {
+                    label: "3.5 Assassin Prestige Class",
+                    url: "https://www.d20srd.org/srd/prestigeClasses/assassin.htm"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Sorcerer",
+            role: "Innate arcane blaster",
+            primaryAbility: "Charisma",
+            hitDie: "d6",
+            summary:
+              "Harness innate magic with metamagic customization and spontaneous spellcasting.",
+            signatureFeatures: [
+              "Flexible casting trades spell slots for sorcery points and vice versa",
+              "Metamagic tweaks spell range, duration, and damage",
+              "Font of Magic scales sorcery point pool to power signature combos"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Sorcerer",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Sorcerer"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Sorcerer expands spell known totals and rebalances metamagic costs, while 5e's iteration rewards tight spell selection and sorcery point management.",
+              link: {
+                label: "One D&D Sorcerer Preview",
+                url: "https://www.dndbeyond.com/posts/1538-sorcerer-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "Draconic Bloodline",
+                spotlight:
+                  "Manifest draconic resilience and elemental damage matching your wyrm ancestor.",
+                features: [
+                  "Draconic Resilience boosts AC and HP like inherited scales",
+                  "Elemental Affinity adds Charisma to damage and empowers spell resistance"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to 3.5e dragon disciple prestige paths, Draconic sorcerers gain their scales and breath boosts without multiclass detours.",
+                  link: {
+                    label: "3.5 Dragon Disciple",
+                    url: "https://www.d20srd.org/srd/prestigeClasses/dragonDisciple.htm"
+                  }
+                }
+              },
+              {
+                name: "Wild Magic",
+                spotlight:
+                  "Unpredictable spellcasting that trades reliability for explosive surges and support.",
+                features: [
+                  "Wild Magic Surge table creates random beneficial or chaotic effects",
+                  "Tides of Chaos grants advantage with the risk of triggering surges"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "The 2024 Wild Magic sorcerer gets curated surge lists, while 5e revels in swingy outcomes that can reshape encounters.",
+                  link: {
+                    label: "2024 Sorcerer Playtest",
+                    url: "https://www.dndbeyond.com/sources/ua/ph-playtest-7/sorcerer"
+                  }
+                }
+              }
+            ]
+          },
+          {
+            name: "Warlock",
+            role: "Pact-bound blaster & debuffer",
+            primaryAbility: "Charisma",
+            hitDie: "d8",
+            summary:
+              "Forge bargains with eldritch patrons to hurl cantrip barrages, curses, and pact magic invocations.",
+            signatureFeatures: [
+              "Pact Magic slots recharge on short rests for frequent spellcasting",
+              "Eldritch Invocations customize utility, defense, and at-will powers",
+              "Pact Boon defines your theme with familiars, weapons, or grimoires"
+            ],
+            sources: [
+              {
+                label: "Player's Handbook (2014)",
+                url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+              },
+              {
+                label: "SRD 5.1 Warlock",
+                url: "https://www.dndbeyond.com/sources/srd/classes#Warlock"
+              }
+            ],
+            comparison: {
+              note:
+                "The 2024 Warlock regains half-caster spell slot scaling, while 5e's version relies on high-level Mystic Arcanum and Agonizing Blast combos.",
+              link: {
+                label: "One D&D Warlock Preview",
+                url: "https://www.dndbeyond.com/posts/1539-warlock-class-features-in-one-dnd"
+              }
+            },
+            subclasses: [
+              {
+                name: "The Fiend",
+                spotlight:
+                  "Deal infernal damage and harness temporary hit points from vanquished foes.",
+                features: [
+                  "Dark One's Blessing grants temp HP when you defeat enemies",
+                  "Hurl Through Hell banishes targets through a torment dimension for burst damage"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "3.5e warlocks lacked pact-specific high-level features; the Fiend patron adds flavorful capstones tied to infernal bargains.",
+                  link: {
+                    label: "3.5 Warlock (Complete Arcane)",
+                    url: "https://www.dmsguild.com/product/28938/Complete-Arcane-35"
+                  }
+                }
+              },
+              {
+                name: "The Great Old One",
+                spotlight:
+                  "Whisper mind-bending secrets that dominate, frighten, and scry on foes.",
+                features: [
+                  "Awakened Mind communicates telepathically without a shared language",
+                  "Create Thrall turns defeated enemies into enthralled agents"
+                ],
+                sources: [
+                  {
+                    label: "Player's Handbook",
+                    url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/rpg_playershandbook"
+                  }
+                ],
+                comparison: {
+                  note:
+                    "Compared to Call of Cthulhu-inspired psionics from 2e, GOO warlocks wrap horror themes into a tight short-rest chassis.",
+                  link: {
+                    label: "2e Psionics Handbook",
+                    url: "https://www.dmsguild.com/product/17449/The-Complete-Psionics-Handbook-2e"
+                  }
+                }
+              }
+            ]
           }
         ],
         onednd: [
