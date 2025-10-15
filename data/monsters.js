@@ -24,6 +24,7 @@ export default [
           creatureType: "Humanoid",
           alignment: "Any lawful",
           challenge: "1/8",
+          crValue: 0.125,
           terrain: ["Urban", "Road", "Castle"],
           role: ["Soldier", "Sentry"],
           overview: "Town watch patrols and caravan defenders who anchor low-level encounters or reinforce morale scenes at the gates.",
@@ -43,6 +44,7 @@ export default [
           creatureType: "Humanoid",
           alignment: "Any",
           challenge: "1/4",
+          crValue: 0.25,
           terrain: ["Temple", "Urban", "Pilgrimage"],
           role: ["Support", "Utility"],
           overview: "Lay clergy and monastery healers who patch up adventurers, perform rites, and frame divine politics in social adventures.",
@@ -62,6 +64,7 @@ export default [
           creatureType: "Humanoid",
           alignment: "Lawful evil",
           challenge: "1/2",
+          crValue: 0.5,
           terrain: ["Coastal", "Reef", "Undersea"],
           role: ["Skirmisher", "Raider"],
           overview: "Shark-worshiping sea devils that attack ports under cover of waves, dragging victims into the surf for sacrifice.",
@@ -152,6 +155,25 @@ export default [
           ]
         },
         {
+          name: "Lava Tube Collapse",
+          size: "Gargantuan",
+          creatureType: "Environmental Hazard",
+          alignment: "Unaligned",
+          challenge: "5",
+          terrain: ["Volcanic", "Dungeon", "Underdark"],
+          role: ["Hazard", "Controller"],
+          overview: "Volcanic caverns primed to crumble when disturbed, creating rolling boulder waves and magma spills that reshape encounters.",
+          signatureAbilities: [
+            "Triggered Collapse: Falling debris forces Dexterity saves or restrains characters beneath rubble.",
+            "Magma Flood: On initiative count 20 releases lava surges, dealing ongoing fire damage in affected zones.",
+            "Choking Fumes: Reduces visibility and imposes exhaustion on creatures lingering without protection."
+          ],
+          sources: [
+            { label: "Dungeon Master's Guide", url: "https://www.dndbeyond.com/sources/dmg" },
+            { label: "Princes of the Apocalypse", url: "https://www.dndbeyond.com/sources/pota" }
+          ]
+        },
+        {
           name: "Frost Giant",
           size: "Huge",
           creatureType: "Giant",
@@ -190,11 +212,32 @@ export default [
           ]
         },
         {
+          name: "Quicksand Sinkfield",
+          size: "Large",
+          creatureType: "Environmental Hazard",
+          alignment: "Unaligned",
+          challenge: "1/2",
+          crValue: 0.5,
+          terrain: ["Desert", "Swamp", "Jungle"],
+          role: ["Hazard", "Controller"],
+          overview: "Treacherous patches of quicksand that drag creatures beneath the surface, complicating pursuits and ambushes.",
+          signatureAbilities: [
+            "Suffocating Pull: Restrained creatures sink deeper each round without aid, risking suffocation.",
+            "Hidden Surface: Requires high Perception or Survival checks to spot before entering the hazard zone.",
+            "Lure Prey: Often baited with loot or bait monsters to drag adventurers into traps."
+          ],
+          sources: [
+            { label: "Dungeon Master's Guide", url: "https://www.dndbeyond.com/sources/dmg" },
+            { label: "Tomb of Annihilation", url: "https://www.dndbeyond.com/sources/toa" }
+          ]
+        },
+        {
           name: "Kobold Saboteur",
           size: "Small",
           creatureType: "Humanoid",
           alignment: "Lawful evil",
           challenge: "1/8",
+          crValue: 0.125,
           terrain: ["Dungeon", "Mountain"],
           role: ["Skirmisher", "Trapmaker"],
           overview: "Pack hunters that soften intruders with sling stones, traps, and clever tactics before darting into narrow tunnels.",
@@ -214,6 +257,7 @@ export default [
           creatureType: "Undead",
           alignment: "Lawful evil",
           challenge: "1/4",
+          crValue: 0.25,
           terrain: ["Dungeon", "Desert", "Ruins"],
           role: ["Artillery"],
           overview: "Reanimated archers that hold defensible chokepoints while their necromancer masters advance with melee troops.",
@@ -233,6 +277,7 @@ export default [
           creatureType: "Humanoid",
           alignment: "Chaotic evil",
           challenge: "1/2",
+          crValue: 0.5,
           terrain: ["Grassland", "Mountain", "Tundra"],
           role: ["Brute", "Skirmisher"],
           overview: "Shock troops that close quickly with greataxes and aggressive charges to overwhelm frontier settlements.",
@@ -304,6 +349,25 @@ export default [
           ]
         },
         {
+          name: "Owlbear Matriarch",
+          size: "Large",
+          creatureType: "Monstrosity",
+          alignment: "Unaligned",
+          challenge: "3",
+          terrain: ["Forest", "Ruin", "Frontier"],
+          role: ["Solo", "Brute"],
+          overview: "Seasoned owlbears that fiercely defend hunting ranges, turning woodland clearings into frantic close-quarters brawls.",
+          signatureAbilities: [
+            "Rending Beak and Claws: Multiattack bursts that rip through lightly armored characters caught away from allies.",
+            "Ferocious Charge: Doubles movement through undergrowth, letting the matriarch crash into backlines despite difficult terrain.",
+            "Bloodcurdling Screech: Once per encounter can frighten intruders, buying a round to reposition cubs or finish prey."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/owlbear" },
+            { label: "Tales from the Yawning Portal", url: "https://www.dndbeyond.com/sources/tftyp" }
+          ]
+        },
+        {
           name: "Wraith",
           size: "Medium",
           creatureType: "Undead",
@@ -320,6 +384,44 @@ export default [
           sources: [
             { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
             { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Banshee",
+          size: "Medium",
+          creatureType: "Undead",
+          alignment: "Chaotic evil",
+          challenge: "4",
+          terrain: ["Ruin", "Forest", "Shadowfell"],
+          role: ["Solo", "Controller"],
+          overview: "Vengeful spirits whose wails topple heroes in a single action, ideal for gothic set pieces and haunted barrows.",
+          signatureAbilities: [
+            "Wail of the Banshee: Area save-or-drop effect that forces parties to respect initiative and positioning.",
+            "Horrifying Visage: Frightens intruders to scatter the formation before the killing scream.",
+            "Incorporeal Movement: Glides through walls to strike support characters or withdraw into crypt alcoves."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/banshee" },
+            { label: "Curse of Strahd", url: "https://www.dndbeyond.com/sources/cos" }
+          ]
+        },
+        {
+          name: "Bulette",
+          size: "Large",
+          creatureType: "Monstrosity",
+          alignment: "Unaligned",
+          challenge: "5",
+          terrain: ["Grassland", "Underground", "Farmland"],
+          role: ["Solo", "Brute"],
+          overview: "Territorial land sharks that erupt from beneath unsuspecting travelers, splintering wagon lines and supply trains.",
+          signatureAbilities: [
+            "Deadly Leap: Area knockdown and damage punishes clustered explorers when the bulette bursts from the earth.",
+            "Burrowing Ambush: Tremorsense and burrow speed let it set up surprise rounds beneath patrol routes.",
+            "Thick Carapace: High AC and damage resistances prolong the fight against mid-level martial parties."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/bulette" },
+            { label: "Storm King's Thunder", url: "https://www.dndbeyond.com/sources/skt" }
           ]
         },
         {
@@ -342,6 +444,44 @@ export default [
           ]
         },
         {
+          name: "Chimera",
+          size: "Large",
+          creatureType: "Monstrosity",
+          alignment: "Chaotic evil",
+          challenge: "6",
+          terrain: ["Mountain", "Badlands", "Ruins"],
+          role: ["Solo", "Artillery"],
+          overview: "Three-headed terrors whose breath weapon and pounce make them signature bosses for mid-tier wilderness expeditions.",
+          signatureAbilities: [
+            "Multiheaded Fury: Triple attacks chew through tanks while keeping pressure on exposed flanks.",
+            "Fire Breath (Recharge 5–6): Cone attack punishes clumped foes scrambling over difficult rocky slopes.",
+            "Aerial Dive: Short flight lets the chimera leap canyons or retreat to unreachable ledges."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/chimera" },
+            { label: "Mythic Odysseys of Theros", url: "https://www.dndbeyond.com/sources/moot" }
+          ]
+        },
+        {
+          name: "Shield Guardian",
+          size: "Large",
+          creatureType: "Construct",
+          alignment: "Unaligned",
+          challenge: "7",
+          terrain: ["Urban", "Dungeon", "Arcane Laboratory"],
+          role: ["Solo", "Defender"],
+          overview: "Runed bodyguards bound to arcane amulets, ideal for single-enemy showdowns that stretch the party's endurance.",
+          signatureAbilities: [
+            "Arcane Shielding: Absorbs spell damage for its master, complicating mage-duel encounters.",
+            "Regeneration Matrix: Regains hit points each round, forcing adventurers to focus fire.",
+            "Stored Spells: Releases prepared magic like fireball or lightning bolt mid-fight for dramatic swings."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/shield-guardian" },
+            { label: "Eberron: Rising from the Last War", url: "https://www.dndbeyond.com/sources/erlw" }
+          ]
+        },
+        {
           name: "Githyanki Knight",
           size: "Medium",
           creatureType: "Humanoid",
@@ -358,6 +498,44 @@ export default [
           sources: [
             { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
             { label: "Mordenkainen Presents", url: "https://www.dndbeyond.com/sources/mpmm" }
+          ]
+        },
+        {
+          name: "Mind-Rending Psychic Maelstrom",
+          size: "Gargantuan",
+          creatureType: "Environmental Hazard",
+          alignment: "Unaligned",
+          challenge: "8",
+          terrain: ["Far Realm", "Planar Rift", "Underdark"],
+          role: ["Hazard", "Controller"],
+          overview: "Reality-twisting storms of psionic energy that lash intruders with confusion and planar backlash in aberrant lairs.",
+          signatureAbilities: [
+            "Psychic Shear: Targets all creatures each round with Intelligence saves or short-term madness.",
+            "Gravity Collapse: Warps space to pull victims toward the rift, dealing force damage on impact.",
+            "Aberrant Echoes: Summons spectral tentacles that grapple and restrain anyone who fails concentration checks."
+          ],
+          sources: [
+            { label: "Dungeon Master's Guide", url: "https://www.dndbeyond.com/sources/dmg" },
+            { label: "Mordenkainen Presents", url: "https://www.dndbeyond.com/sources/mpmm" }
+          ]
+        },
+        {
+          name: "Archmage",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any",
+          challenge: "12",
+          terrain: ["Urban", "Arcane Tower", "Planar"],
+          role: ["Elite", "Controller"],
+          overview: "Supreme spellcasters whose layered defenses, contingency magic, and apprentices create intricate boss encounters.",
+          signatureAbilities: [
+            "Spell Mastery: Access to shield, counterspell, and globe of invulnerability keeps martial characters at bay.",
+            "Legendary Preparations: Scripts combat with pre-cast glyphs and summoned elementals before the party arrives.",
+            "Planar Escape: Teleport and plane shift options allow retreat or reinforcements if the battle turns."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/archmage" },
+            { label: "Waterdeep: Dungeon of the Mad Mage", url: "https://www.dndbeyond.com/sources/wdotmm" }
           ]
         },
         {
@@ -399,6 +577,25 @@ export default [
           ]
         },
         {
+          name: "Adult Bronze Dragon",
+          size: "Huge",
+          creatureType: "Dragon",
+          alignment: "Lawful good",
+          challenge: "15",
+          terrain: ["Coastal", "Undersea Caves", "Storm"],
+          role: ["Solo", "Elite"],
+          overview: "Strategic dragon guardians who combine flight, lightning, and control over tides to defend coastal communities.",
+          signatureAbilities: [
+            "Lightning Breath (Recharge 5–6): Line attack shreds enemy spellcasters aboard ships or in seaside keeps.",
+            "Repulsion Breath: Pushes invading troops into traps, cliffs, or the sea.",
+            "Change Shape: Infiltrates courts to set up intrigue before revealing draconic might."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/adult-bronze-dragon" },
+            { label: "Fizban's Treasury of Dragons", url: "https://www.dndbeyond.com/sources/ftod" }
+          ]
+        },
+        {
           name: "Storm Giant Quintessent",
           size: "Huge",
           creatureType: "Giant",
@@ -415,6 +612,25 @@ export default [
           sources: [
             { label: "Mordenkainen Presents", url: "https://www.dndbeyond.com/sources/mpmm" },
             { label: "Storm King's Thunder", url: "https://www.dndbeyond.com/sources/skt" }
+          ]
+        },
+        {
+          name: "Death Knight",
+          size: "Medium",
+          creatureType: "Undead",
+          alignment: "Lawful evil",
+          challenge: "17",
+          terrain: ["Ruin", "Shadowfell", "Battlefield"],
+          role: ["Elite", "Soldier"],
+          overview: "Cursed paladins clad in obsidian plate, leading undead legions with devastating smites and unholy magic.",
+          signatureAbilities: [
+            "Hellfire Orb: Once-per-day burst that inflicts massive fire and necrotic damage on tightly packed squads.",
+            "Parry & Spell Resistance: Defensive suite lets the knight duel player characters toe-to-toe.",
+            "Command Undead: Rallies surrounding undead minions, creating layered encounter waves."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/death-knight" },
+            { label: "Adventures in the Forgotten Realms", url: "https://magic.wizards.com/en/products/dungeons-dragons-adventures-forgotten-realms" }
           ]
         },
         {
@@ -453,6 +669,25 @@ export default [
           sources: [
             { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
             { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/treant.htm" }
+          ]
+        },
+        {
+          name: "Pit Fiend General",
+          size: "Large",
+          creatureType: "Fiend",
+          alignment: "Lawful evil",
+          challenge: "20",
+          terrain: ["Nine Hells", "Volcanic", "Siege"],
+          role: ["Elite", "Commander"],
+          overview: "Diabolical warlords who orchestrate infernal sieges, commanding legions while crushing foes with infernal might.",
+          signatureAbilities: [
+            "Infernal Command: Grants nearby devils bonus damage and temp HP, multiplying encounter difficulty.",
+            "Multiattack with Gout of Flame: Tail, bite, mace, and fireball keep pressure across multiple ranges.",
+            "Summon Devils: Calls reinforcements mid-fight to escalate prolonged battles."
+          ],
+          sources: [
+            { label: "Monster Manual (5e)", url: "https://www.dndbeyond.com/monsters/pit-fiend" },
+            { label: "Baldur's Gate: Descent into Avernus", url: "https://www.dndbeyond.com/sources/bgdia" }
           ]
         },
         {
