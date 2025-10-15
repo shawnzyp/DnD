@@ -223,5 +223,202 @@ export default [
               ]
             }
           ]
+        },
+        {
+          key: "bonusActions",
+          title: "Common Bonus Actions",
+          description: "Use when a feature, spell, or weapon grants a secondary action in the same turn.",
+          columns: ["Option", "Effect", "Notes"],
+          caption: "Only one bonus action is available per turn, even if multiple features offer options.",
+          rows: [
+            {
+              cells: [
+                { text: "Two-Weapon Fighting", tag: "Attack" },
+                { text: "Make one melee weapon attack with an off-hand light weapon." },
+                { text: "Requires the Attack action with a light melee weapon; no ability modifier to damage unless feature allows." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Bardic Inspiration", tag: "Bard" },
+                { text: "Grant a creature within 60 ft. a die to add to an ability check, attack, or save." },
+                { text: "Die size scales with level; a creature can hold one inspiration die at a time." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Cunning Action", tag: "Rogue" },
+                { text: "Dash, Disengage, or Hide as a bonus action." },
+                { text: "Available starting at rogue level 2; combines with movement earned from the action." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Second Wind", tag: "Fighter" },
+                { text: "Regain 1d10 + fighter level hit points." },
+                { text: "Refreshes on a short or long rest." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Misty Step", tag: "Spell" },
+                { text: "Teleport 30 ft. to an unoccupied space you can see." },
+                { text: "No opportunity attacks; verbal component only." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "reactions",
+          title: "Notable Reactions",
+          description: "Triggered responses that resolve outside your turn.",
+          columns: ["Reaction", "Trigger", "Effect"],
+          caption: "A creature refreshes its reaction at the start of its turn.",
+          rows: [
+            {
+              cells: [
+                { text: "Opportunity Attack", tag: "Core" },
+                { text: "A creature you see leaves your reach." },
+                { text: "Make one melee attack; moving willingly or teleporting avoids the trigger." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Shield", tag: "Spell" },
+                { text: "Hit by an attack or targeted by magic missile." },
+                { text: "+5 AC until your next turn and negate magic missile." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Counterspell", tag: "Spell" },
+                { text: "Creature within 60 ft. casts a spell." },
+                { text: "Interrupt; succeed automatically vs. 3rd-level or lower spells or make an ability check for higher." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Feather Fall", tag: "Spell" },
+                { text: "You or a creature within 60 ft. falls." },
+                { text: "Up to five targets descend at 60 ft. per round and take no falling damage." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Protection Style", tag: "Martial" },
+                { text: "A creature you can see attacks a target other than you within 5 ft." },
+                { text: "Use a shield to impose disadvantage on the attack roll." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "resting",
+          title: "Resting & Recovery",
+          description: "Track how downtime restores abilities under SRD 5.1 with 2024 previews for bastions.",
+          columns: ["Rest", "Duration", "Benefits", "Limitations"],
+          rows: [
+            {
+              cells: [
+                { text: "Short Rest", tag: "1+ hr" },
+                { text: "At least 1 hour", tag: "Time" },
+                { text: "Spend Hit Dice, recharge short-rest features." },
+                { text: "Interruptions of strenuous activity reset the rest." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Long Rest", tag: "8 hr" },
+                { text: "8 hours (6 resting, 2 light activity)", tag: "Time" },
+                { text: "Regain all Hit Dice, half HD spent, long-rest abilities, reset spell slots." },
+                { text: "One long rest per 24 hours; ending early grants no benefits." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Bastion Turn", tag: "2024" },
+                { text: "1 week of downtime", tag: "Time" },
+                { text: "Advance bastion projects, recruit retainers, or craft boons per 2024 DMG preview." },
+                { text: "Requires bastion ownership and a secure location." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "cover",
+          title: "Cover & Obscurement",
+          description: "Apply cover bonuses when terrain shields combatants.",
+          columns: ["Type", "AC Bonus", "Dex Save Bonus", "Notes"],
+          rows: [
+            {
+              cells: [
+                { text: "Half Cover", tag: "Partial" },
+                { text: "+2" },
+                { text: "+2" },
+                { text: "Targets behind low walls, furniture, or medium creatures." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Three-Quarters Cover", tag: "Substantial" },
+                { text: "+5" },
+                { text: "+5" },
+                { text: "Targets peering through arrow slits or behind portcullises." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Total Cover", tag: "Blocked" },
+                { text: "—" },
+                { text: "—" },
+                { text: "Cannot be targeted directly; area effects may still apply." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Heavily Obscured", tag: "Vision" },
+                { text: "—" },
+                { text: "—" },
+                { text: "Blocks vision, imposing the blinded condition for sight-based perception." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "concentration",
+          title: "Concentration at a Glance",
+          description: "Remind casters how to maintain or lose ongoing magic.",
+          columns: ["Event", "Check", "Result"],
+          caption: "You can concentrate on only one spell at a time; starting a new one ends the previous effect.",
+          rows: [
+            {
+              cells: [
+                { text: "Take Damage", tag: "Save" },
+                { text: "Constitution save DC 10 or half the damage (rounded up)." },
+                { text: "Failure ends the spell immediately." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Take Another Concentration Spell", tag: "Cast" },
+                { text: "—" },
+                { text: "Beginning a new concentration spell ends the previous effect." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Become Incapacitated", tag: "Condition" },
+                { text: "—" },
+                { text: "Concentration ends automatically." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Environment Breaks Focus", tag: "Distraction" },
+                { text: "DM may call for a Con save vs. relevant DC." },
+                { text: "Use for violent motion, extreme weather, or similar SRD disruptions." }
+              ]
+            }
+          ]
         }
       ];

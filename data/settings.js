@@ -202,5 +202,141 @@ export default [
             caption: "Dragonlances lowered against a storm-lit sky invite stirring war chronicles.",
             background: "linear-gradient(135deg, rgba(201, 78, 54, 0.62), rgba(48, 17, 24, 0.9))"
           }
+        },
+        {
+          name: "Forgotten Realms: Sword Coast Nexus",
+          era: "1967 Greenwood homebrew · 1987 boxed set · 5e/2024 core default",
+          elevatorPitch:
+            "Kitchen-sink high fantasy anchored by the Sword Coast where 5e and 2024 adventures spotlight factions, gods, and realm-shaking plots.",
+          genres: ["Heroic Fantasy", "Factions & Intrigue", "Exploration"],
+          flagshipProducts: [
+            {
+              label: "Sword Coast Adventurer's Guide",
+              url: "https://dnd.wizards.com/products/tabletop-games/rpg-products/sc-adventurers-guide",
+              description: "Defines the 5e baseline setting with factions, Realmslore, and regional hooks."
+            },
+            {
+              label: "Phandelver and Below: The Shattered Obelisk",
+              url: "https://dnd.wizards.com/products/phandelver-and-below",
+              description: "Updates the starter region with an eldritch campaign compatible with 2024 rules refresh."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Forgotten Realms portal",
+              url: "https://dnd.wizards.com/worlds/forgotten-realms"
+            }
+          ],
+          adventureHooks: [
+            "The Lord's Alliance commissions the heroes to secure a 2024 bastion site before the Zhentarim claim it.",
+            "Mystra's Chosen warn of a Spellplague echo rippling toward Waterdeep through the Shattered Obelisk network.",
+            "An Underdark enclave offers an uneasy truce if the party sabotages a Xanathar Guild smuggling ring."
+          ],
+          art: {
+            caption: "Waterdeep's skyline above a shimmering Weave gate invites sweeping Realms narration.",
+            background: "linear-gradient(135deg, rgba(32, 119, 178, 0.6), rgba(11, 27, 44, 0.88))"
+          }
+        },
+        {
+          name: "Greyhawk: Return to the Flanaess",
+          era: "1975 folio · 1983 boxed set · 2024 DMG showcase",
+          elevatorPitch:
+            "Gritty sword & sorcery centered on the Free City where 2024 core books revive classic factions, dungeons, and war-torn borders.",
+          genres: ["Sword & Sorcery", "Political Intrigue", "Dungeon Crawling"],
+          flagshipProducts: [
+            {
+              label: "World of Greyhawk Fantasy Game Setting (1983)",
+              url: "https://dnd.wizards.com/products/world-greyhawk",
+              description: "Iconic boxed set with folio map, nations, and the foundations of the Flanaess."
+            },
+            {
+              label: "Dungeon Master's Guide (2024)",
+              url: "https://www.dndbeyond.com/posts/1561-return-to-greyhawk-in-2024",
+              description: "Features a full Greyhawk campaign primer, updated maps, and adventure generators."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Return to Greyhawk preview",
+              url: "https://www.dndbeyond.com/posts/1561-return-to-greyhawk-in-2024"
+            }
+          ],
+          adventureHooks: [
+            "The Circle of Eight seeks covert agents to stop an Iuz-backed cult before the 2024 DMG premieres.",
+            "War drums echo in the Pomarj as hobgoblin legions march toward Dyvers' trade routes.",
+            "Delving the Ghost Tower of Inverness reveals planar keys coveted by rival Greyhawk guilds."
+          ],
+          art: {
+            caption: "Greyhawk's Free City walls rise over moody skies and war banners ready for old-school tales.",
+            background: "linear-gradient(135deg, rgba(142, 104, 57, 0.6), rgba(28, 23, 15, 0.9))"
+          }
+        },
+        {
+          name: "Ravnica: Guildmaster's Machinations",
+          era: "2005 MTG plane · 2018 5e crossover",
+          elevatorPitch:
+            "Urban fantasy mega-city where ten guilds wage political and magical intrigue, supported by 5e guild mechanics and evolving Planeshift updates.",
+          genres: ["Urban Fantasy", "Political Intrigue", "Planar Crossover"],
+          flagshipProducts: [
+            {
+              label: "Guildmasters' Guide to Ravnica",
+              url: "https://dnd.wizards.com/products/guildmasters-guide-ravnica",
+              description: "Introduces guild backgrounds, hybrid species, and a metropolis sandbox compatible with 5e."
+            },
+            {
+              label: "Vecna: Eve of Ruin",
+              url: "https://dnd.wizards.com/products/vecna-eve-of-ruin",
+              description: "2024 multiverse campaign that visits Ravnica alongside other iconic worlds."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Ravnica overview",
+              url: "https://dnd.wizards.com/worlds/ravnica"
+            }
+          ],
+          adventureHooks: [
+            "An Azorius crackdown threatens to outlaw independent adventuring unless the party exposes a Dimir plot.",
+            "Gruul clans weaponize 2024 weapon mastery runes, pushing the city toward open revolt.",
+            "A Planeshift event invites the heroes to broker peace between Simic labs and Selesnya dryads over a living guildpact seed."
+          ],
+          art: {
+            caption: "Layered spires, luminous guild sigils, and crowded plazas call for bustling urban descriptions.",
+            background: "linear-gradient(135deg, rgba(58, 172, 143, 0.55), rgba(20, 34, 29, 0.9))"
+          }
+        },
+        {
+          name: "Theros: Mythic Odysseys",
+          era: "2013 MTG plane · 2020 5e sourcebook",
+          elevatorPitch:
+            "Mythic heroism inspired by Greek epics where destiny, piety, and supernatural rivals intertwine with 5e mythic encounter rules.",
+          genres: ["Mythic Fantasy", "Epic Heroes", "Divine Intrigue"],
+          flagshipProducts: [
+            {
+              label: "Mythic Odysseys of Theros",
+              url: "https://dnd.wizards.com/products/mythic-odysseys-of-theros",
+              description: "Brings piety, supernatural gifts, and mythic monsters to 5e campaigns."
+            },
+            {
+              label: "Plane Shift: Theros",
+              url: "https://media.wizards.com/2017/downloads/magic/Plane-Shift_Theros.pdf",
+              description: "Free conversion offering early guidance for running Theros before the hardcover release."
+            }
+          ],
+          officialSources: [
+            {
+              label: "Theros spotlight",
+              url: "https://dnd.wizards.com/worlds/theros"
+            }
+          ],
+          adventureHooks: [
+            "Heliod's champion commands the heroes to prove their worth in mythic trials before receiving 2024 boons.",
+            "A kraken-bound polis seeks allies to break a curse that twists destiny threads across Nyx.",
+            "Underworld ferrymen bargain for memories as the party chases a rogue Returned through Meletis."
+          ],
+          art: {
+            caption: "Star-flecked Nyx constellations swirl above marble temples and heroic silhouettes.",
+            background: "linear-gradient(135deg, rgba(196, 173, 92, 0.6), rgba(29, 21, 7, 0.9))"
+          }
         }
       ];
