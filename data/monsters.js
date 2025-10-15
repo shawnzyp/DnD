@@ -1,5 +1,119 @@
 export default [
         {
+          name: "Commoner",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any",
+          challenge: "0",
+          terrain: ["Urban", "Village", "Farmland"],
+          role: ["Civilian", "Utility"],
+          overview: "Everyday townsfolk, farmers, and artisans who populate settlements and provide the social backdrop to adventuring exploits.",
+          signatureAbilities: [
+            "Humble Tools: Improvised weapons and work gear sell the stakes of collateral damage in urban set pieces.",
+            "Local Knowledge: Ready access to gossip, rumors, and regional navigation aids roleplay-heavy sessions.",
+            "Mob Morale: Commoners gather as crowds that can cheer, riot, or stampede when manipulated by the party or villains."
+          ],
+          sources: [
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" },
+            { label: "Curse of Strahd", url: "https://www.dndbeyond.com/sources/cos" }
+          ]
+        },
+        {
+          name: "Guard",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any lawful",
+          challenge: "1/8",
+          terrain: ["Urban", "Road", "Castle"],
+          role: ["Soldier", "Sentry"],
+          overview: "Town watch patrols and caravan defenders who anchor low-level encounters or reinforce morale scenes at the gates.",
+          signatureAbilities: [
+            "Formation Fighting: Shields interlock to grant cover bonuses to allies behind the line.",
+            "Hold the Line: Opportunity attacks impose speed 0 on creatures they hit, keeping chokepoints sealed.",
+            "Alarm Horn: Calls in reinforcements or escalates complications if the party allows a warning shout."
+          ],
+          sources: [
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" },
+            { label: "Waterdeep: Dragon Heist", url: "https://www.dndbeyond.com/sources/wdh" }
+          ]
+        },
+        {
+          name: "Acolyte",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Any",
+          challenge: "1/4",
+          terrain: ["Temple", "Urban", "Pilgrimage"],
+          role: ["Support", "Utility"],
+          overview: "Lay clergy and monastery healers who patch up adventurers, perform rites, and frame divine politics in social adventures.",
+          signatureAbilities: [
+            "Channel Aid: Cure wounds and sanctuary spells stabilize allies or NPCs before fights spiral.",
+            "Religious Insight: Advantage on Religion checks reveals relic lore and bypasses faith-based wards.",
+            "Processional Escort: Ritual presence grants parties safe passage through sacred districts when properly entreated."
+          ],
+          sources: [
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" },
+            { label: "Baldur's Gate: Descent into Avernus", url: "https://www.dndbeyond.com/sources/bgdia" }
+          ]
+        },
+        {
+          name: "Sahuagin Raider",
+          size: "Medium",
+          creatureType: "Humanoid",
+          alignment: "Lawful evil",
+          challenge: "1/2",
+          terrain: ["Coastal", "Reef", "Undersea"],
+          role: ["Skirmisher", "Raider"],
+          overview: "Shark-worshiping sea devils that attack ports under cover of waves, dragging victims into the surf for sacrifice.",
+          signatureAbilities: [
+            "Blood Frenzy: Gains attack advantage against wounded foes, accelerating attrition aboard sinking ships.",
+            "Amphibious Assault: Swim speed and underwater breathing let the raider strike from submerged trenches.",
+            "Shark Telepathy: Commands local sharks as living hazards or distractions against naval crews."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Ghosts of Saltmarsh", url: "https://www.dndbeyond.com/sources/gos" }
+          ]
+        },
+        {
+          name: "Giant Octopus",
+          size: "Large",
+          creatureType: "Beast",
+          alignment: "Unaligned",
+          challenge: "1",
+          terrain: ["Undersea", "Coastal", "Reef"],
+          role: ["Controller", "Ambusher"],
+          overview: "Deceptively intelligent cephalopods that drag ships' crews overboard and fill caverns with inky concealment.",
+          signatureAbilities: [
+            "Tentacle Grapple: Restrains targets while the beast retreats into kelp forests or tidal caves.",
+            "Ink Cloud (Recharges on Short Rest): Obscures water around it, granting advantage to allies familiar with the terrain.",
+            "Camouflaged Hide: Advantage on Stealth checks makes the octopus an ideal ambush predator for underwater chases."
+          ],
+          sources: [
+            { label: "Basic Rules", url: "https://dnd.wizards.com/resources/basic-rules" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Aboleth",
+          size: "Large",
+          creatureType: "Aberration",
+          alignment: "Lawful evil",
+          challenge: "10",
+          terrain: ["Undersea", "Underdark", "Sunken City"],
+          role: ["Solo", "Controller"],
+          overview: "Ancient psionic leviathans that enslave coastal populations and hoard primordial memories beneath the waves.",
+          signatureAbilities: [
+            "Enslavement Rays: Charms multiple targets at range, turning allied sailors against each other mid-fight.",
+            "Mucous Cloud: On-hit disease reshapes victims into aquatic servants unless cured quickly.",
+            "Lair Phantasms: Regional effects and lair actions flood chambers or manifest illusory duplicates for mind games."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
           name: "Adult Black Dragon",
           size: "Huge",
           creatureType: "Dragon",
@@ -358,6 +472,63 @@ export default [
           sources: [
             { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
             { label: "d20 SRD", url: "https://www.d20srd.org/srd/monsters/lich.htm" }
+          ]
+        },
+        {
+          name: "Kraken",
+          size: "Gargantuan",
+          creatureType: "Monstrosity",
+          alignment: "Chaotic evil",
+          challenge: "23",
+          terrain: ["Ocean", "Storm", "Deep Sea Trench"],
+          role: ["Solo", "Siege"],
+          overview: "World-wrecking leviathans that capsize fleets, conjure hurricanes, and elevate cults dedicated to primordial chaos.",
+          signatureAbilities: [
+            "Thunderous Tentacles: Multiattack grapples entire crews while dealing crushing damage to vessels.",
+            "Control Weather: Commands maelstroms that scatter support ships and batter coastal settlements.",
+            "Lair Lightning: Regional storms and lair actions unleash bolts that punish characters lingering on exposed decks."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
+          ]
+        },
+        {
+          name: "Ancient Red Dragon",
+          size: "Gargantuan",
+          creatureType: "Dragon",
+          alignment: "Chaotic evil",
+          challenge: "24",
+          terrain: ["Mountain", "Volcano", "Planar"],
+          role: ["Solo", "Overlord"],
+          overview: "The archetypal tyrant dragon whose volcanic dominion reshapes kingdoms, demanding tribute while immolating dissent.",
+          signatureAbilities: [
+            "Apocalyptic Fire Breath: 90-foot cone melts fortifications and forces entire warbands into cover or defeat.",
+            "Relentless Legendary Actions: Wing attacks, frightening presence, and tail lashes keep heroes pinned under constant pressure.",
+            "Regional Effects: Volcanic eruptions, cinder storms, and lair magma flows transform the battlefield into lethal hazards."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Tyranny of Dragons", url: "https://www.dndbeyond.com/sources/tyranny-of-dragons" }
+          ]
+        },
+        {
+          name: "Tarrasque",
+          size: "Gargantuan",
+          creatureType: "Monstrosity",
+          alignment: "Unaligned",
+          challenge: "30",
+          terrain: ["Wasteland", "Mountain", "Urban"],
+          role: ["Solo", "Siege"],
+          overview: "The unstoppable apex predator whose rampages level civilizations, forcing entire nations into desperate alliances.",
+          signatureAbilities: [
+            "Reflective Carapace: Hurls spells back at casters, demanding creative tactics beyond raw arcana.",
+            "Legendary Resilience: Legendary resistances and immunity to most conditions keep the titan active through control effects.",
+            "Siege Rampage: Deals massive damage to structures while chaining bite, horn, and tail attacks across multiple targets, with swallow finishing stragglers."
+          ],
+          sources: [
+            { label: "SRD 5.1", url: "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf" },
+            { label: "Monster Manual (1e)", url: "https://www.dmsguild.com/product/17004/Monster-Manual-1e" }
           ]
         }
       ];
