@@ -1865,7 +1865,7 @@
         <div class="downtime-tool" aria-live="polite">
           <div>
             <h3>Downtime Activity Calculator</h3>
-            <p>Estimate SRD-friendly downtime costs, workdays, and check guidance for crafting equipment, scribing spells, or training new proficiencies.</p>
+            <p>Estimate downtime costs, workdays, and check guidance for crafting equipment, scribing spells, training new proficiencies, carousing, researching lore, running a business, or advancing a bastion.</p>
           </div>
           <form id="downtime-form" class="downtime-form">
             <label for="downtime-activity">Activity type
@@ -1873,13 +1873,17 @@
                 <option value="crafting">Crafting (mundane item)</option>
                 <option value="scribing">Scribing a spell</option>
                 <option value="training">Training proficiency</option>
+                <option value="carousing">Carousing (social downtime)</option>
+                <option value="research">Research a lore topic</option>
+                <option value="business">Running a business</option>
+                <option value="bastion">Bastion turn (2024)</option>
               </select>
             </label>
             <div id="downtime-dynamic-fields"></div>
           </form>
           <div class="downtime-summary" id="downtime-summary">
             <strong>Results will appear here as you enter details.</strong>
-            <p style="margin: 0; font-size: 0.85rem; opacity: 0.75;">Downtime math follows SRD 5.1 downtime activities and wizard spellbook rules.</p>
+            <p style="margin: 0; font-size: 0.85rem; opacity: 0.75;">Downtime math references SRD 5.1 guidelines, the 5e Dungeon Master's Guide, and 2024 bastion previews. Edition tags appear in the copied summary.</p>
           </div>
           <div class="downtime-actions">
             <button type="button" id="downtime-copy" disabled>Copy summary</button>
@@ -2948,7 +2952,9 @@
           const durationLabels = {
             ongoing: "Ongoing effects",
             instant: "Instant or until acted",
-            special: "Special conditions"
+            special: "Special conditions",
+            saveEnds: "Save ends",
+            legacy: "Legacy durations"
           };
 
           if (conditionDurationSelect) {
@@ -3058,6 +3064,34 @@
                   tagRow.appendChild(pill);
                 });
                 details.appendChild(tagRow);
+              }
+
+              const editionNotes = Array.isArray(condition.editionSpecific)
+                ? condition.editionSpecific
+                : condition.editionSpecific
+                  ? [condition.editionSpecific]
+                  : [];
+
+              if (editionNotes.length) {
+                const editionBlock = document.createElement("div");
+                editionBlock.style.marginTop = "0.5rem";
+
+                const editionHeading = document.createElement("p");
+                editionHeading.style.margin = "0";
+                editionHeading.innerHTML = "<strong>Edition notes:</strong>";
+                editionBlock.appendChild(editionHeading);
+
+                const editionList = document.createElement("ul");
+                editionList.style.margin = "0.35rem 0 0";
+                editionList.style.paddingLeft = "1.2rem";
+                editionNotes.forEach(note => {
+                  const li = document.createElement("li");
+                  li.textContent = note;
+                  editionList.appendChild(li);
+                });
+
+                editionBlock.appendChild(editionList);
+                details.appendChild(editionBlock);
               }
 
               conditionsList.appendChild(details);
@@ -5067,6 +5101,448 @@
               availableDays ? `Scheduled now: ${formatDays(availableDays)}` : null,
               `Daily cost: ${formatGp(dailyCost)}`,
               `Total cost: ${formatGp(totalCost)}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        carousing: {
+          label: "Carousing (social downtime)",
+          reference: "Dungeon Master's Guide (5e) p. 128 – Carousing",
+          fields: [
+            {
+              id: "carousing-days",
+              name: "days",
+              label: "Downtime days invested",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 7,
+              helper: "Seven days equals one workweek in the DMG example.",
+            },
+            {
+              id: "carousing-lifestyle",
+              name: "lifestyle",
+              label: "Lifestyle bracket",
+              type: "select",
+              options: [
+                { value: "lower", label: "Lower class (10 gp/day)" },
+                { value: "middle", label: "Middle class (50 gp/day)" },
+                { value: "upper", label: "Upper class (250 gp/day)" },
+              ],
+              value: "lower",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "carousing-contacts",
+              name: "contacts",
+              label: "Existing allies grease the wheels (reduce DC by 2)",
+            },
+            {
+              id: "carousing-bribes",
+              name: "bribes",
+              label: "Spend 50 gp on extra bribes for advantage on the final check",
+            },
+          ],
+          compute(values) {
+            const lifestyles = {
+              lower: { label: "lower class", dailyCost: 10, dc: 10 },
+              middle: { label: "middle class", dailyCost: 50, dc: 15 },
+              upper: { label: "upper class", dailyCost: 250, dc: 20 },
+            };
+            const selected = lifestyles[values.lifestyle] ?? lifestyles.lower;
+            const days = Math.max(1, Number(values.days) || 0);
+            const baseCost = selected.dailyCost * days;
+            const bribeCost = values.bribes ? 50 : 0;
+            const totalCost = baseCost + bribeCost;
+
+            let dc = selected.dc;
+            const noteParts = [];
+            if (values.contacts) {
+              dc = Math.max(5, dc - 2);
+              noteParts.push("Trusted allies vouch for you, reducing complications.");
+            }
+            if (values.bribes) {
+              noteParts.push("Extra bribes grant advantage on the Charisma (Persuasion) check in addition to the 50 gp surcharge.");
+            }
+            noteParts.push("On success you gain 1d4 new contacts or favors; failure invites a complication (DMG p. 128).");
+
+            const headline = `Carousing among the ${selected.label}`;
+            const timeText = `${formatDays(days)} of revelry and networking.`;
+            const costText = `${formatGp(totalCost)} in lifestyle expenses${values.bribes ? ", including bribes." : "."}`;
+            const checkText = `Charisma (Persuasion) vs. DC ${dc} at the end of each workweek${values.bribes ? " with advantage." : "."}`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Carousing (${selected.label})`,
+              `Downtime invested: ${formatDays(days)}`,
+              `Lifestyle cost: ${formatGp(baseCost)}`,
+              values.bribes ? `Bribe surcharge: ${formatGp(bribeCost)}` : null,
+              `Total cost: ${formatGp(totalCost)}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        research: {
+          label: "Research a lore topic",
+          reference: "Dungeon Master's Guide (5e) p. 129 – Research",
+          fields: [
+            {
+              id: "research-days",
+              name: "days",
+              label: "Downtime days spent researching",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 5,
+              helper: "Five days equals one workweek of focused study.",
+            },
+            {
+              id: "research-difficulty",
+              name: "difficulty",
+              label: "Lore difficulty",
+              type: "select",
+              options: [
+                { value: "common", label: "Common lore (DC 10, 1 workweek)" },
+                { value: "hidden", label: "Hidden or obscure (DC 15, 2 workweeks)" },
+                { value: "esoteric", label: "Esoteric secrets (DC 20, 3 workweeks)" },
+              ],
+              value: "common",
+            },
+            {
+              id: "research-investment",
+              name: "investment",
+              label: "Extra gold for gifts or bribes (gp)",
+              type: "number",
+              min: 0,
+              step: 1,
+              value: 0,
+              helper: "Represents special donations or rare books offered to archives.",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "research-library",
+              name: "library",
+              label: "Legendary archive access grants advantage on the final check",
+            },
+            {
+              id: "research-sage",
+              name: "sage",
+              label: "Hire a sage for 100 gp (reduces DC by 2)",
+            },
+          ],
+          compute(values) {
+            const tiers = {
+              common: { label: "common lore", dc: 10, recommendedWeeks: 1 },
+              hidden: { label: "hidden lore", dc: 15, recommendedWeeks: 2 },
+              esoteric: { label: "esoteric secrets", dc: 20, recommendedWeeks: 3 },
+            };
+            const selected = tiers[values.difficulty] ?? tiers.common;
+            const days = Math.max(1, Number(values.days) || 0);
+            const workweeks = Math.max(1, Math.ceil(days / 5));
+            const baseCost = workweeks * 50;
+            const extraInvestment = Math.max(0, Number(values.investment) || 0);
+            let totalCost = baseCost + extraInvestment;
+
+            let dc = selected.dc;
+            const noteParts = [];
+            if (values.sage) {
+              dc = Math.max(5, dc - 2);
+              totalCost += 100;
+              noteParts.push("A sage's guidance costs 100 gp but reduces the target DC by 2.");
+            }
+            if (values.library) {
+              noteParts.push("Prestigious archives typically grant advantage on the Intelligence check.");
+            }
+            noteParts.push("Each successful check yields a lore discovery; three successes uncover deep secrets per DMG guidance.");
+
+            const advantageText = values.library ? " with advantage" : "";
+            const headline = `Researching ${selected.label}`;
+            const timeText = `${formatDays(days)} of study (~${workweeks} workweek${workweeks === 1 ? "" : "s"}).`;
+            const costText = `${formatGp(totalCost)} in donations, materials, and expert fees.`;
+            const checkText = `Intelligence (Arcana, History, or Investigation) vs. DC ${dc}${advantageText}.`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Research (${selected.label})`,
+              `Downtime invested: ${formatDays(days)} (${workweeks} workweek${workweeks === 1 ? "" : "s"})`,
+              `Base cost: ${formatGp(baseCost)}`,
+              extraInvestment ? `Additional gifts: ${formatGp(extraInvestment)}` : null,
+              values.sage ? `Sage retainer: ${formatGp(100)}` : null,
+              `Total cost: ${formatGp(totalCost)}`,
+              `Check guidance: ${checkText}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        business: {
+          label: "Running a business",
+          reference: "Dungeon Master's Guide (5e) p. 127 – Running a Business",
+          fields: [
+            {
+              id: "business-days",
+              name: "days",
+              label: "Downtime days running the business",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 7,
+              helper: "A workweek is seven days in the DMG example.",
+            },
+            {
+              id: "business-maintenance",
+              name: "maintenance",
+              label: "Daily maintenance expense (gp)",
+              type: "number",
+              min: 0,
+              step: 1,
+              value: 5,
+              helper: "Use the establishment's upkeep cost or lifestyle expense.",
+            },
+            {
+              id: "business-roll",
+              name: "roll",
+              label: "d100 roll (before modifiers)",
+              type: "number",
+              min: 1,
+              max: 100,
+              step: 1,
+              helper: "Enter the raw d100 before adding downtime or bonuses.",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "business-promotions",
+              name: "promotions",
+              label: "Spend 25 gp on promotions (+10 to the roll)",
+            },
+            {
+              id: "business-renown",
+              name: "renown",
+              label: "Renown, skilled staff, or magic aids grant +10 to the roll",
+            },
+          ],
+          compute(values) {
+            const days = Math.max(1, Number(values.days) || 0);
+            const maintenancePerDay = Math.max(0, Number(values.maintenance) || 0);
+            const baseUpkeep = maintenancePerDay * days;
+            const baseRoll = Number(values.roll) || 0;
+
+            if (!baseRoll) {
+              return {
+                headline: "Enter your d100 result to resolve profits.",
+                timeText: "Awaiting roll",
+                costText: `${formatGp(baseUpkeep)} in upkeep so far`,
+                checkText: "Roll d100 + downtime days (max 30) + modifiers; compare to DMG Running a Business table.",
+                reference: this.reference,
+                note: "Include promotions or renown bonuses to adjust the final total.",
+                copyText: "",
+              };
+            }
+
+            let totalCost = baseUpkeep;
+            let modifiers = Math.min(days, 30);
+            const noteParts = [];
+
+            if (values.promotions) {
+              totalCost += 25;
+              modifiers += 10;
+              noteParts.push("Promotions add 25 gp in expenses and +10 to the d100 total.");
+            }
+            if (values.renown) {
+              modifiers += 10;
+              noteParts.push("Renown, skilled staff, or magical assistance provide +10 to the d100 total.");
+            }
+
+            const finalTotal = baseRoll + modifiers;
+
+            let outcome;
+            let averageNet = 0;
+            if (finalTotal <= 20) {
+              outcome = "Pay 1d6 × 5 gp";
+              averageNet = -17.5;
+            } else if (finalTotal <= 30) {
+              outcome = "Pay 1d6 × 2 gp";
+              averageNet = -7;
+            } else if (finalTotal <= 40) {
+              outcome = "Pay 1d6 gp";
+              averageNet = -3.5;
+            } else if (finalTotal <= 60) {
+              outcome = "Break even";
+              averageNet = 0;
+            } else if (finalTotal <= 80) {
+              outcome = "Earn 1d6 × 2 gp";
+              averageNet = 7;
+            } else if (finalTotal <= 90) {
+              outcome = "Earn 1d6 × 5 gp";
+              averageNet = 17.5;
+            } else {
+              outcome = "Earn 2d8 × 5 gp";
+              averageNet = 45;
+            }
+
+            if (averageNet !== 0) {
+              noteParts.push(`Average outcome from the roll (using mean dice) ≈ ${formatGp(averageNet)} before subtracting upkeep and promotions.`);
+            }
+            noteParts.push("Apply the outcome after subtracting the upkeep you've already paid.");
+
+            const headline = `Running the business for ${formatDays(days)}`;
+            const timeText = `${formatDays(days)} tending to the enterprise.`;
+            const costText = `${formatGp(totalCost)} in upkeep${values.promotions ? " including promotions." : "."}`;
+            const checkText = `Final roll: ${finalTotal} (${baseRoll} base + ${modifiers} modifiers). Compare to the Running a Business table.`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Running a business`,
+              `Downtime invested: ${formatDays(days)}`,
+              `Base upkeep: ${formatGp(baseUpkeep)}`,
+              values.promotions ? `Promotions: ${formatGp(25)}` : null,
+              `Total upkeep: ${formatGp(totalCost)}`,
+              `Final roll total: ${finalTotal}`,
+              `Outcome guidance: ${outcome}`,
+              note ? `Notes: ${note}` : null,
+              `Reference: ${reference}`,
+            ].filter(Boolean).join("\n");
+
+            return { headline, timeText, costText, checkText, reference, note, copyText: copyLines };
+          },
+        },
+        bastion: {
+          label: "Bastion turn (2024)",
+          reference: "Dungeon Master's Guide (2024 preview) – Bastion Turns",
+          fields: [
+            {
+              id: "bastion-weeks",
+              name: "weeks",
+              label: "Number of bastion turns",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 1,
+              helper: "Each bastion turn equals one week of downtime.",
+            },
+            {
+              id: "bastion-level",
+              name: "level",
+              label: "Bastion level",
+              type: "number",
+              min: 1,
+              step: 1,
+              value: 5,
+              helper: "Use your bastion level from the 2024 DMG preview.",
+            },
+            {
+              id: "bastion-focus",
+              name: "focus",
+              label: "Primary focus this turn",
+              type: "select",
+              options: [
+                { value: "project", label: "Project advancement" },
+                { value: "facility", label: "Facility production" },
+                { value: "recruit", label: "Recruitment & training" },
+                { value: "defend", label: "Defense readiness" },
+              ],
+              value: "project",
+            },
+            {
+              id: "bastion-investment",
+              name: "investment",
+              label: "Additional gp invested this turn",
+              type: "number",
+              min: 0,
+              step: 1,
+              value: 0,
+              helper: "Covers optional upgrades or rush orders.",
+            },
+          ],
+          checkboxes: [
+            {
+              id: "bastion-warden",
+              name: "warden",
+              label: "Dedicated bastion warden adds +5 to checks and +1 reward step",
+            },
+            {
+              id: "bastion-threat",
+              name: "threat",
+              label: "Bastion threatened this turn (DC 15 bastion check)",
+            },
+          ],
+          compute(values) {
+            const weeks = Math.max(1, Number(values.weeks) || 0);
+            const level = Math.max(1, Number(values.level) || 0);
+            const investment = Math.max(0, Number(values.investment) || 0);
+            const focusKey = values.focus || "project";
+
+            const focusMap = {
+              project: {
+                label: "Project advancement",
+                reward: `${level * weeks * 2} project points`,
+                detail: "Spend points to unlock upgrades or accelerate facilities.",
+              },
+              facility: {
+                label: "Facility production",
+                reward: `${formatGp(level * weeks * 50)} of goods or services`,
+                detail: "Convert to gp, reagents, or benefits based on active facilities.",
+              },
+              recruit: {
+                label: "Recruitment & training",
+                reward: `${level * weeks} trained retainers`,
+                detail: "Assign them to facility tasks or bastion missions.",
+              },
+              defend: {
+                label: "Defense readiness",
+                reward: `${level * weeks} security successes`,
+                detail: "Each success cancels one threat complication during bastion resolution.",
+              },
+            };
+
+            const focus = focusMap[focusKey] ?? focusMap.project;
+            const upkeep = level * 25 * weeks;
+            const totalCost = upkeep + investment;
+
+            const dc = values.threat ? 15 : 10;
+            const noteParts = [
+              `Base upkeep: ${formatGp(upkeep)} (${level * 25} gp per week × ${weeks} week${weeks === 1 ? "" : "s"}).`,
+            ];
+            if (values.warden) {
+              noteParts.push("Active warden grants +5 to the bastion check and improves rewards by one step.");
+            }
+            if (values.threat) {
+              noteParts.push("A threatened bastion requires a DC 15 check; failure may trigger incursions.");
+            }
+            noteParts.push(focus.detail);
+
+            const checkBonus = values.warden ? "+5 warden bonus" : "no bonus";
+            const headline = `${focus.label} bastion turn`;
+            const timeText = `${weeks} bastion turn${weeks === 1 ? "" : "s"} (~${formatDays(weeks * 7)}) resolved.`;
+            const costText = `${formatGp(totalCost)} in upkeep and investments.`;
+            const checkText = `Bastion ability check vs. DC ${dc} (${checkBonus}).`;
+            const reference = this.reference;
+            const note = noteParts.join(" ");
+
+            const copyLines = [
+              `Downtime activity: Bastion turn (${focus.label})`,
+              `Turns resolved: ${weeks} (${formatDays(weeks * 7)})`,
+              `Bastion level: ${level}`,
+              `Base upkeep: ${formatGp(upkeep)}`,
+              investment ? `Additional investment: ${formatGp(investment)}` : null,
+              `Total cost: ${formatGp(totalCost)}`,
+              `Projected reward: ${focus.reward}${values.warden ? " (+1 step from warden)" : ""}`,
               `Check guidance: ${checkText}`,
               note ? `Notes: ${note}` : null,
               `Reference: ${reference}`,

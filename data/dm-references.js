@@ -345,6 +345,146 @@ export default [
           ]
         },
         {
+          key: "skillChallenges4e",
+          title: "4e Skill Challenge Difficulty",
+          description: "Baseline difficulty classes for 4e-style skill challenges by tier.",
+          caption: "After determining the party's level, add half that level (rounded down) to the listed base DCs.",
+          columns: ["Tier", "Level Range", "Moderate DC", "Hard DC", "Guidance"],
+          rows: [
+            {
+              cells: [
+                { text: "Heroic", tag: "4e" },
+                { text: "Levels 1-10" },
+                { text: "Base 10 + 1/2 level" },
+                { text: "Base 15 + 1/2 level" },
+                { text: "Use for neighborhood intrigue, wilderness travel, or early dungeon delves." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Paragon", tag: "4e" },
+                { text: "Levels 11-20" },
+                { text: "Base 12 + 1/2 level" },
+                { text: "Base 19 + 1/2 level" },
+                { text: "Represents complex political plays, planar journeys, and mid-campaign climaxes." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Epic", tag: "4e" },
+                { text: "Levels 21-30" },
+                { text: "Base 14 + 1/2 level" },
+                { text: "Base 23 + 1/2 level" },
+                { text: "Reserved for world-shaping challenges and legendary foes." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "xpBudget35e",
+          title: "3.5e Encounter XP Budgets",
+          description: "Quick encounter budgeting based on the 3.5e Dungeon Master's Guide encounter level guidance.",
+          caption: "Multiply the suggested per-character XP by the party size, then match that total against CR values in the DMG.",
+          columns: ["Encounter Type", "Recommended EL", "XP per Character", "Usage Notes"],
+          rows: [
+            {
+              cells: [
+                { text: "Easy warm-up", tag: "3.5e" },
+                { text: "APL - 1" },
+                { text: "~50 × party level" },
+                { text: "Good for attrition and foreshadowing; minimal risk if resources are full." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Challenging", tag: "3.5e" },
+                { text: "APL" },
+                { text: "~75 × party level" },
+                { text: "Standard encounter; expect to consume key spells or per-day abilities." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Very difficult", tag: "3.5e" },
+                { text: "APL + 1" },
+                { text: "~100 × party level" },
+                { text: "Stack monsters or leverage terrain; plan escape routes for the party." }
+              ]
+            },
+            {
+              cells: [
+                { text: "Overpowering", tag: "3.5e" },
+                { text: "APL + 4" },
+                { text: "120+ × party level" },
+                { text: "Likely lethal without advantages; reserve for climactic showdowns." }
+              ]
+            }
+          ]
+        },
+        {
+          key: "legacySaves",
+          title: "Legacy Saving Throw Matrix",
+          description: "Quick reference for B/X and AD\u0026D-style saving throw targets at low levels.",
+          caption: "Targets are the numbers characters must meet or beat on a d20; adjust for magic items or situational bonuses.",
+          columns: ["Class & Edition", "Levels", "Death/Poison", "Wands", "Spells/Breath"],
+          rows: [
+            {
+              cells: [
+                { text: "Fighter (B/X)", tag: "B/X" },
+                { text: "Levels 1-3" },
+                { text: "12" },
+                { text: "13" },
+                { text: "15 / 16" }
+              ]
+            },
+            {
+              cells: [
+                { text: "Cleric (B/X)", tag: "B/X" },
+                { text: "Levels 1-3" },
+                { text: "11" },
+                { text: "12" },
+                { text: "14 / 15" }
+              ]
+            },
+            {
+              cells: [
+                { text: "Magic-User (B/X)", tag: "B/X" },
+                { text: "Levels 1-3" },
+                { text: "13" },
+                { text: "14" },
+                { text: "16 / 17" }
+              ]
+            },
+            {
+              cells: [
+                { text: "Fighter (AD\u0026D 1e)", tag: "AD&D" },
+                { text: "Levels 1-3" },
+                { text: "14" },
+                { text: "16" },
+                { text: "17 / 18" }
+              ]
+            },
+            {
+              cells: [
+                { text: "Cleric (AD\u0026D 1e)", tag: "AD&D" },
+                { text: "Levels 1-3" },
+                { text: "11" },
+                { text: "12" },
+                { text: "14 / 15" }
+              ]
+            },
+            {
+              cells: [
+                { text: "Magic-User (AD\u0026D 1e)", tag: "AD&D" },
+                { text: "Levels 1-3" },
+                { text: "13" },
+                { text: "14" },
+                { text: "15 / 16" }
+              ]
+            }
+          ]
+        },
+        {
           key: "cover",
           title: "Cover & Obscurement",
           description: "Apply cover bonuses when terrain shields combatants.",

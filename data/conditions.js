@@ -198,6 +198,96 @@ export default [
     keywords: ["incapacitated", "control", "stagger"]
   },
   {
+    name: "Slowed",
+    duration: "Save ends or as specified by the effect",
+    durationTag: "saveEnds",
+    savingThrow: "Usually save ends (end of turn)",
+    summary: "Slowed creatures see their speed heavily restricted; 4e locks movement to 2 squares while 2024 previews remove reactions and reduce speed by 15 feet.",
+    source: "4e Rules Compendium; 2024 Playtest Glossary",
+    effects: [
+      "4e: Speed becomes 2 squares (10 feet) and you can't shift more than 1 square",
+      "4e: Difficult terrain still costs extra movement while slowed",
+      "2024: Speed is reduced by 15 feet (minimum 5 feet) and you can't take reactions while slowed"
+    ],
+    keywords: ["movement", "speed", "save ends"],
+    editionSpecific: [
+      "4e: Forced movement and teleportation ignore the restriction; make a saving throw at the end of your turn to end the condition.",
+      "2024: Slowed stacks with other speed penalties but can't reduce you below 5 feet; ending the condition restores reactions on your next turn."
+    ]
+  },
+  {
+    name: "Dazed",
+    duration: "Save ends or end of next turn",
+    durationTag: "saveEnds",
+    savingThrow: "Usually save ends",
+    summary: "Dazed creatures can only take one action on their turn and struggle to react to threats; 2024 previews align it with a lighter stun effect.",
+    source: "4e Rules Compendium; 2024 Playtest Glossary",
+    effects: [
+      "4e: Creature grants combat advantage to attackers",
+      "4e: Creature can take either a standard, move, or minor action on its turn (only one)",
+      "4e: Creature can't make opportunity attacks while dazed"
+    ],
+    keywords: ["actions", "control", "save ends"],
+    editionSpecific: [
+      "4e: Dazed prevents immediate interrupt/reaction powers and flanking.",
+      "2024: Dazed creatures are limited to one action on their turn and can't take bonus actions or reactions until the condition ends."
+    ]
+  },
+  {
+    name: "Immobilized",
+    duration: "Save ends or until the effect ends",
+    durationTag: "saveEnds",
+    savingThrow: "Usually save ends",
+    summary: "Immobilized creatures cannot move from their space except by teleportation or forced movement.",
+    source: "4e Rules Compendium",
+    effects: [
+      "Speed becomes 0; you can't shift",
+      "Teleportation or forced movement can move the creature despite the condition",
+      "Immobilized often combines with other conditions such as restrained or grabbed"
+    ],
+    keywords: ["movement", "control", "save ends"],
+    editionSpecific: [
+      "4e: Immobilized doesn't impose attack penalties but stops voluntary movement until a saving throw succeeds.",
+      "5e: Treat immobilized as a narrative variant of Grappled/Restrained for compatibility with modern rules."
+    ]
+  },
+  {
+    name: "Weakened",
+    duration: "Save ends or until cured",
+    durationTag: "saveEnds",
+    savingThrow: "Usually save ends",
+    summary: "Weakened creatures deal only half damage, reflecting sapped strength or vitality in classic 4e encounters.",
+    source: "4e Rules Compendium",
+    effects: [
+      "Damage dealt is halved (round down)",
+      "Ongoing damage from the creature is also halved",
+      "Attacks that don't deal hit point damage are unaffected"
+    ],
+    keywords: ["damage", "penalty", "save ends"],
+    editionSpecific: [
+      "4e: Halving applies after all bonuses and resistances are resolved.",
+      "2024: Recent design notes lean on Weakened to halve outgoing damage while nudging Strength-based tests toward disadvantage."
+    ]
+  },
+  {
+    name: "Paralysis (AD&D)",
+    duration: "Varies (often 2d4 turns or until cured)",
+    durationTag: "legacy",
+    savingThrow: "Save vs. Paralysis/Poison",
+    summary: "Classic paralysis leaves victims rigid and helpless, inviting coup de grâce attacks unless allies intervene.",
+    source: "AD&D 1e Player's Handbook",
+    effects: [
+      "Victim is helpless and can take no actions",
+      "Attackers gain +4 to hit and can automatically strike in melee",
+      "Paralyzed characters drop held items and may suffocate if underwater"
+    ],
+    keywords: ["legacy", "paralysis", "helpless"],
+    editionSpecific: [
+      "AD&D: Duration is typically rolled per effect; a removed paralysis still leaves the target prone and disoriented for 1 round.",
+      "5e conversion: Apply the Paralyzed condition and use Restoration magic or saves to recover."
+    ]
+  },
+  {
     name: "Unconscious",
     duration: "Until awakened or stabilized",
     durationTag: "ongoing",
