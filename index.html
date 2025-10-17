@@ -812,6 +812,12 @@
         opacity: 0.75;
       }
 
+      .status-meta.warning {
+        color: #f97316;
+        opacity: 0.95;
+        font-weight: 600;
+      }
+
       .status.ready span { background: #31c48d; }
       .status.generating span { background: #ff7849; }
 
@@ -6038,6 +6044,84 @@
         return null;
       };
 
+      const getDeviceMemoryBytes = () => {
+        if (typeof navigator === "undefined") return null;
+        const memory = Number(navigator?.deviceMemory);
+        if (Number.isFinite(memory) && memory > 0) {
+          return memory * 1024 ** 3;
+        }
+        return null;
+      };
+
+      const getDeviceMemoryBudgetBytes = () => {
+        const memoryBytes = getDeviceMemoryBytes();
+        if (!Number.isFinite(memoryBytes) || memoryBytes <= 0) {
+          return null;
+        }
+        const budget = memoryBytes * 0.6;
+        const minimum = 512 * 1024 ** 2;
+        return Math.max(budget, minimum);
+      };
+
+      const getModelSizeScore = (model) => {
+        const size = getModelSizeBytes(model);
+        if (Number.isFinite(size) && size > 0) {
+          return size;
+        }
+        return Number.POSITIVE_INFINITY;
+      };
+
+      const compareModelsBySize = (a, b) => {
+        const diff = getModelSizeScore(a) - getModelSizeScore(b);
+        if (Number.isFinite(diff) && diff !== 0) {
+          return diff;
+        }
+        const aName = getModelDisplayName(a);
+        const bName = getModelDisplayName(b);
+        return aName.localeCompare(bName);
+      };
+
+      const getSortedModelsBySize = (models = availableModels) => {
+        if (!Array.isArray(models)) return [];
+        return [...models].sort(compareModelsBySize);
+      };
+
+      const filterModelsByMemoryBudget = (models = availableModels) => {
+        const budget = getDeviceMemoryBudgetBytes();
+        if (!Array.isArray(models) || !budget) {
+          return models ?? [];
+        }
+        const filtered = models.filter(model => {
+          const size = getModelSizeBytes(model);
+          if (!Number.isFinite(size) || size <= 0) {
+            return true;
+          }
+          return size <= budget;
+        });
+        return filtered.length ? filtered : models;
+      };
+
+      const isModelLikelyTooLargeForDevice = (model) => {
+        const budget = getDeviceMemoryBudgetBytes();
+        if (!budget) return false;
+        const size = getModelSizeBytes(model);
+        if (!Number.isFinite(size) || size <= 0) return false;
+        return size > budget;
+      };
+
+      const describeModelSizeRisk = (model) => {
+        if (!isModelLikelyTooLargeForDevice(model)) return null;
+        const sizeBytes = getModelSizeBytes(model);
+        const deviceBytes = getDeviceMemoryBytes();
+        if (!Number.isFinite(sizeBytes) || !Number.isFinite(deviceBytes) || deviceBytes <= 0) {
+          return "⚠️ May exceed this device's memory";
+        }
+        const sizeGb = sizeBytes / 1024 ** 3;
+        const deviceGb = deviceBytes / 1024 ** 3;
+        const format = (value) => (value >= 10 ? value.toFixed(0) : value.toFixed(1));
+        return `⚠️ ~${format(sizeGb)} GB vs ${format(deviceGb)} GB device memory`;
+      };
+
       const getModelDisplayName = (model) => {
         return (
           model?.display_name
@@ -6046,6 +6130,76 @@
           ?? model?.model_id
           ?? "Model"
         );
+      };
+
+      const preferInstructionalModel = (models) => {
+        if (!Array.isArray(models)) return null;
+        const instructPattern = /(instruct|it)/i;
+        return (
+          models.find(model => {
+            const identifier = `${model?.model_id ?? ""} ${model?.model_name ?? ""}`;
+            return instructPattern.test(identifier);
+          }) ?? models[0] ?? null
+        );
+      };
+
+      const pickInitialModel = (models, storedId) => {
+        if (!Array.isArray(models) || !models.length) return null;
+        if (storedId) {
+          const stored = models.find(model => model.model_id === storedId);
+          if (stored) {
+            return stored;
+          }
+        }
+        const budgetAware = getSortedModelsBySize(filterModelsByMemoryBudget(models));
+        const preferred = preferInstructionalModel(budgetAware);
+        return preferred ?? budgetAware[0] ?? models[0] ?? null;
+      };
+
+      const findFallbackModel = (model, attempted = new Set()) => {
+        const sorted = getSortedModelsBySize();
+        if (!sorted.length) return null;
+        const currentId = model?.model_id;
+        const currentIndex = sorted.findIndex(item => item.model_id === currentId);
+        const isCandidateEligible = (candidate) => {
+          if (!candidate) return false;
+          if (candidate.model_id === currentId) return false;
+          if (attempted.has(candidate.model_id)) return false;
+          return true;
+        };
+
+        if (currentIndex > -1) {
+          const currentScore = getModelSizeScore(model);
+          for (let i = currentIndex - 1; i >= 0; i -= 1) {
+            const candidate = sorted[i];
+            if (isCandidateEligible(candidate)) {
+              return candidate;
+            }
+          }
+          for (let i = currentIndex + 1; i < sorted.length; i += 1) {
+            const candidate = sorted[i];
+            if (!candidate) continue;
+            const candidateScore = getModelSizeScore(candidate);
+            if (
+              Number.isFinite(currentScore)
+              && Number.isFinite(candidateScore)
+              && candidateScore > currentScore
+            ) {
+              break;
+            }
+            if (isCandidateEligible(candidate)) {
+              return candidate;
+            }
+          }
+          return null;
+        }
+
+        for (const candidate of sorted) {
+          if (isCandidateEligible(candidate)) {
+            return candidate;
+          }
+        }
+        return null;
       };
 
       const buildModelOptionLabel = (model) => {
@@ -6059,11 +6213,17 @@
         if (contextTokens) {
           notes.push(`${contextTokens.toLocaleString()} token ctx`);
         }
+        if (isModelLikelyTooLargeForDevice(model)) {
+          notes.push("⚠️ heavy for this device");
+        }
         return notes.length ? `${name} (${notes.join(" · ")})` : name;
       };
 
       const updateModelMetadata = (model) => {
         if (!model) {
+          if (statusMetaEl) {
+            statusMetaEl.classList.remove("warning");
+          }
           setStatusMeta("");
           return;
         }
@@ -6076,10 +6236,19 @@
         if (sizeBytes) {
           parts.push(`≈${formatBytesReadable(sizeBytes)}`);
         }
+        const risk = describeModelSizeRisk(model);
+        if (risk) {
+          parts.push(risk);
+          if (statusMetaEl) {
+            statusMetaEl.classList.add("warning");
+          }
+        } else if (statusMetaEl) {
+          statusMetaEl.classList.remove("warning");
+        }
         setStatusMeta(parts.join(" · "));
       };
 
-      const loadEngineForModel = async (model, { userInitiated = false } = {}) => {
+      const loadEngineForModel = async (model, { userInitiated = false, attemptedModelIds = new Set() } = {}) => {
         if (!model?.model_id) {
           reportEngineFailure(
             "No model selected to load.",
@@ -6088,6 +6257,11 @@
           return false;
         }
 
+        if (!(attemptedModelIds instanceof Set)) {
+          attemptedModelIds = new Set();
+        }
+
+        attemptedModelIds.add(model.model_id);
         const targetModelId = model.model_id;
         const displayName = getModelDisplayName(model);
         queuedModelId = null;
@@ -6127,6 +6301,24 @@
         } catch (error) {
           console.error(error);
           engine = null;
+          const fallbackModel = findFallbackModel(model, attemptedModelIds);
+          if (fallbackModel && fallbackModel.model_id !== targetModelId) {
+            const fallbackDisplayName = getModelDisplayName(fallbackModel);
+            if (modelSelect) {
+              modelSelect.value = fallbackModel.model_id;
+            }
+            safeStorage.set(STORAGE_KEYS.model, fallbackModel.model_id);
+            updateModelMetadata(fallbackModel);
+            const introMessage = userInitiated
+              ? `I couldn't load ${displayName} on this device, so I'm switching to ${fallbackDisplayName}.`
+              : `The default model looks too heavy for this device. Trying ${fallbackDisplayName} instead.`;
+            appendMessage("assistant", introMessage);
+            updateStatus(`Retrying with ${fallbackDisplayName}…`);
+            return await loadEngineForModel(fallbackModel, {
+              userInitiated: false,
+              attemptedModelIds
+            });
+          }
           const statusText = userInitiated
             ? `Failed to load ${displayName}`
             : "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.";
@@ -6304,18 +6496,6 @@ Stay family friendly and inclusive.`
           ? runtime.prebuiltAppConfig.model_list
           : [];
 
-        if (modelSelect) {
-          modelSelect.innerHTML = "";
-          const fragment = document.createDocumentFragment();
-          availableModels.forEach(model => {
-            const option = document.createElement("option");
-            option.value = model.model_id;
-            option.textContent = buildModelOptionLabel(model);
-            fragment.appendChild(option);
-          });
-          modelSelect.appendChild(fragment);
-        }
-
         if (!availableModels.length) {
           reportEngineFailure(
             "No models available to load.",
@@ -6327,19 +6507,29 @@ Stay family friendly and inclusive.`
           return;
         }
 
-        let preferredModelId = safeStorage.get(STORAGE_KEYS.model);
-        if (!preferredModelId || !availableModels.some(model => model.model_id === preferredModelId)) {
-          preferredModelId =
-            availableModels.find(m => /Gemma-2.*2B.*it/i.test(m.model_id))?.model_id
-            ?? availableModels.find(m => /Phi-3\.5.*mini.*it/i.test(m.model_id))?.model_id
-            ?? availableModels[0]?.model_id;
+        const storedModelId = safeStorage.get(STORAGE_KEYS.model);
+        const initialModel = pickInitialModel(availableModels, storedModelId);
+
+        if (modelSelect) {
+          modelSelect.innerHTML = "";
+          const fragment = document.createDocumentFragment();
+          availableModels.forEach(model => {
+            const option = document.createElement("option");
+            option.value = model.model_id;
+            option.textContent = buildModelOptionLabel(model);
+            if (isModelLikelyTooLargeForDevice(model)) {
+              option.dataset.heavy = "true";
+              option.title = "This model may exceed your device's available memory";
+            }
+            fragment.appendChild(option);
+          });
+          modelSelect.appendChild(fragment);
+          if (initialModel) {
+            modelSelect.value = initialModel.model_id;
+          }
         }
 
-        if (modelSelect && preferredModelId) {
-          modelSelect.value = preferredModelId;
-        }
-
-        const selectedModel = getSelectedModel();
+        const selectedModel = modelSelect ? getSelectedModel() : initialModel ?? availableModels[0];
         if (!selectedModel) {
           reportEngineFailure(
             "No model selected to load.",
