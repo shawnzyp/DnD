@@ -6292,6 +6292,36 @@
             }
           });
 
+          try {
+            const chatCompletionCreate = engine?.chat?.completions?.create;
+            if (typeof chatCompletionCreate !== "function") {
+              throw new Error("Engine missing chat.completions.create");
+            }
+            await chatCompletionCreate({
+              messages: [
+                {
+                  role: "system",
+                  content: "You are a readiness probe ensuring the Dungeon Master engine can process prompts."
+                },
+                {
+                  role: "user",
+                  content: "Reply with READY so we know the engine is awake."
+                }
+              ],
+              stream: false,
+              max_tokens: 1,
+              temperature: 0
+            });
+          } catch (selfTestError) {
+            console.error("Engine health check failed", selfTestError);
+            await disposeEngine();
+            reportEngineFailure(
+              `Health check failed for ${displayName}`,
+              `My quick engine health check for ${displayName} failed. Please try again or pick another model.`
+            );
+            return false;
+          }
+
           activeModelId = targetModelId;
           const readyLabel = `Ready to answer questions · ${displayName}`;
           updateStatus(readyLabel, "ready");
