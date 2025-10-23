@@ -59,6 +59,13 @@
         margin-left: auto;
       }
 
+      .main-menu-wrapper[data-open="true"] .main-menu-toggle {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(217, 109, 40, 0.35);
+        border-color: transparent;
+      }
+
       .main-menu-toggle {
         background: rgba(255, 255, 255, 0.08);
         border: 1px solid rgba(255, 255, 255, 0.2);
@@ -73,14 +80,14 @@
       }
 
       .main-menu-toggle:hover,
-      .main-menu-toggle[aria-expanded="true"] {
+      .main-menu-toggle:focus-visible {
         background: var(--accent);
         color: #fff;
         box-shadow: 0 12px 30px rgba(217, 109, 40, 0.35);
         border-color: transparent;
       }
 
-      .main-menu {
+      .main-menu-panel {
         position: absolute;
         top: calc(100% + 0.75rem);
         right: 0;
@@ -1187,7 +1194,7 @@
           text-align: center;
         }
 
-        .main-menu {
+        .main-menu-panel {
           position: static;
           width: 100%;
           margin-top: 0.75rem;
@@ -1677,87 +1684,93 @@
         <h1>D&D Companion</h1>
         <p>Ask the DM · Browse every edition · Reference gear &amp; loot</p>
       </div>
-      <div class="main-menu-wrapper">
+      <div class="main-menu-wrapper" data-open="false">
         <button
           id="main-menu-toggle"
           class="main-menu-toggle"
           type="button"
           aria-haspopup="true"
-          aria-controls="main-menu"
+          aria-controls="main-menu-panel"
           aria-expanded="false"
         >Main Menu</button>
-        <nav
-          id="main-menu"
-          class="card main-menu"
-          role="tablist"
-          hidden
-        >
-          <button
-            id="tab-ask"
-            class="active"
-            role="tab"
-            aria-selected="true"
-            aria-controls="ask"
-            data-target="ask"
-          >Ask the DM</button>
-          <button
-            id="tab-details"
-            role="tab"
-            aria-selected="false"
-            aria-controls="details"
-            data-target="details"
-          >DM Screen</button>
-          <button
-            id="tab-encounters"
-            role="tab"
-            aria-selected="false"
-            aria-controls="encounters"
-            data-target="encounters"
-          >Encounters</button>
-          <button
-            id="tab-rules"
-            role="tab"
-            aria-selected="false"
-            aria-controls="rules"
-            data-target="rules"
-          >Rules Compendium</button>
-          <button
-            id="tab-items"
-            role="tab"
-            aria-selected="false"
-            aria-controls="items"
-            data-target="items"
-          >Item &amp; Gear Vault</button>
-          <button
-            id="tab-spells"
-            role="tab"
-            aria-selected="false"
-            aria-controls="spells"
-            data-target="spells"
-          >Spellbook</button>
-          <button
-            id="tab-conditions"
-            role="tab"
-            aria-selected="false"
-            aria-controls="conditions"
-            data-target="conditions"
-          >Condition Codex</button>
-          <button
-            id="tab-bestiary"
-            role="tab"
-            aria-selected="false"
-            aria-controls="bestiary"
-            data-target="bestiary"
-          >Bestiary</button>
-          <button
-            id="tab-compare"
-            role="tab"
-            aria-selected="false"
-            aria-controls="compare"
-            data-target="compare"
-          >Edition Comparison</button>
-        </nav>
-      </div>
+          <div
+            id="main-menu-panel"
+            class="card main-menu-panel"
+            role="presentation"
+            hidden
+          >
+            <nav
+              id="main-menu"
+              class="main-menu-options"
+              role="tablist"
+            >
+              <button
+                id="tab-ask"
+                class="active"
+                role="tab"
+                aria-selected="true"
+                aria-controls="ask"
+                data-target="ask"
+              >Ask the DM</button>
+              <button
+                id="tab-details"
+                role="tab"
+                aria-selected="false"
+                aria-controls="details"
+                data-target="details"
+              >DM Screen</button>
+              <button
+                id="tab-encounters"
+                role="tab"
+                aria-selected="false"
+                aria-controls="encounters"
+                data-target="encounters"
+              >Encounters</button>
+              <button
+                id="tab-rules"
+                role="tab"
+                aria-selected="false"
+                aria-controls="rules"
+                data-target="rules"
+              >Rules Compendium</button>
+              <button
+                id="tab-items"
+                role="tab"
+                aria-selected="false"
+                aria-controls="items"
+                data-target="items"
+              >Item &amp; Gear Vault</button>
+              <button
+                id="tab-spells"
+                role="tab"
+                aria-selected="false"
+                aria-controls="spells"
+                data-target="spells"
+              >Spellbook</button>
+              <button
+                id="tab-conditions"
+                role="tab"
+                aria-selected="false"
+                aria-controls="conditions"
+                data-target="conditions"
+              >Condition Codex</button>
+              <button
+                id="tab-bestiary"
+                role="tab"
+                aria-selected="false"
+                aria-controls="bestiary"
+                data-target="bestiary"
+              >Bestiary</button>
+              <button
+                id="tab-compare"
+                role="tab"
+                aria-selected="false"
+                aria-controls="compare"
+                data-target="compare"
+              >Edition Comparison</button>
+            </nav>
+          </div>
+        </div>
     </header>
 
     <main>
@@ -4692,34 +4705,75 @@
       };
 
       const mainMenuToggle = document.getElementById("main-menu-toggle");
-      const mainMenu = document.getElementById("main-menu");
+      const mainMenuPanel = document.getElementById("main-menu-panel");
       const mainMenuWrapper = document.querySelector(".main-menu-wrapper");
 
-      const isMainMenuOpen = () => Boolean(mainMenu && !mainMenu.hasAttribute("hidden"));
+      const setMainMenuState = (isOpen) => {
+        if (!mainMenuWrapper) return;
+        mainMenuWrapper.dataset.open = isOpen ? "true" : "false";
+      };
+
+      const isMainMenuOpen = () => mainMenuWrapper?.dataset.open === "true";
 
       const openMainMenu = () => {
-        if (!mainMenu || !mainMenuToggle) return;
-        mainMenu.removeAttribute("hidden");
+        if (!mainMenuPanel || !mainMenuToggle) return;
+        if (isMainMenuOpen()) return;
+        mainMenuPanel.hidden = false;
         mainMenuToggle.setAttribute("aria-expanded", "true");
+        setMainMenuState(true);
       };
 
       const closeMainMenu = () => {
-        if (!mainMenu || !mainMenuToggle) return;
+        if (!mainMenuPanel || !mainMenuToggle) return;
         if (!isMainMenuOpen()) return;
-        mainMenu.setAttribute("hidden", "");
+        mainMenuPanel.hidden = true;
         mainMenuToggle.setAttribute("aria-expanded", "false");
+        setMainMenuState(false);
       };
 
-      mainMenuToggle?.addEventListener("click", (event) => {
-        event.stopPropagation();
+      const toggleMainMenu = () => {
         if (isMainMenuOpen()) {
           closeMainMenu();
         } else {
           openMainMenu();
         }
+      };
+
+      let pointerToggleHandled = false;
+
+      mainMenuToggle?.addEventListener("pointerdown", (event) => {
+        if (event.button !== 0) return;
+        pointerToggleHandled = true;
+        event.preventDefault();
+        toggleMainMenu();
       });
 
-      document.addEventListener("click", (event) => {
+      mainMenuToggle?.addEventListener("pointerup", () => {
+        pointerToggleHandled = false;
+      });
+
+      mainMenuToggle?.addEventListener("pointercancel", () => {
+        pointerToggleHandled = false;
+      });
+
+      mainMenuToggle?.addEventListener("click", (event) => {
+        if (pointerToggleHandled) {
+          pointerToggleHandled = false;
+          event.preventDefault();
+          return;
+        }
+        event.preventDefault();
+        toggleMainMenu();
+      });
+
+      mainMenuToggle?.addEventListener("keydown", (event) => {
+        if (event.key === " " || event.key === "Enter") {
+          event.preventDefault();
+          toggleMainMenu();
+        }
+      });
+
+      document.addEventListener("pointerdown", (event) => {
         if (!isMainMenuOpen()) return;
         if (!mainMenuWrapper?.contains(event.target)) {
           closeMainMenu();
@@ -6026,6 +6080,27 @@
         }, 2200);
       };
 
+      const resolvePrebuiltAppConfig = (runtime) => {
+        if (!runtime) return null;
+        return runtime.prebuiltAppConfig ?? runtime.default?.prebuiltAppConfig ?? null;
+      };
+
+      const resolveCreateEngineFactory = (runtime) => {
+        if (!runtime) return null;
+        const candidates = [
+          [runtime, runtime.CreateMLCEngine],
+          [runtime, runtime.CreateWebWorkerMLCEngine],
+          [runtime.default, runtime.default?.CreateMLCEngine],
+          [runtime.default, runtime.default?.CreateWebWorkerMLCEngine]
+        ];
+        for (const [context, candidate] of candidates) {
+          if (typeof candidate === "function") {
+            return (...args) => candidate.apply(context ?? runtime, args);
+          }
+        }
+        return null;
+      };
+
       const ensureWebLLMModule = async () => {
         if (webllmModule) {
           return webllmModule;
@@ -6106,6 +6181,71 @@
           return clean;
         }
         return `${tokens[0]} ${tokens[1]}`;
+      };
+
+      const extractProgressFraction = (payload) => {
+        if (typeof payload === "number") {
+          return payload;
+        }
+        if (!payload || typeof payload !== "object") {
+          return Number.NaN;
+        }
+
+        const directCandidates = [
+          payload.progress,
+          payload.ratio,
+          payload.percent,
+          payload.percentage,
+          payload.value
+        ];
+
+        for (const candidate of directCandidates) {
+          const numeric = Number(candidate);
+          if (Number.isFinite(numeric)) {
+            if (numeric > 1 && numeric <= 100) {
+              return numeric / 100;
+            }
+            return numeric;
+          }
+          if (candidate && typeof candidate === "object") {
+            const nested = extractProgressFraction(candidate);
+            if (Number.isFinite(nested)) {
+              return nested;
+            }
+          }
+        }
+
+        if (Number.isFinite(payload.current) && Number.isFinite(payload.total) && payload.total) {
+          const ratio = Number(payload.current) / Number(payload.total);
+          if (Number.isFinite(ratio)) {
+            return ratio;
+          }
+        }
+
+        if (payload.progress && typeof payload.progress === "object") {
+          const nested = extractProgressFraction(payload.progress);
+          if (Number.isFinite(nested)) {
+            return nested;
+          }
+        }
+
+        return Number.NaN;
+      };
+
+      const extractProgressStage = (payload) => {
+        if (typeof payload === "string") {
+          return payload;
+        }
+        if (!payload || typeof payload !== "object") {
+          return "";
+        }
+        const candidates = [payload.text, payload.stage, payload.message, payload.status, payload.detail];
+        for (const candidate of candidates) {
+          if (candidate) {
+            return candidate;
+          }
+        }
+        return "";
       };
 
       const getModelSizeBytes = (model) => {
@@ -6396,12 +6536,21 @@
           activeModelId = null;
 
           const webllm = await ensureWebLLMModule();
+          const createEngine = resolveCreateEngineFactory(webllm);
 
-          engine = await webllm.CreateMLCEngine(targetModelId, {
-            initProgressCallback: (p) => {
-              const progressRaw = Number(p?.progress);
-              const progress = Number.isFinite(progressRaw) ? Math.floor(progressRaw * 100) : NaN;
-              const stageLabel = formatStageLabel(p?.text || p?.stage || "");
+          if (!createEngine) {
+            const missingFactoryError = new Error("WebLLM engine factory unavailable");
+            missingFactoryError.name = "WebLLMUnavailableError";
+            throw missingFactoryError;
+          }
+
+          engine = await createEngine(targetModelId, {
+            initProgressCallback: (progressEvent) => {
+              const fraction = extractProgressFraction(progressEvent);
+              const progress = Number.isFinite(fraction)
+                ? Math.max(0, Math.min(100, Math.floor((fraction <= 1 ? fraction * 100 : fraction))))
+                : Number.NaN;
+              const stageLabel = formatStageLabel(extractProgressStage(progressEvent));
               const statusText = Number.isFinite(progress) && progress > 0
                 ? `${progress}%`
                 : "Loading";
@@ -6648,8 +6797,10 @@ Stay family friendly and inclusive.`
           return;
         }
 
-        availableModels = Array.isArray(runtime?.prebuiltAppConfig?.model_list)
-          ? runtime.prebuiltAppConfig.model_list
+        const prebuiltAppConfig = resolvePrebuiltAppConfig(runtime);
+
+        availableModels = Array.isArray(prebuiltAppConfig?.model_list)
+          ? prebuiltAppConfig.model_list
           : [];
 
         if (!availableModels.length) {

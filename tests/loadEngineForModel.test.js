@@ -79,6 +79,7 @@ describe("loadEngineForModel", () => {
       appendMessage: vi.fn(),
       getModelDisplayName: (model) => model.display_name ?? model.model_id ?? "Model",
       reportEngineFailure: vi.fn(),
+      resolveCreateEngineFactory: (runtime) => runtime.CreateMLCEngine,
       console,
       setTimeout,
       clearTimeout
