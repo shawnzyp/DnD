@@ -103,6 +103,220 @@
         margin: 0 auto;
       }
 
+      #home {
+        display: grid;
+        gap: 1.5rem;
+      }
+
+      .home-hero {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .home-intro {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .home-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .home-menu-button,
+      .home-consent-button {
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        padding: 0.6rem 1.3rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .home-menu-button:hover,
+      .home-consent-button:hover {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(217, 109, 40, 0.35);
+        border-color: transparent;
+      }
+
+      .home-consent-button {
+        background: rgba(255, 255, 255, 0.14);
+      }
+
+      .home-model-status {
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 22, 32, 0.6);
+        padding: 1rem 1.25rem;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      .quick-links-heading {
+        margin: 0;
+        font-size: 1.1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        opacity: 0.8;
+      }
+
+      .quick-links-grid {
+        display: grid;
+        gap: 0.85rem;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+
+      .quick-link-card {
+        display: flex;
+        gap: 0.85rem;
+        align-items: center;
+        padding: 0.9rem 1rem;
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(15, 22, 32, 0.55);
+        color: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+      }
+
+      .quick-link-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.35);
+        background: rgba(217, 109, 40, 0.18);
+      }
+
+      .quick-link-card span {
+        display: block;
+      }
+
+      .quick-link-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--accent);
+      }
+
+      .quick-link-icon svg {
+        width: 1.35rem;
+        height: 1.35rem;
+      }
+
+      .quick-link-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
+      }
+
+      .quick-link-title {
+        font-weight: 600;
+        letter-spacing: 0.04em;
+      }
+
+      .quick-link-description {
+        font-size: 0.85rem;
+        opacity: 0.75;
+        line-height: 1.4;
+      }
+
+      .consent-backdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(4, 7, 11, 0.8);
+        backdrop-filter: blur(6px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        z-index: 1000;
+      }
+
+      .consent-backdrop[hidden] {
+        display: none;
+      }
+
+      .consent-dialog {
+        max-width: 520px;
+        width: 100%;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        background: rgba(15, 22, 32, 0.92);
+        padding: 1.5rem;
+        box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+        display: grid;
+        gap: 1rem;
+      }
+
+      .consent-dialog h2 {
+        margin: 0;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        font-size: 1.15rem;
+      }
+
+      .consent-dialog p {
+        margin: 0;
+        line-height: 1.6;
+        font-size: 0.95rem;
+      }
+
+      .consent-points {
+        margin: 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.35rem;
+        font-size: 0.9rem;
+        opacity: 0.85;
+      }
+
+      .consent-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+
+      .consent-button {
+        border-radius: 999px;
+        border: 1px solid transparent;
+        padding: 0.6rem 1.4rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        cursor: pointer;
+        text-transform: uppercase;
+      }
+
+      .consent-button.primary {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(217, 109, 40, 0.35);
+      }
+
+      .consent-button.secondary {
+        background: rgba(255, 255, 255, 0.08);
+        color: inherit;
+        border-color: rgba(255, 255, 255, 0.18);
+      }
+
+      .consent-footnote {
+        font-size: 0.8rem;
+        opacity: 0.65;
+      }
+
       .card {
         background: rgba(15, 22, 32, 0.82);
         border: 1px solid rgba(255, 255, 255, 0.06);
@@ -1655,6 +1869,16 @@
           padding: 0 2rem 2.5rem;
         }
 
+        .home-hero {
+          flex-direction: row;
+          justify-content: space-between;
+          align-items: flex-start;
+        }
+
+        .home-model-status {
+          max-width: 320px;
+        }
+
         .reference-grid {
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         }
@@ -1693,12 +1917,20 @@
           hidden
         >
           <button
-            id="tab-ask"
+            id="tab-home"
             class="active"
             role="tab"
             aria-selected="true"
+            aria-controls="home"
+            data-target="home"
+          >Home</button>
+          <button
+            id="tab-ask"
+            role="tab"
+            aria-selected="false"
             aria-controls="ask"
             data-target="ask"
+            tabindex="-1"
           >Ask the DM</button>
           <button
             id="tab-details"
@@ -1761,7 +1993,124 @@
     </header>
 
     <main>
-      <section id="ask" class="card active" role="tabpanel" tabindex="0" aria-labelledby="tab-ask">
+      <section id="home" class="card active" role="tabpanel" tabindex="0" aria-labelledby="tab-home">
+        <div class="home-hero">
+          <div class="home-intro">
+            <h2>Welcome to D&amp;D Companion</h2>
+            <p>
+              Chart your sessions with a digital Dungeon Master, curated rules references, encounter math, and spell and item catalogs.
+              Start from the main menu or jump straight into the tool you need.
+            </p>
+            <div class="home-actions">
+              <button type="button" class="home-menu-button" data-open-main-menu>Open Main Menu</button>
+              <button type="button" class="home-consent-button" data-open-model-consent>Review download agreement</button>
+            </div>
+          </div>
+          <div
+            id="home-model-status"
+            class="home-model-status"
+            role="status"
+            aria-live="polite"
+          >Preparing system check…</div>
+        </div>
+        <h3 class="quick-links-heading">Jump into an adventure</h3>
+        <div class="quick-links-grid">
+          <button type="button" class="quick-link-card" data-activate-section="ask">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 11.5a8.38 8.38 0 0 1-2.3 5.8 8.5 8.5 0 0 1-6.2 2.7 8.38 8.38 0 0 1-5.8-2.3L3 21l1.3-3.7A8.38 8.38 0 0 1 2 11.5 8.5 8.5 0 0 1 4.7 5.3 8.38 8.38 0 0 1 11 3a8.5 8.5 0 0 1 6.2 2.7 8.38 8.38 0 0 1 2.3 5.8Z" />
+                <path d="M8 10h.01" />
+                <path d="M12 10h.01" />
+                <path d="M16 10h.01" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Ask the DM</span>
+              <span class="quick-link-description">Chat with the Arcane Intelligence Database for instant rulings.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="details">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="14" rx="2" />
+                <path d="M8 20h8" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">DM Screen</span>
+              <span class="quick-link-description">Pull up quick adjudication tables and travel references.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="encounters">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6.5 6.5 11 11" />
+                <path d="m6.5 17.5 11-11" />
+                <path d="M4 4v5h5" />
+                <path d="M20 20v-5h-5" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Encounter Workshop</span>
+              <span class="quick-link-description">Balance battles with party math, rosters, and initiative tracking.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="items">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3 6 4v6c0 3.3-2.7 6-6 6s-6-2.7-6-6V7l6-4Z" />
+                <path d="M9 12h6" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Item Vault</span>
+              <span class="quick-link-description">Search equipment, artifacts, and downtime crafting guidance.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="spells">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v18" />
+                <path d="m7 8 5-5 5 5" />
+                <path d="m7 16 5 5 5-5" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Spellbook Archives</span>
+              <span class="quick-link-description">Filter SRD spells by level, class, school, and rituals.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="bestiary">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h5l2 4 2-4h5l-2 7 2 9-7-3-7 3 2-9-2-7Z" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Bestiary</span>
+              <span class="quick-link-description">Survey monsters with CR, terrain, and tactical summaries.</span>
+            </span>
+          </button>
+          <button type="button" class="quick-link-card" data-activate-section="compare">
+            <span class="quick-link-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19h6" />
+                <path d="M14 19h6" />
+                <path d="M7 19V5" />
+                <path d="M17 19V9" />
+                <circle cx="7" cy="5" r="2" />
+                <circle cx="17" cy="9" r="2" />
+              </svg>
+            </span>
+            <span class="quick-link-content">
+              <span class="quick-link-title">Edition Comparison</span>
+              <span class="quick-link-description">Contrast rulesets, classes, and settings across every era.</span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section id="ask" class="card" role="tabpanel" tabindex="0" aria-labelledby="tab-ask" hidden>
         <h2>Ask the DM</h2>
         <p>
           Greetings Adventurers, I am A.I.D. – the Arcane Intelligence Database, a construct forged from magic and machine to
@@ -2021,6 +2370,34 @@
       </section>
     </main>
 
+    <div
+      id="model-consent-overlay"
+      class="consent-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="model-consent-title"
+      aria-describedby="model-consent-description"
+      hidden
+    >
+      <div class="consent-dialog" role="document">
+        <h2 id="model-consent-title">Download the Dungeon Master engine</h2>
+        <p id="model-consent-description">
+          To let the Arcane Intelligence Database answer questions on this device we need to download and store the best fitting local language model.
+          This may take a few minutes and use device storage, but it stays on your machine.
+        </p>
+        <ul class="consent-points">
+          <li>We'll auto-detect the largest compatible model for your hardware.</li>
+          <li>Models are cached locally so future sessions launch faster.</li>
+          <li>You can change or clear the model later from the Ask the DM panel.</li>
+        </ul>
+        <div class="consent-actions">
+          <button type="button" class="consent-button secondary" id="model-consent-decline">Not now</button>
+          <button type="button" class="consent-button primary" id="model-consent-agree">Agree &amp; download</button>
+        </div>
+        <p class="consent-footnote" id="model-consent-details"></p>
+      </div>
+    </div>
+
     <footer>
       Built with WebLLM (Gemma-2-2B-it) so your DM helper runs entirely in the browser. Sources reference the SRD/OGL materials for each edition.
     </footer>
@@ -2197,6 +2574,8 @@
         activeSection: "dnd-companion-active-section",
         legacyActiveTab: "dnd-active-tab",
         model: "dnd-companion-llm-model",
+        modelConsent: "dnd-companion-llm-consent",
+        modelDownload: "dnd-companion-llm-download",
         generation: "dnd-companion-generation-settings",
         customConditions: "dnd-companion-custom-conditions"
       };
@@ -2246,6 +2625,69 @@
         } catch (error) {
           console.warn(`Failed to persist JSON for ${key}`, error);
         }
+      };
+
+      const storedConsent = safeStorage.get(STORAGE_KEYS.modelConsent);
+      let modelConsentGranted = storedConsent === "granted";
+      let latestModelRecord = readJSONFromStorage(STORAGE_KEYS.modelDownload);
+
+      const setHomeModelStatus = (message) => {
+        if (homeModelStatusEl && typeof message === "string") {
+          homeModelStatusEl.textContent = message;
+        }
+      };
+
+      const formatModelRecordStatus = (record) => {
+        if (!record) return null;
+        const parts = [];
+        if (record.displayName) {
+          parts.push(record.displayName);
+        }
+        if (record.sizeLabel) {
+          parts.push(record.sizeLabel);
+        }
+        if (record.contextTokens) {
+          parts.push(`${record.contextTokens.toLocaleString()} token context`);
+        }
+        if (record.storedAt) {
+          parts.push(`cached ${new Date(record.storedAt).toLocaleString()}`);
+        }
+        return parts.join(" · ");
+      };
+
+      const refreshHomeStatus = () => {
+        if (latestModelRecord) {
+          const status = formatModelRecordStatus(latestModelRecord);
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus(status || "Model cached locally and ready for play.");
+          }
+          return;
+        }
+        if (modelConsentGranted) {
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("Awaiting model download. Start Ask the DM to finish setup.");
+          }
+        } else {
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("Review the download agreement to enable the local Dungeon Master engine.");
+          }
+        }
+      };
+
+      const recordModelDownload = (model) => {
+        if (!model) return;
+        const sizeBytes = getModelSizeBytes(model);
+        const record = {
+          modelId: model.model_id,
+          displayName: getModelDisplayName(model),
+          sizeBytes: Number.isFinite(sizeBytes) ? sizeBytes : null,
+          sizeLabel: sizeBytes ? `≈${formatBytesReadable(sizeBytes)}` : null,
+          contextTokens: getModelContextTokens(model) || null,
+          storedAt: new Date().toISOString()
+        };
+        latestModelRecord = record;
+        writeJSONToStorage(STORAGE_KEYS.modelDownload, record);
+        refreshHomeStatus();
       };
 
       const clampNumber = (value, min, max) => {
@@ -4694,6 +5136,11 @@
       const mainMenuToggle = document.getElementById("main-menu-toggle");
       const mainMenu = document.getElementById("main-menu");
       const mainMenuWrapper = document.querySelector(".main-menu-wrapper");
+      const homeModelStatusEl = document.getElementById("home-model-status");
+      const consentOverlay = document.getElementById("model-consent-overlay");
+      const consentAgreeBtn = document.getElementById("model-consent-agree");
+      const consentDeclineBtn = document.getElementById("model-consent-decline");
+      const consentDetailsEl = document.getElementById("model-consent-details");
 
       const isMainMenuOpen = () => Boolean(mainMenu && !mainMenu.hasAttribute("hidden"));
 
@@ -4708,6 +5155,22 @@
         if (!isMainMenuOpen()) return;
         mainMenu.setAttribute("hidden", "");
         mainMenuToggle.setAttribute("aria-expanded", "false");
+      };
+
+      const showConsentOverlay = () => {
+        if (!consentOverlay) return;
+        consentOverlay.removeAttribute("hidden");
+        if (consentDetailsEl) {
+          consentDetailsEl.textContent = "";
+        }
+        requestAnimationFrame(() => {
+          consentAgreeBtn?.focus();
+        });
+      };
+
+      const hideConsentOverlay = () => {
+        if (!consentOverlay) return;
+        consentOverlay.setAttribute("hidden", "");
       };
 
       mainMenuToggle?.addEventListener("click", (event) => {
@@ -4734,8 +5197,55 @@
         }
       });
 
+      document.querySelectorAll("[data-open-main-menu]").forEach(button => {
+        button.addEventListener("click", () => {
+          openMainMenu();
+          mainMenuToggle?.focus();
+        });
+      });
+
+      document.querySelectorAll("[data-open-model-consent]").forEach(button => {
+        button.addEventListener("click", () => {
+          showConsentOverlay();
+        });
+      });
+
+      consentAgreeBtn?.addEventListener("click", () => {
+        modelConsentGranted = true;
+        safeStorage.set(STORAGE_KEYS.modelConsent, "granted");
+        hideConsentOverlay();
+        if (typeof setHomeModelStatus === "function") {
+          setHomeModelStatus("Checking your device for the ideal model…");
+        }
+        setupWebLLM().catch(err => {
+          console.error("WebLLM setup failed", err);
+        });
+      });
+
+      consentDeclineBtn?.addEventListener("click", () => {
+        modelConsentGranted = false;
+        safeStorage.set(STORAGE_KEYS.modelConsent, "denied");
+        hideConsentOverlay();
+        if (consentDetailsEl) {
+          consentDetailsEl.textContent = "You can reopen this agreement from the home screen whenever you're ready.";
+        }
+        refreshHomeStatus();
+      });
+
       const tabs = Array.from(document.querySelectorAll('nav [role="tab"]'));
       const panels = Array.from(document.querySelectorAll('main [role="tabpanel"]'));
+
+      const activateSectionByTarget = (targetId) => {
+        if (!targetId) return;
+        const targetTab = tabs.find(tab =>
+          tab.dataset.target === targetId
+          || tab.getAttribute("aria-controls") === targetId
+          || tab.id === targetId
+        );
+        if (!targetTab) return;
+        activateTab(targetTab, { focusPanel: true, persist: true });
+        closeMainMenu();
+      };
 
       const storeActiveSection = (targetId) => {
         if (!targetId) return;
@@ -4827,6 +5337,13 @@
             event.preventDefault();
             focusTabAtIndex(tabs.length - 1);
           }
+        });
+      });
+
+      document.querySelectorAll("[data-activate-section]").forEach(link => {
+        link.addEventListener("click", () => {
+          const targetId = link.dataset.activateSection;
+          activateSectionByTarget(targetId);
         });
       });
 
@@ -6390,6 +6907,9 @@
 
         updateModelMetadata(model);
         updateStatus(userInitiated ? `Switching to ${displayName}` : `Loading ${displayName}`);
+        if (typeof setHomeModelStatus === "function") {
+          setHomeModelStatus(`Downloading ${displayName}…`);
+        }
 
         try {
           await disposeEngine();
@@ -6448,29 +6968,38 @@
           updateModelMetadata(model);
           sendBtn.disabled = false;
           engineInitFailed = false;
+          if (typeof recordModelDownload === "function") {
+            recordModelDownload(model);
+          }
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus(`${displayName} cached locally and ready to play.`);
+          }
           return true;
         } catch (error) {
           console.error(error);
           engine = null;
-          const fallbackModel = findFallbackModel(model, attemptedModelIds);
-          if (fallbackModel && fallbackModel.model_id !== targetModelId) {
-            const fallbackDisplayName = getModelDisplayName(fallbackModel);
-            if (modelSelect) {
-              modelSelect.value = fallbackModel.model_id;
+            const fallbackModel = findFallbackModel(model, attemptedModelIds);
+            if (fallbackModel && fallbackModel.model_id !== targetModelId) {
+              const fallbackDisplayName = getModelDisplayName(fallbackModel);
+              if (modelSelect) {
+                modelSelect.value = fallbackModel.model_id;
+              }
+              safeStorage.set(STORAGE_KEYS.model, fallbackModel.model_id);
+              currentInitStage = "";
+              updateModelMetadata(fallbackModel);
+              const introMessage = userInitiated
+                ? `I couldn't load ${displayName} on this device, so I'm switching to ${fallbackDisplayName}.`
+                : `The default model looks too heavy for this device. Trying ${fallbackDisplayName} instead.`;
+              appendMessage("assistant", introMessage);
+              updateStatus(`Retrying with ${fallbackDisplayName}`);
+              if (typeof setHomeModelStatus === "function") {
+                setHomeModelStatus(`Trying fallback model ${fallbackDisplayName}…`);
+              }
+              return await loadEngineForModel(fallbackModel, {
+                userInitiated: false,
+                attemptedModelIds
+              });
             }
-            safeStorage.set(STORAGE_KEYS.model, fallbackModel.model_id);
-            currentInitStage = "";
-            updateModelMetadata(fallbackModel);
-            const introMessage = userInitiated
-              ? `I couldn't load ${displayName} on this device, so I'm switching to ${fallbackDisplayName}.`
-              : `The default model looks too heavy for this device. Trying ${fallbackDisplayName} instead.`;
-            appendMessage("assistant", introMessage);
-            updateStatus(`Retrying with ${fallbackDisplayName}`);
-            return await loadEngineForModel(fallbackModel, {
-              userInitiated: false,
-              attemptedModelIds
-            });
-          }
           const statusText = userInitiated
             ? `Failed to load ${displayName}`
             : "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.";
@@ -6480,6 +7009,9 @@
           currentInitStage = "";
           updateModelMetadata(model);
           reportEngineFailure(statusText, logText);
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus(`${displayName} failed to load. Try again or pick another model.`);
+          }
           return false;
         } finally {
           currentInitStage = "";
@@ -6617,6 +7149,12 @@ Stay family friendly and inclusive.`
           return;
         }
 
+        if (!modelConsentGranted) {
+          console.warn("Model download blocked until consent is granted.");
+          refreshHomeStatus();
+          return;
+        }
+
         if (engineInitializing || loadingModelId) {
           return;
         }
@@ -6626,11 +7164,18 @@ Stay family friendly and inclusive.`
             "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
             "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
           );
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("WebGPU is required to download the local model. Try a WebGPU-enabled browser.");
+          }
           return;
         }
 
         if (modelSelect) {
           modelSelect.disabled = true;
+        }
+
+        if (typeof setHomeModelStatus === "function") {
+          setHomeModelStatus("Fetching compatible Dungeon Master models…");
         }
 
         let runtime;
@@ -6642,6 +7187,9 @@ Stay family friendly and inclusive.`
             "Failed to download the WebLLM runtime. Check your connection and refresh.",
             "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again."
           );
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("Runtime download failed. Check your connection and try again.");
+          }
           if (modelSelect) {
             modelSelect.disabled = false;
           }
@@ -6657,6 +7205,9 @@ Stay family friendly and inclusive.`
             "No models available to load.",
             "I couldn't find any compatible models to initialize. Please refresh once your connection is stable."
           );
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("No compatible models were found for this device.");
+          }
           if (modelSelect) {
             modelSelect.disabled = false;
           }
@@ -6691,6 +7242,9 @@ Stay family friendly and inclusive.`
             "No compatible model available.",
             "I couldn't find a model that fits this device. Please close other apps and refresh to try again."
           );
+          if (typeof setHomeModelStatus === "function") {
+            setHomeModelStatus("No compatible model available for this device.");
+          }
           if (modelSelect) {
             modelSelect.disabled = false;
           }
@@ -6699,6 +7253,9 @@ Stay family friendly and inclusive.`
 
         safeStorage.set(STORAGE_KEYS.model, selectedModel.model_id);
         updateModelMetadata(selectedModel);
+        if (typeof setHomeModelStatus === "function") {
+          setHomeModelStatus(`Preparing ${getModelDisplayName(selectedModel)} for download…`);
+        }
 
         if (modelSelect) {
           modelSelect.disabled = false;
@@ -6845,9 +7402,15 @@ Stay family friendly and inclusive.`
 
       wirePromptPrefill();
 
-      setupWebLLM().catch(err => {
-        console.error("WebLLM setup failed", err);
-      });
+      refreshHomeStatus();
+
+      if (modelConsentGranted) {
+        setupWebLLM().catch(err => {
+          console.error("WebLLM setup failed", err);
+        });
+      } else {
+        showConsentOverlay();
+      }
 
     </script>
   </body>
