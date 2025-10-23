@@ -874,9 +874,7 @@
       .status.generating span { background: #ff7849; }
 
       .model-settings {
-        margin-top: 0.75rem;
-        display: grid;
-        gap: 0.65rem;
+        display: none !important;
       }
 
       .model-settings label {
@@ -1168,6 +1166,22 @@
       }
 
       @media (max-width: 640px) {
+        header {
+          padding: 1rem 1rem 0.75rem;
+        }
+
+        main {
+          padding: 0 0.75rem 1.5rem;
+        }
+
+        .card {
+          padding: 1rem;
+        }
+
+        .status {
+          font-size: 0.8rem;
+        }
+
         .main-menu-toggle {
           width: 100%;
           text-align: center;
@@ -1764,14 +1778,13 @@
         >
           <span></span>
           <div class="status-details">
-            <strong>Initializing engine…</strong>
+            <strong>Loading</strong>
             <div id="status-meta" class="status-meta" hidden></div>
           </div>
         </div>
-        <div class="model-settings" aria-label="Model and generation preferences">
-          <label for="model-select">Model
-            <select id="model-select" name="model-select"></select>
-          </label>
+        <div class="model-settings" hidden aria-hidden="true">
+          <label class="sr-only" for="model-select">Model</label>
+          <select id="model-select" name="model-select"></select>
         </div>
         <div
           class="chat-log"
@@ -5897,6 +5910,8 @@
       const temperatureDisplay = document.getElementById("temperature-display");
       const maxTokensDisplay = document.getElementById("max-tokens-display");
       const promptToastEl = document.getElementById("prompt-toast");
+      const isMobileDevice = typeof navigator !== "undefined"
+        && /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent ?? "");
 
       let availableModels = [];
       let promptToastTimeout;
@@ -5907,8 +5922,12 @@
       let loadingModelId = null;
       let queuedModelId = null;
       let pendingModelReload = null;
+      let currentInitStage = "";
 
-      const defaultGenerationSettings = { temperature: 0.5, maxTokens: 400 };
+      const defaultGenerationSettings = {
+        temperature: 0.5,
+        maxTokens: isMobileDevice ? 256 : 400
+      };
       const storedGenerationSettings = readJSONFromStorage(STORAGE_KEYS.generation, null);
       let generationSettings = { ...defaultGenerationSettings };
 
@@ -5944,7 +5963,7 @@
 
       const setMaxTokens = (value, { persist = true } = {}) => {
         const sliderMin = Number(maxTokensSlider?.min ?? 1);
-        const sliderMax = Number(maxTokensSlider?.max ?? 1024);
+        const sliderMax = Number(maxTokensSlider?.max ?? (isMobileDevice ? 512 : 1024));
         const step = Number(maxTokensSlider?.step ?? 1);
         const clamped = clampNumber(Number(value), sliderMin, sliderMax);
         const stepped = Math.round(clamped / step) * step;
@@ -5965,7 +5984,7 @@
         const tempMin = Number(temperatureSlider?.min ?? 0);
         const tempMax = Number(temperatureSlider?.max ?? 1);
         const tokenMin = Number(maxTokensSlider?.min ?? 16);
-        const tokenMax = Number(maxTokensSlider?.max ?? 2048);
+        const tokenMax = Number(maxTokensSlider?.max ?? (isMobileDevice ? 512 : 2048));
         const temperature = clampNumber(
           Number(generationSettings.temperature ?? defaultGenerationSettings.temperature),
           tempMin,
@@ -6079,6 +6098,16 @@
         return `${value.toFixed(precision)} ${units[unitIndex]}`;
       };
 
+      const formatStageLabel = (text = "") => {
+        const clean = `${text}`.replace(/\.+$/, "").trim();
+        if (!clean) return "";
+        const tokens = clean.split(/\s+/);
+        if (tokens.length <= 2) {
+          return clean;
+        }
+        return `${tokens[0]} ${tokens[1]}`;
+      };
+
       const getModelSizeBytes = (model) => {
         const candidates = [
           model?.estimated_vram_bytes,
@@ -6132,12 +6161,16 @@
 
       const getDeviceMemoryBudgetBytes = () => {
         const memoryBytes = getDeviceMemoryBytes();
+        const fallbackBudget = isMobileDevice ? 512 * 1024 ** 2 : null;
         if (!Number.isFinite(memoryBytes) || memoryBytes <= 0) {
-          return null;
+          return fallbackBudget;
         }
-        const budget = memoryBytes * 0.6;
-        const minimum = 512 * 1024 ** 2;
-        return Math.max(budget, minimum);
+        const multiplier = isMobileDevice ? 0.35 : 0.6;
+        const minimum = (isMobileDevice ? 384 : 512) * 1024 ** 2;
+        const cap = isMobileDevice ? 1024 ** 3 : Number.POSITIVE_INFINITY;
+        const budget = memoryBytes * multiplier;
+        const clamped = Math.max(budget, minimum);
+        return Math.min(clamped, cap);
       };
 
       const getModelSizeScore = (model) => {
@@ -6305,8 +6338,11 @@
           return;
         }
         const parts = [];
+        if (currentInitStage) {
+          parts.push(currentInitStage);
+        }
         const contextTokens = getModelContextTokens(model);
-        if (contextTokens) {
+        if (Number.isFinite(contextTokens)) {
           parts.push(`Context ${contextTokens.toLocaleString()} tokens`);
         }
         const sizeBytes = getModelSizeBytes(model);
@@ -6328,8 +6364,8 @@
       const loadEngineForModel = async (model, { userInitiated = false, attemptedModelIds = new Set() } = {}) => {
         if (!model?.model_id) {
           reportEngineFailure(
-            "No model selected to load.",
-            "Choose a model from the dropdown so I know which brain to summon."
+            "No compatible model available.",
+            "I couldn't find a model that fits this device. Please close other apps and refresh to try again."
           );
           return false;
         }
@@ -6343,6 +6379,7 @@
         const displayName = getModelDisplayName(model);
         queuedModelId = null;
         pendingModelReload = null;
+        currentInitStage = "";
         engineInitializing = true;
         engineInitFailed = false;
         loadingModelId = targetModelId;
@@ -6352,7 +6389,7 @@
         }
 
         updateModelMetadata(model);
-        updateStatus(userInitiated ? `Switching to ${displayName}…` : `Initializing ${displayName}…`);
+        updateStatus(userInitiated ? `Switching to ${displayName}` : `Loading ${displayName}`);
 
         try {
           await disposeEngine();
@@ -6362,9 +6399,14 @@
 
           engine = await webllm.CreateMLCEngine(targetModelId, {
             initProgressCallback: (p) => {
-              const progress = Math.floor((p.progress ?? 0) * 100);
-              const stage = p.text || p.stage || "Loading";
-              updateStatus(`${progress}% · ${stage}`);
+              const progressRaw = Number(p?.progress);
+              const progress = Number.isFinite(progressRaw) ? Math.floor(progressRaw * 100) : NaN;
+              const stageLabel = formatStageLabel(p?.text || p?.stage || "");
+              const statusText = Number.isFinite(progress) && progress > 0
+                ? `${progress}%`
+                : "Loading";
+              currentInitStage = stageLabel;
+              updateStatus(statusText);
               updateModelMetadata(model);
             }
           });
@@ -6402,6 +6444,8 @@
           activeModelId = targetModelId;
           const readyLabel = `Ready to answer questions · ${displayName}`;
           updateStatus(readyLabel, "ready");
+          currentInitStage = "";
+          updateModelMetadata(model);
           sendBtn.disabled = false;
           engineInitFailed = false;
           return true;
@@ -6415,12 +6459,13 @@
               modelSelect.value = fallbackModel.model_id;
             }
             safeStorage.set(STORAGE_KEYS.model, fallbackModel.model_id);
+            currentInitStage = "";
             updateModelMetadata(fallbackModel);
             const introMessage = userInitiated
               ? `I couldn't load ${displayName} on this device, so I'm switching to ${fallbackDisplayName}.`
               : `The default model looks too heavy for this device. Trying ${fallbackDisplayName} instead.`;
             appendMessage("assistant", introMessage);
-            updateStatus(`Retrying with ${fallbackDisplayName}…`);
+            updateStatus(`Retrying with ${fallbackDisplayName}`);
             return await loadEngineForModel(fallbackModel, {
               userInitiated: false,
               attemptedModelIds
@@ -6430,11 +6475,15 @@
             ? `Failed to load ${displayName}`
             : "Failed to load WebLLM. Refresh and ensure WebGPU is enabled.";
           const logText = userInitiated
-            ? `I couldn't switch to ${displayName}. Please try again in a moment or refresh and choose a model once more.`
+            ? `I couldn't switch to ${displayName}. Please try again in a moment or refresh so I can retry automatically.`
             : "I couldn't initialize the model. Please refresh after confirming WebGPU is enabled, then I'll be ready to help.";
+          currentInitStage = "";
+          updateModelMetadata(model);
           reportEngineFailure(statusText, logText);
           return false;
         } finally {
+          currentInitStage = "";
+          updateModelMetadata(model);
           engineInitializing = false;
           loadingModelId = null;
           if (modelSelect) {
@@ -6639,8 +6688,8 @@ Stay family friendly and inclusive.`
         const selectedModel = modelSelect ? getSelectedModel() : initialModel ?? availableModels[0];
         if (!selectedModel) {
           reportEngineFailure(
-            "No model selected to load.",
-            "Choose a model from the dropdown so I know which brain to summon."
+            "No compatible model available.",
+            "I couldn't find a model that fits this device. Please close other apps and refresh to try again."
           );
           if (modelSelect) {
             modelSelect.disabled = false;
@@ -6690,7 +6739,7 @@ Stay family friendly and inclusive.`
             streamMessage.bubble.textContent += delta;
             logEl.scrollTop = logEl.scrollHeight;
           }
-          updateStatus("Generating response…", "generating");
+          updateStatus("Generating", "generating");
         }
         return out.trim();
       }
@@ -6712,7 +6761,7 @@ Stay family friendly and inclusive.`
         } catch (error) {
           console.error(error);
           if (error?.code === "engine-not-ready") {
-            updateStatus("Initializing engine…");
+            updateStatus("Loading");
           } else if (error?.code === "engine-init-failed") {
             updateStatus("Engine failed to start");
           } else {
