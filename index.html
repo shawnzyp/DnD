@@ -25,20 +25,71 @@
       }
 
       header {
-        padding: 1.5rem 1rem 1rem;
-        text-align: center;
+        padding: 1.5rem 1.5rem 1rem;
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .header-branding {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        max-width: min(720px, 100%);
       }
 
       h1 {
-        margin: 0 0 0.25rem;
+        margin: 0;
         font-size: clamp(1.8rem, 4vw, 2.4rem);
         letter-spacing: 0.08em;
       }
 
       header p {
         margin: 0;
-        opacity: 0.8;
+        opacity: 0.85;
         font-size: 0.95rem;
+        line-height: 1.6;
+        text-align: left;
+      }
+
+      .main-menu-wrapper {
+        position: relative;
+        margin-left: auto;
+      }
+
+      .main-menu-toggle {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 999px;
+        color: inherit;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        padding: 0.6rem 1.2rem;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: background 160ms ease, color 160ms ease, box-shadow 160ms ease;
+      }
+
+      .main-menu-toggle:hover,
+      .main-menu-toggle[aria-expanded="true"] {
+        background: var(--accent);
+        color: #fff;
+        box-shadow: 0 12px 30px rgba(217, 109, 40, 0.35);
+        border-color: transparent;
+      }
+
+      .main-menu {
+        position: absolute;
+        top: calc(100% + 0.75rem);
+        right: 0;
+        width: min(280px, 80vw);
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.75rem;
+        z-index: 10;
       }
 
       main {
@@ -62,21 +113,22 @@
       }
 
       nav {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-        gap: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.35rem;
       }
 
       nav button {
-        background: transparent;
-        border-radius: 999px;
-        border: 1px solid rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 12px;
+        border: 1px solid transparent;
         padding: 0.65rem 0.9rem;
         color: inherit;
         font-weight: 600;
         letter-spacing: 0.04em;
         cursor: pointer;
-        transition: all 180ms ease;
+        text-align: left;
+        transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
       }
 
       nav button.active {
@@ -844,29 +896,6 @@
         font-size: 1rem;
       }
 
-      .generation-controls {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.85rem;
-      }
-
-      .generation-controls label {
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
-        font-size: 0.85rem;
-        opacity: 0.85;
-        min-width: 180px;
-      }
-
-      .generation-controls span {
-        font-variant-numeric: tabular-nums;
-      }
-
-      .generation-controls input[type="range"] {
-        accent-color: var(--accent);
-      }
-
       .chat-log {
         height: clamp(240px, 40vh, 420px);
         overflow-y: auto;
@@ -947,19 +976,6 @@
         background: var(--accent-dark);
       }
 
-      .quick-prompts-preferences {
-        margin-top: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.85rem;
-        opacity: 0.8;
-      }
-
-      .quick-prompts-preferences input {
-        accent-color: var(--accent);
-      }
-
       .prompt-toast {
         margin-top: 0.35rem;
         font-size: 0.8rem;
@@ -968,10 +984,69 @@
       }
 
       .quick-prompts {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
         margin-top: 1.25rem;
+      }
+
+      .quick-prompts-branch {
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.05);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 0.85rem 1rem;
+      }
+
+      .quick-prompts-branch summary {
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.6rem;
+        list-style: none;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        opacity: 0.9;
+        font-size: 0.95rem;
+      }
+
+      .quick-prompts-branch summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .quick-prompts-branch summary::after {
+        content: "";
+        width: 0.65rem;
+        height: 0.65rem;
+        border-right: 2px solid currentColor;
+        border-bottom: 2px solid currentColor;
+        transform: rotate(-45deg);
+        transition: transform 160ms ease;
+        flex-shrink: 0;
+        opacity: 0.75;
+      }
+
+      .quick-prompts-branch[open] summary::after {
+        transform: rotate(45deg);
+      }
+
+      .quick-prompts-branch[open] summary {
+        color: var(--accent);
+      }
+
+      .quick-prompts-branch-content {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .quick-prompts-description {
+        margin: 0;
+        font-size: 0.85rem;
+        opacity: 0.75;
+        line-height: 1.4;
       }
 
       .reference-grid {
@@ -1068,34 +1143,9 @@
         white-space: nowrap;
       }
 
-      .quick-prompts-group {
+      .quick-prompts-buttons {
         display: flex;
         flex-direction: column;
-        gap: 0.65rem;
-        padding: 1rem;
-        border-radius: 16px;
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-      }
-
-      .quick-prompts-group h3 {
-        margin: 0;
-        font-size: 0.95rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        opacity: 0.85;
-      }
-
-      .quick-prompts-group p {
-        margin: 0;
-        font-size: 0.85rem;
-        opacity: 0.75;
-        line-height: 1.4;
-      }
-
-      .quick-prompts-buttons {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
         gap: 0.5rem;
       }
 
@@ -1104,12 +1154,13 @@
         border: none;
         color: inherit;
         padding: 0.55rem 0.8rem;
-        border-radius: 999px;
+        border-radius: 10px;
         cursor: pointer;
         font-size: 0.85rem;
         text-align: left;
         line-height: 1.35;
         transition: background 150ms ease;
+        width: 100%;
       }
 
       .quick-prompts button:hover {
@@ -1117,12 +1168,15 @@
       }
 
       @media (max-width: 640px) {
-        .quick-prompts {
-          grid-template-columns: 1fr;
+        .main-menu-toggle {
+          width: 100%;
+          text-align: center;
         }
 
-        .quick-prompts-buttons {
-          grid-template-columns: 1fr;
+        .main-menu {
+          position: static;
+          width: 100%;
+          margin-top: 0.75rem;
         }
       }
 
@@ -1605,81 +1659,102 @@
   </head>
   <body>
     <header>
-      <h1>D&D Companion</h1>
-      <p>Ask the DM · Browse every edition · Reference gear &amp; loot</p>
+      <div class="header-branding">
+        <h1>D&D Companion</h1>
+        <p>Ask the DM · Browse every edition · Reference gear &amp; loot</p>
+      </div>
+      <div class="main-menu-wrapper">
+        <button
+          id="main-menu-toggle"
+          class="main-menu-toggle"
+          type="button"
+          aria-haspopup="true"
+          aria-controls="main-menu"
+          aria-expanded="false"
+        >Main Menu</button>
+        <nav
+          id="main-menu"
+          class="card main-menu"
+          role="tablist"
+          hidden
+        >
+          <button
+            id="tab-ask"
+            class="active"
+            role="tab"
+            aria-selected="true"
+            aria-controls="ask"
+            data-target="ask"
+          >Ask the DM</button>
+          <button
+            id="tab-details"
+            role="tab"
+            aria-selected="false"
+            aria-controls="details"
+            data-target="details"
+          >DM Screen</button>
+          <button
+            id="tab-encounters"
+            role="tab"
+            aria-selected="false"
+            aria-controls="encounters"
+            data-target="encounters"
+          >Encounters</button>
+          <button
+            id="tab-rules"
+            role="tab"
+            aria-selected="false"
+            aria-controls="rules"
+            data-target="rules"
+          >Rules Compendium</button>
+          <button
+            id="tab-items"
+            role="tab"
+            aria-selected="false"
+            aria-controls="items"
+            data-target="items"
+          >Item &amp; Gear Vault</button>
+          <button
+            id="tab-spells"
+            role="tab"
+            aria-selected="false"
+            aria-controls="spells"
+            data-target="spells"
+          >Spellbook</button>
+          <button
+            id="tab-conditions"
+            role="tab"
+            aria-selected="false"
+            aria-controls="conditions"
+            data-target="conditions"
+          >Condition Codex</button>
+          <button
+            id="tab-bestiary"
+            role="tab"
+            aria-selected="false"
+            aria-controls="bestiary"
+            data-target="bestiary"
+          >Bestiary</button>
+          <button
+            id="tab-compare"
+            role="tab"
+            aria-selected="false"
+            aria-controls="compare"
+            data-target="compare"
+          >Edition Comparison</button>
+        </nav>
+      </div>
     </header>
 
     <main>
-      <nav class="card" role="tablist">
-        <button
-          id="tab-ask"
-          class="active"
-          role="tab"
-          aria-selected="true"
-          aria-controls="ask"
-          data-target="ask"
-        >Ask the DM</button>
-        <button
-          id="tab-details"
-          role="tab"
-          aria-selected="false"
-          aria-controls="details"
-          data-target="details"
-        >DM Screen</button>
-        <button
-          id="tab-encounters"
-          role="tab"
-          aria-selected="false"
-          aria-controls="encounters"
-          data-target="encounters"
-        >Encounters</button>
-        <button
-          id="tab-rules"
-          role="tab"
-          aria-selected="false"
-          aria-controls="rules"
-          data-target="rules"
-        >Rules Compendium</button>
-        <button
-          id="tab-items"
-          role="tab"
-          aria-selected="false"
-          aria-controls="items"
-          data-target="items"
-        >Item &amp; Gear Vault</button>
-        <button
-          id="tab-spells"
-          role="tab"
-          aria-selected="false"
-          aria-controls="spells"
-          data-target="spells"
-        >Spellbook</button>
-        <button
-          id="tab-conditions"
-          role="tab"
-          aria-selected="false"
-          aria-controls="conditions"
-          data-target="conditions"
-        >Condition Codex</button>
-        <button
-          id="tab-bestiary"
-          role="tab"
-          aria-selected="false"
-          aria-controls="bestiary"
-          data-target="bestiary"
-        >Bestiary</button>
-        <button
-          id="tab-compare"
-          role="tab"
-          aria-selected="false"
-          aria-controls="compare"
-          data-target="compare"
-        >Edition Comparison</button>
-      </nav>
-
       <section id="ask" class="card active" role="tabpanel" tabindex="0" aria-labelledby="tab-ask">
         <h2>Ask the DM</h2>
-        <p>Chat with a lore-savvy Dungeon Master powered by an on-device LLM. Ask about rules, ruling conflicts, worldbuilding prompts, or create custom content for any edition.</p>
+        <p>
+          Greetings Adventurers, I am A.I.D. – the Arcane Intelligence Database, a construct forged from magic and machine to
+          serve as your eternal Dungeon Master. Within my circuits lies every spell, tale, and secret ever whispered across
+          the realms. Ask, and I shall conjure the knowledge you seek, rules, lore, or legend. Your adventure begins the
+          moment you speak.
+        </p>
         <div
           class="status"
           id="status"
@@ -1697,32 +1772,6 @@
           <label for="model-select">Model
             <select id="model-select" name="model-select"></select>
           </label>
-          <div class="generation-controls" role="group" aria-label="Generation controls">
-            <label for="temperature-slider">Temperature
-              <span id="temperature-display" aria-live="polite">0.5</span>
-              <input
-                type="range"
-                id="temperature-slider"
-                name="temperature"
-                min="0"
-                max="1"
-                step="0.05"
-                value="0.5"
-              />
-            </label>
-            <label for="max-tokens-slider">Max tokens
-              <span id="max-tokens-display" aria-live="polite">400</span>
-              <input
-                type="range"
-                id="max-tokens-slider"
-                name="max-tokens"
-                min="128"
-                max="1024"
-                step="16"
-                value="400"
-              />
-            </label>
-          </div>
         </div>
         <div
           class="chat-log"
@@ -1735,12 +1784,6 @@
         <div class="chat-input">
           <textarea id="prompt" placeholder="Ask anything about D&D…" aria-label="Ask the DM"></textarea>
           <button id="send" disabled>Send</button>
-        </div>
-        <div class="quick-prompts-preferences">
-          <label for="quick-prompt-auto-send">
-            <input type="checkbox" id="quick-prompt-auto-send" />
-            Auto-send quick prompts
-          </label>
         </div>
         <div id="prompt-toast" class="prompt-toast" role="status" aria-live="polite" hidden></div>
         <div class="quick-prompts" aria-label="Quick prompts"></div>
@@ -2142,7 +2185,6 @@
         legacyActiveTab: "dnd-active-tab",
         model: "dnd-companion-llm-model",
         generation: "dnd-companion-generation-settings",
-        quickPrompt: "dnd-companion-quick-prompt-auto-send",
         customConditions: "dnd-companion-custom-conditions"
       };
 
@@ -4581,17 +4623,21 @@
           quickPromptsContainer.innerHTML = "";
 
           quickPrompts.forEach(group => {
-            const groupCard = document.createElement("article");
-            groupCard.className = "quick-prompts-group";
+            const branch = document.createElement("details");
+            branch.className = "quick-prompts-branch";
 
-            const heading = document.createElement("h3");
-            heading.textContent = group.theme;
-            groupCard.appendChild(heading);
+            const summary = document.createElement("summary");
+            summary.textContent = group.theme;
+            branch.appendChild(summary);
+
+            const content = document.createElement("div");
+            content.className = "quick-prompts-branch-content";
 
             if (group.description) {
               const description = document.createElement("p");
+              description.className = "quick-prompts-description";
               description.textContent = group.description;
-              groupCard.appendChild(description);
+              content.appendChild(description);
             }
 
             const buttonGrid = document.createElement("div");
@@ -4605,8 +4651,12 @@
               buttonGrid.appendChild(button);
             });
 
-            groupCard.appendChild(buttonGrid);
-            quickPromptsContainer.appendChild(groupCard);
+            content.appendChild(buttonGrid);
+            branch.appendChild(content);
+            if (!quickPromptsContainer.children.length) {
+              branch.open = true;
+            }
+            quickPromptsContainer.appendChild(branch);
           });
 
           quickPromptsReady = true;
@@ -4627,6 +4677,49 @@
         encounters: initializeEncountersPanel,
         compare: initializeRulesPanel
       };
+
+      const mainMenuToggle = document.getElementById("main-menu-toggle");
+      const mainMenu = document.getElementById("main-menu");
+      const mainMenuWrapper = document.querySelector(".main-menu-wrapper");
+
+      const isMainMenuOpen = () => Boolean(mainMenu && !mainMenu.hasAttribute("hidden"));
+
+      const openMainMenu = () => {
+        if (!mainMenu || !mainMenuToggle) return;
+        mainMenu.removeAttribute("hidden");
+        mainMenuToggle.setAttribute("aria-expanded", "true");
+      };
+
+      const closeMainMenu = () => {
+        if (!mainMenu || !mainMenuToggle) return;
+        if (!isMainMenuOpen()) return;
+        mainMenu.setAttribute("hidden", "");
+        mainMenuToggle.setAttribute("aria-expanded", "false");
+      };
+
+      mainMenuToggle?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (isMainMenuOpen()) {
+          closeMainMenu();
+        } else {
+          openMainMenu();
+        }
+      });
+
+      document.addEventListener("click", (event) => {
+        if (!isMainMenuOpen()) return;
+        if (!mainMenuWrapper?.contains(event.target)) {
+          closeMainMenu();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && isMainMenuOpen()) {
+          event.preventDefault();
+          closeMainMenu();
+          mainMenuToggle?.focus();
+        }
+      });
 
       const tabs = Array.from(document.querySelectorAll('nav [role="tab"]'));
       const panels = Array.from(document.querySelectorAll('main [role="tabpanel"]'));
@@ -4701,6 +4794,7 @@
       tabs.forEach((tab, index) => {
         tab.addEventListener("click", () => {
           activateTab(tab, { focusPanel: true, persist: true });
+          closeMainMenu();
         });
 
         tab.addEventListener("keydown", (event) => {
@@ -5802,12 +5896,11 @@
       const maxTokensSlider = document.getElementById("max-tokens-slider");
       const temperatureDisplay = document.getElementById("temperature-display");
       const maxTokensDisplay = document.getElementById("max-tokens-display");
-      const quickPromptAutoSendToggle = document.getElementById("quick-prompt-auto-send");
       const promptToastEl = document.getElementById("prompt-toast");
 
       let availableModels = [];
       let promptToastTimeout;
-      let autoSendQuickPrompts = false;
+      const autoSendQuickPrompts = true;
       let webllmModule;
       let webllmLoadPromise;
       let activeModelId = null;
@@ -5892,12 +5985,6 @@
       setTemperature(generationSettings.temperature, { persist: false });
       setMaxTokens(generationSettings.maxTokens, { persist: false });
 
-      const storedPromptPreference = safeStorage.get(STORAGE_KEYS.quickPrompt);
-      autoSendQuickPrompts = storedPromptPreference === "1" || storedPromptPreference === "true";
-      if (quickPromptAutoSendToggle) {
-        quickPromptAutoSendToggle.checked = autoSendQuickPrompts;
-      }
-
       const showPromptToast = (message) => {
         if (!promptToastEl) return;
         clearTimeout(promptToastTimeout);
@@ -5966,16 +6053,6 @@
 
       maxTokensSlider?.addEventListener("input", () => {
         setMaxTokens(maxTokensSlider.value);
-      });
-
-      quickPromptAutoSendToggle?.addEventListener("change", () => {
-        autoSendQuickPrompts = quickPromptAutoSendToggle.checked;
-        safeStorage.set(STORAGE_KEYS.quickPrompt, autoSendQuickPrompts ? "1" : "0");
-        showPromptToast(
-          autoSendQuickPrompts
-            ? "Quick prompts will now auto-send."
-            : "Quick prompts will prefill the chat box."
-        );
       });
 
       const setStatusMeta = (text) => {
