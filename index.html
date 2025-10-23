@@ -6578,6 +6578,23 @@
       const autoSendQuickPrompts = true;
       let webllmModule;
       let webllmLoadPromise;
+
+      const checkWebGPUAvailability = async () => {
+        if (typeof navigator === "undefined" || !navigator?.gpu) {
+          return { ok: false, reason: "unavailable" };
+        }
+
+        try {
+          const adapter = await navigator.gpu.requestAdapter?.();
+          if (!adapter) {
+            return { ok: false, reason: "no-adapter" };
+          }
+          return { ok: true, adapter };
+        } catch (error) {
+          console.error("Failed to request WebGPU adapter", error);
+          return { ok: false, reason: "adapter-error", error };
+        }
+      };
       let activeModelId = null;
       let loadingModelId = null;
       let queuedModelId = null;
@@ -7405,11 +7422,31 @@ Stay family friendly and inclusive.`
           return;
         }
 
-        if (typeof navigator === "undefined" || !navigator?.gpu) {
-          reportEngineFailure(
-            "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.",
-            "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload."
-          );
+        const gpuStatus = await checkWebGPUAvailability();
+        if (!gpuStatus.ok) {
+          let statusText;
+          let logText;
+          if (gpuStatus.reason === "unavailable") {
+            statusText = "WebGPU is unavailable in this browser. Try Chrome, Edge, or another WebGPU-enabled browser.";
+            logText = "I can't spin up my DM brain because WebGPU isn't available in this browser. Try Chrome, Edge, or another WebGPU-enabled option and reload.";
+          } else if (gpuStatus.reason === "no-adapter") {
+            statusText = "WebGPU can't access a compatible GPU on this device.";
+            logText = "I couldn't find a compatible GPU for WebGPU on this device. Make sure WebGPU is enabled and that your hardware meets the requirements, then refresh.";
+          } else {
+            statusText = "WebGPU initialization failed for this device.";
+            logText = "Something went wrong while requesting WebGPU from the browser. Check that WebGPU is enabled and your GPU drivers are up to date, then refresh.";
+          }
+
+          reportEngineFailure(statusText, logText);
+          updateConsentStatus(statusText);
+          if (homeDownloadStatusEl) {
+            homeDownloadStatusEl.textContent = statusText;
+          }
+          llmInitializationRequested = false;
+          updateDownloadCardState();
+          if (modelSelect) {
+            modelSelect.disabled = false;
+          }
           return;
         }
 
@@ -7422,10 +7459,19 @@ Stay family friendly and inclusive.`
           runtime = await ensureWebLLMModule();
         } catch (error) {
           console.error(error);
-          reportEngineFailure(
-            "Failed to download the WebLLM runtime. Check your connection and refresh.",
-            "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again."
-          );
+          let statusText = "Failed to download the WebLLM runtime. Check your connection and refresh.";
+          let logText = "I wasn't able to download the WebLLM runtime. Check your connection, refresh the page, and I'll try again.";
+          if (/webgpu|gpu/i.test(error?.message ?? "")) {
+            statusText = "WebGPU can't access a compatible GPU on this device.";
+            logText = "I couldn't find a compatible GPU for WebGPU on this device. Make sure WebGPU is enabled and that your hardware meets the requirements, then refresh.";
+          }
+          reportEngineFailure(statusText, logText);
+          updateConsentStatus(statusText);
+          if (homeDownloadStatusEl) {
+            homeDownloadStatusEl.textContent = statusText;
+          }
+          llmInitializationRequested = false;
+          updateDownloadCardState();
           if (modelSelect) {
             modelSelect.disabled = false;
           }
