@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Character Sheet · Builder Export</title>
+  <script src="/js/loader.js" defer></script>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #fdfdfd;
+      --fg: #111827;
+      --muted: #6b7280;
+      --accent: #2563eb;
+      --border: rgba(17, 24, 39, 0.12);
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    @page {
+      size: Letter;
+      margin: 0.5in;
+    }
+    @media print {
+      body {
+        background: white;
+      }
+      .print-actions {
+        display: none !important;
+      }
+    }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+    main.sheet {
+      width: min(100%, 8.5in - 1in);
+      display: grid;
+      gap: 1rem;
+    }
+    header.sheet-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0.6rem;
+    }
+    header.sheet-header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+    }
+    header.sheet-header p {
+      margin: 0.2rem 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .print-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    .print-actions button {
+      border: 1px solid var(--border);
+      border-radius: 0.6rem;
+      background: white;
+      color: var(--fg);
+      padding: 0.45rem 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
+    section.card {
+      border: 1px solid var(--border);
+      border-radius: 0.75rem;
+      padding: 0.85rem;
+      display: grid;
+      gap: 0.6rem;
+      background: white;
+    }
+    section.card h2 {
+      margin: 0;
+      font-size: 1rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+    .abilities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.6rem;
+    }
+    .ability-card {
+      border: 1px solid rgba(17,24,39,0.08);
+      border-radius: 0.6rem;
+      padding: 0.6rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .ability-card header {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .ability-card strong {
+      font-size: 1.25rem;
+    }
+    table.simple {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.85rem;
+    }
+    table.simple th, table.simple td {
+      border: 1px solid rgba(17,24,39,0.08);
+      padding: 0.4rem 0.5rem;
+      text-align: left;
+    }
+    table.simple th {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .note {
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    ul.rest-log {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <header class="sheet-header">
+      <div>
+        <h1 id="sheet-name">Adventurer</h1>
+        <p id="sheet-summary">Level 1 Hero</p>
+      </div>
+      <div class="print-actions">
+        <button type="button" id="print-sheet">Print</button>
+        <button type="button" id="close-sheet">Close</button>
+      </div>
+    </header>
+    <section class="columns">
+      <section class="card" id="abilities-card">
+        <h2>Ability Scores</h2>
+        <div class="abilities-grid" id="abilities-grid"></div>
+      </section>
+      <section class="card" id="resources-card">
+        <h2>Resources</h2>
+        <table class="simple" id="resources-table"></table>
+        <p class="note">Values reflect the latest saved builder and play data.</p>
+      </section>
+    </section>
+    <section class="columns">
+      <section class="card" id="counters-card">
+        <h2>Class Trackers</h2>
+        <table class="simple" id="counters-table"></table>
+        <p class="note" id="counters-note"></p>
+      </section>
+      <section class="card" id="concentration-card">
+        <h2>Concentration</h2>
+        <p id="concentration-status"></p>
+        <table class="simple" id="concentration-table"></table>
+      </section>
+    </section>
+    <section class="card" id="rest-card">
+      <h2>Rest History</h2>
+      <ul class="rest-log" id="rest-log"></ul>
+    </section>
+  </main>
+  <script type="module">
+    const abilityFields = [
+      { id: 'str', label: 'Strength', short: 'STR' },
+      { id: 'dex', label: 'Dexterity', short: 'DEX' },
+      { id: 'con', label: 'Constitution', short: 'CON' },
+      { id: 'int', label: 'Intelligence', short: 'INT' },
+      { id: 'wis', label: 'Wisdom', short: 'WIS' },
+      { id: 'cha', label: 'Charisma', short: 'CHA' }
+    ];
+
+    function parseNumber(value, fallback = 0) {
+      const parsed = typeof value === 'number' ? value : parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    }
+
+    function formatModifier(score) {
+      if (!Number.isFinite(score)) return '+0';
+      const mod = Math.floor((score - 10) / 2);
+      return mod >= 0 ? `+${mod}` : `${mod}`;
+    }
+
+    function getPackData() {
+      return window.dndData || { classes: [] };
+    }
+
+    function resolveClassMeta(identifier) {
+      const { classes = [] } = getPackData();
+      return classes.find(entry => entry.slug === identifier || entry.id === identifier || entry.name === identifier) || null;
+    }
+
+    function loadState(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (error) {
+        console.warn('Failed to load state', key, error);
+        return null;
+      }
+    }
+
+    function renderSheet() {
+      const builderState = window.dndBuilderState || loadState('dndBuilderState') || { data: {} };
+      const playState = loadState('dndPlayState') || {
+        hp: { current: 10, max: 10, temp: 0 },
+        hitDice: { total: 1, available: 1, die: 'd8' },
+        classCounters: [],
+        wildShape: { max: 0, remaining: 0 },
+        concentration: { active: false, spell: '', notes: '' },
+        restLog: []
+      };
+
+      const classMeta = resolveClassMeta(builderState.data?.class);
+      const proficientSaves = new Set((classMeta && classMeta.saving_throws) || []);
+      const level = parseNumber(builderState.data?.level, 1);
+      const proficiency = Math.max(2, Math.floor((level - 1) / 4) + 2);
+
+      document.getElementById('sheet-name').textContent = builderState.data?.name || 'Unnamed Adventurer';
+      const subtitleParts = [
+        builderState.data?.class ? `Level ${builderState.data?.level || 1} ${builderState.data.class}` : null,
+        builderState.data?.subclass || null,
+        builderState.data?.background ? `Background: ${builderState.data.background}` : null,
+        builderState.data?.alignment ? `Alignment: ${builderState.data.alignment}` : null
+      ].filter(Boolean);
+      document.getElementById('sheet-summary').textContent = subtitleParts.join(' · ') || 'Complete the builder to enrich this sheet.';
+
+      const abilitiesGrid = document.getElementById('abilities-grid');
+      abilitiesGrid.innerHTML = '';
+      const abilityNameMap = {
+        str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma'
+      };
+      abilityFields.forEach(field => {
+        const score = parseNumber(builderState.data?.[field.id], 10) || 10;
+        const mod = formatModifier(score);
+        const saveProf = proficientSaves.has(abilityNameMap[field.id]);
+        const saveBonus = saveProf ? formatModifier(score + proficiency) : mod;
+        const card = document.createElement('div');
+        card.className = 'ability-card';
+        card.innerHTML = `
+          <header><span>${field.short}</span><span>${abilityNameMap[field.id]}</span></header>
+          <strong>${score}</strong>
+          <span>Modifier: ${mod}</span>
+          <span>Save: ${saveProf ? saveBonus + ' (prof)' : saveBonus}</span>
+        `;
+        abilitiesGrid.appendChild(card);
+      });
+
+      const resourcesTable = document.getElementById('resources-table');
+      resourcesTable.innerHTML = `
+        <tr><th>Resource</th><th>Value</th><th>Notes</th></tr>
+        <tr><td>Hit Points</td><td>${playState.hp.current} / ${playState.hp.max}</td><td>Temp HP: ${playState.hp.temp || 0}</td></tr>
+        <tr><td>Hit Dice</td><td>${playState.hitDice.available} / ${playState.hitDice.total}</td><td>Die: ${playState.hitDice.die || 'd8'}</td></tr>
+        ${playState.wildShape && playState.wildShape.max ? `<tr><td>Wild Shape</td><td>${playState.wildShape.remaining} / ${playState.wildShape.max}</td><td>Resets on short rest</td></tr>` : ''}
+      `;
+
+      const countersTable = document.getElementById('counters-table');
+      countersTable.innerHTML = '';
+      if (playState.classCounters && playState.classCounters.length) {
+        countersTable.innerHTML = '<tr><th>Feature</th><th>Remaining</th><th>Reset</th></tr>' +
+          playState.classCounters.map(counter => `<tr><td>${counter.name}</td><td>${counter.current} / ${counter.max}</td><td>${counter.reset || 'short'}</td></tr>`).join('');
+        document.getElementById('counters-note').textContent = '';
+      } else {
+        document.getElementById('counters-note').textContent = 'Add trackers in the builder summary to surface them here.';
+      }
+
+      const concentrationStatus = document.getElementById('concentration-status');
+      const concentrationTable = document.getElementById('concentration-table');
+      if (playState.concentration?.active) {
+        concentrationStatus.textContent = `Concentrating on ${playState.concentration.spell || 'a spell'}`;
+        concentrationTable.innerHTML = `<tr><th>Notes</th></tr><tr><td>${playState.concentration.notes || 'Maintain Constitution saves after damage.'}</td></tr>`;
+      } else {
+        concentrationStatus.textContent = 'No active concentration spell.';
+        concentrationTable.innerHTML = '';
+      }
+
+      const restLog = document.getElementById('rest-log');
+      restLog.innerHTML = '';
+      if (playState.restLog && playState.restLog.length) {
+        const formatter = new Intl.DateTimeFormat(undefined, { dateStyle: 'short', timeStyle: 'short' });
+        playState.restLog.forEach(entry => {
+          const item = document.createElement('li');
+          item.textContent = `${entry.type === 'long' ? 'Long Rest' : 'Short Rest'} · ${formatter.format(new Date(entry.at))}`;
+          restLog.appendChild(item);
+        });
+      } else {
+        const item = document.createElement('li');
+        item.textContent = 'No rests recorded yet.';
+        restLog.appendChild(item);
+      }
+    }
+
+    document.getElementById('print-sheet').addEventListener('click', () => {
+      window.print();
+    });
+
+    document.getElementById('close-sheet').addEventListener('click', () => {
+      window.close();
+    });
+
+    window.addEventListener('dnd-data-ready', () => {
+      renderSheet();
+    });
+
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      renderSheet();
+    } else {
+      window.addEventListener('DOMContentLoaded', renderSheet);
+    }
+  </script>
+</body>
+</html>
