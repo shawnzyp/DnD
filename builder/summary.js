@@ -51,7 +51,14 @@ function renderSummary(state) {
   entries.forEach(entry => {
     if (!entry.value) return;
     const item = document.createElement('li');
-    item.innerHTML = `<strong style="display:block;font-size:0.8rem;color:rgba(255,255,255,0.6);">${entry.label}</strong>${entry.value}`;
+    const label = document.createElement('strong');
+    label.className = 'summary-label';
+    label.textContent = entry.label;
+    item.appendChild(label);
+    const value = document.createElement('span');
+    value.className = 'summary-value';
+    value.textContent = entry.value;
+    item.appendChild(value);
     list.appendChild(item);
   });
 

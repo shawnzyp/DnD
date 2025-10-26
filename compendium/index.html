@@ -4,30 +4,21 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Compendium</title>
+  <link rel="stylesheet" href="/css/theme.css" />
   <script src="/js/loader.js" defer></script>
   <style>
-    :root {
-      color-scheme: dark light;
-      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      --bg: #0b1014;
-      --fg: #f5f8fd;
-      --muted: rgba(245, 248, 253, 0.65);
-      --surface: rgba(245, 248, 253, 0.05);
-      --accent: #4cc2ff;
-    }
     body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--fg);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: var(--color-bg-alt);
+      color: var(--color-text);
     }
     header {
       position: sticky;
       top: 0;
-      padding: 1rem 1.25rem 0.5rem;
-      background: linear-gradient(180deg, rgba(11,16,20,0.95) 0%, rgba(11,16,20,0.55) 100%);
+      padding: 1rem 1.25rem 0.75rem;
+      background: linear-gradient(180deg, var(--scrim-strong) 0%, var(--scrim-soft) 60%, transparent 100%);
       backdrop-filter: blur(18px);
       z-index: 3;
     }
@@ -37,21 +28,26 @@
     }
     .pack-meta {
       margin: 0;
-      font-size: 0.75rem;
-      color: var(--muted);
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
     }
     .search-shell {
       display: grid;
-      gap: 0.5rem;
+      gap: 0.6rem;
+      margin-top: 0.5rem;
+    }
+    .search-shell label {
+      font-size: 0.85rem;
+      color: var(--color-text-muted);
     }
     .search-shell input[type="search"] {
       width: 100%;
-      padding: 0.8rem 1rem;
+      padding: 0.85rem 1rem;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
       color: inherit;
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
     .chips {
       display: flex;
@@ -61,33 +57,30 @@
     }
     .chip {
       border-radius: 999px;
-      padding: 0.4rem 0.9rem;
-      border: 1px solid rgba(255,255,255,0.12);
-      background: rgba(255,255,255,0.06);
-      color: var(--muted);
-      font-size: 0.75rem;
+      padding: 0.45rem 0.9rem;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+      color: var(--color-text-muted);
+      font-size: 0.78rem;
       letter-spacing: 0.02em;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
     }
     .chip[aria-pressed="true"] {
-      background: rgba(76, 194, 255, 0.22);
-      border-color: rgba(76, 194, 255, 0.45);
-      color: var(--fg);
+      background: var(--color-accent-soft);
+      border-color: var(--color-accent-border);
+      color: var(--color-text);
+      font-weight: 600;
     }
     main {
       flex: 1;
       position: relative;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
     #list-viewport {
-      height: calc(100vh - 210px);
-      min-height: 360px;
+      flex: 1;
       overflow-y: auto;
       padding: 0 0.75rem 6rem;
-    }
-    @media (min-height: 740px) {
-      #list-viewport {
-        height: calc(100vh - 240px);
-      }
     }
     .virtual-list {
       position: relative;
@@ -97,68 +90,113 @@
       left: 0;
       right: 0;
       padding: 0.75rem 0.5rem;
-      transform: translateZ(0);
     }
     .entry {
-      border-radius: 0.85rem;
-      padding: 0.75rem 1rem;
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.9rem;
+      padding: 0.85rem 1rem;
+      background: var(--color-surface-raised);
+      border: 1px solid var(--color-border);
       display: grid;
-      gap: 0.3rem;
+      gap: 0.4rem;
+      box-shadow: var(--shadow-elevated);
     }
     .entry h3 {
       margin: 0;
       font-size: 1rem;
     }
     .entry small {
-      color: var(--muted);
-      font-size: 0.75rem;
+      color: var(--color-text-muted);
+      font-size: 0.8rem;
+    }
+    .entry p {
+      margin: 0;
+    }
+    .entry-summary {
+      color: var(--color-text-subtle);
+      font-size: 0.82rem;
     }
     .entry button {
       justify-self: flex-start;
-      padding: 0.35rem 0.7rem;
+      padding: 0.45rem 0.8rem;
       border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
       color: inherit;
-      font-size: 0.7rem;
+      font-size: 0.8rem;
     }
     #detail-drawer {
       position: fixed;
       bottom: 0;
       left: 0;
       right: 0;
-      background: rgba(11,16,20,0.98);
+      background: var(--color-surface-raised);
       border-radius: 1.1rem 1.1rem 0 0;
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid var(--color-border-strong);
       padding: 1rem 1.25rem calc(env(safe-area-inset-bottom) + 1.25rem);
       transform: translateY(100%);
       transition: transform 220ms ease;
       max-height: 65vh;
       overflow-y: auto;
-      box-shadow: 0 -1.5rem 3rem -1.5rem rgba(0,0,0,0.5);
+      box-shadow: var(--shadow-floating);
       z-index: 5;
+      pointer-events: none;
+      visibility: hidden;
     }
     #detail-drawer.open {
       transform: translateY(0);
+      pointer-events: auto;
+      visibility: visible;
     }
-    #detail-drawer header {
+    .drawer-header {
       position: sticky;
       top: 0;
-      background: inherit;
+      background: var(--color-surface-raised);
       padding: 0 0 0.75rem;
       margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
     }
-    #detail-drawer h2 {
+    .drawer-header h2 {
       margin: 0;
       font-size: 1.1rem;
     }
-    #detail-body {
+    .drawer-close {
+      background: transparent;
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+      border-radius: 999px;
+      width: 2.25rem;
+      height: 2.25rem;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+    }
+    .detail-subtitle {
+      margin: 0;
+      color: var(--color-text-muted);
       font-size: 0.85rem;
-      color: var(--muted);
-      line-height: 1.5;
+    }
+    #detail-body {
+      font-size: 0.88rem;
+      color: var(--color-text);
+      line-height: 1.6;
       white-space: pre-wrap;
+    }
+    #favorite-toggle {
+      margin-top: 1rem;
+      padding: 0.6rem 1rem;
+      border-radius: 0.85rem;
+      border: 1px solid var(--color-accent-border);
+      background: var(--color-accent);
+      color: var(--color-accent-contrast);
+      font-weight: 600;
+    }
+    #favorite-toggle[aria-pressed="true"] {
+      background: var(--color-surface);
+      color: var(--color-text);
+      border-color: var(--color-border);
     }
     .tab-bar {
       position: fixed;
@@ -168,9 +206,9 @@
       display: flex;
       justify-content: space-around;
       padding: 0.45rem calc(env(safe-area-inset-left) + 0.85rem) calc(env(safe-area-inset-bottom) + 0.6rem);
-      background: linear-gradient(180deg, rgba(11,16,20,0.35) 0%, rgba(11,16,20,0.98) 80%);
+      background: linear-gradient(180deg, var(--scrim-soft) 0%, var(--scrim-strong) 80%);
       backdrop-filter: blur(16px);
-      border-top: 1px solid rgba(255,255,255,0.08);
+      border-top: 1px solid var(--color-border);
       z-index: 6;
       gap: 0.75rem;
     }
@@ -178,20 +216,22 @@
       flex: 1;
       text-align: center;
       text-decoration: none;
-      color: var(--muted);
-      font-size: 0.78rem;
+      color: var(--color-text-subtle);
+      font-size: 0.82rem;
       padding: 0.65rem 0.5rem;
       border-radius: 0.75rem;
+      transition: background 160ms ease, color 160ms ease;
     }
-    .tab-bar a.active {
-      background: rgba(76, 194, 255, 0.2);
-      color: var(--fg);
+    .tab-bar a.active,
+    .tab-bar a[aria-current="page"] {
+      background: var(--color-accent-soft);
+      color: var(--color-text);
       font-weight: 600;
     }
     .legal-link {
       padding: 0.75rem 1.25rem;
-      font-size: 0.75rem;
-      color: var(--muted);
+      font-size: 0.8rem;
+      color: var(--color-text-subtle);
       text-align: center;
     }
     .legal-link a {
@@ -199,40 +239,56 @@
     }
   </style>
 </head>
-<body>
+<body data-accent="sky">
+  <a class="skip-link" href="#compendium-main">Skip to compendium results</a>
   <header>
     <h1>Compendium</h1>
     <p id="compendium-pack-meta" class="pack-meta" aria-live="polite">Loading SRD entries…</p>
-    <div class="search-shell">
+    <div class="search-shell" role="search">
+      <label class="sr-only" for="search-input">Search the compendium</label>
       <input type="search" id="search-input" placeholder="Search spells, feats, and rules" />
       <div class="chips" role="group" aria-label="Filters">
-        <button class="chip" data-filter="spell" aria-pressed="false">Spell</button>
-        <button class="chip" data-filter="feat" aria-pressed="false">Feat</button>
-        <button class="chip" data-filter="item" aria-pressed="false">Item</button>
-        <button class="chip" data-filter="rule" aria-pressed="false">Rule</button>
+        <button type="button" class="chip" data-filter="spell" aria-pressed="false">Spell</button>
+        <button type="button" class="chip" data-filter="feat" aria-pressed="false">Feat</button>
+        <button type="button" class="chip" data-filter="item" aria-pressed="false">Item</button>
+        <button type="button" class="chip" data-filter="rule" aria-pressed="false">Rule</button>
       </div>
     </div>
   </header>
-  <main>
+  <main id="compendium-main" role="main" tabindex="-1">
     <div id="list-viewport">
-      <div id="virtual-list" class="virtual-list"></div>
+      <div id="virtual-list" class="virtual-list" role="list"></div>
     </div>
   </main>
   <p class="legal-link">
     <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">SRD 5.1 licensing notice</a>
   </p>
-  <aside id="detail-drawer" aria-modal="true" role="dialog" aria-hidden="true">
-    <header>
-      <h2 id="detail-title">Detail</h2>
-      <p id="detail-type" style="margin:0;color:var(--muted);font-size:0.8rem;"></p>
-    </header>
+  <aside
+    id="detail-drawer"
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+    aria-labelledby="detail-title"
+    aria-describedby="detail-body"
+    tabindex="-1"
+  >
+    <div class="drawer-header">
+      <div>
+        <h2 id="detail-title">Detail</h2>
+        <p id="detail-type" class="detail-subtitle"></p>
+      </div>
+      <button type="button" class="drawer-close" data-action="close-detail">
+        <span aria-hidden="true">×</span>
+        <span class="sr-only">Close detail drawer</span>
+      </button>
+    </div>
     <div id="detail-body"></div>
-    <button id="favorite-toggle" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.85rem;border:none;background:var(--accent);color:#04121b;font-weight:600;">Save to Favorites</button>
+    <button id="favorite-toggle" type="button" aria-pressed="false">Save to Favorites</button>
   </aside>
-  <nav class="tab-bar">
+  <nav class="tab-bar" aria-label="Primary navigation">
     <a href="/index.html">Home</a>
     <a href="/builder/index.html">Builder</a>
-    <a href="/compendium/index.html" class="active">Compendium</a>
+    <a href="/compendium/index.html" class="active" aria-current="page">Compendium</a>
   </nav>
   <script>
     const FAVORITES_KEY = 'dndCompendiumFavorites';
@@ -241,11 +297,23 @@
     const viewport = document.getElementById('list-viewport');
     const list = document.getElementById('virtual-list');
     const rowHeight = 132;
+    const detailDrawer = document.getElementById('detail-drawer');
+    const detailTitle = document.getElementById('detail-title');
+    const detailType = document.getElementById('detail-type');
+    const detailBody = document.getElementById('detail-body');
+    const favoriteToggleButton = document.getElementById('favorite-toggle');
+    const detailClose = detailDrawer ? detailDrawer.querySelector('[data-action="close-detail"]') : null;
+    const mainRegion = document.getElementById('compendium-main');
+    const headerEl = document.querySelector('header');
+    const navBar = document.querySelector('.tab-bar');
+    const legalNotice = document.querySelector('.legal-link');
+    const backgroundRegions = [headerEl, mainRegion, navBar, legalNotice].filter(Boolean);
     let data = [];
     let filtered = [];
     let startIndex = 0;
     let endIndex = 0;
     let favorites = loadFavorites();
+    let releaseDetailFocus = null;
 
     function getPackData() {
       return window.dndData || { spells: [], feats: [], items: [], rules: [], packs: [] };
@@ -268,6 +336,73 @@
         console.warn('Failed to save favorites', err);
       }
       window.dispatchEvent(new CustomEvent('dnd-state-changed'));
+    }
+
+    function createFocusTrap(container, onClose) {
+      if (!container) return () => {};
+      const selectors = [
+        'a[href]',
+        'button:not([disabled])',
+        'textarea:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        '[tabindex]:not([tabindex="-1"])'
+      ].join(',');
+      const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      let focusable = Array.from(container.querySelectorAll(selectors)).filter((element) => !element.hasAttribute('aria-hidden'));
+      if (!focusable.length) {
+        container.setAttribute('tabindex', '-1');
+        focusable = [container];
+      }
+      const [first] = focusable;
+      const last = focusable[focusable.length - 1];
+
+      function handleKeydown(event) {
+        if (event.key === 'Tab') {
+          if (focusable.length === 1) {
+            event.preventDefault();
+            first.focus();
+            return;
+          }
+          if (event.shiftKey && document.activeElement === first) {
+            event.preventDefault();
+            last.focus();
+          } else if (!event.shiftKey && document.activeElement === last) {
+            event.preventDefault();
+            first.focus();
+          }
+        }
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          onClose?.();
+        }
+      }
+
+      container.addEventListener('keydown', handleKeydown);
+      requestAnimationFrame(() => {
+        if (first && typeof first.focus === 'function') {
+          first.focus();
+        }
+      });
+
+      return () => {
+        container.removeEventListener('keydown', handleKeydown);
+        if (previous && typeof previous.focus === 'function') {
+          previous.focus();
+        }
+      };
+    }
+
+    function markBackgroundHidden(hidden) {
+      backgroundRegions.forEach((region) => {
+        if (!region) return;
+        if (hidden) {
+          region.setAttribute('aria-hidden', 'true');
+        } else {
+          region.removeAttribute('aria-hidden');
+        }
+      });
+      document.body.style.overflow = hidden ? 'hidden' : '';
     }
 
     function summarise(text) {
@@ -448,6 +583,9 @@
         article.className = 'entry';
         article.dataset.id = entry.id;
         article.dataset.type = entry.type;
+        article.setAttribute('role', 'listitem');
+        article.setAttribute('aria-posinset', String(i + 1));
+        article.setAttribute('aria-setsize', String(filtered.length));
 
         const title = document.createElement('h3');
         title.textContent = entry.name;
@@ -458,9 +596,7 @@
         article.appendChild(subtitle);
 
         const summary = document.createElement('p');
-        summary.style.margin = '0';
-        summary.style.color = 'var(--muted)';
-        summary.style.fontSize = '0.78rem';
+        summary.className = 'entry-summary';
         summary.textContent = entry.summary;
         article.appendChild(summary);
 
@@ -468,6 +604,8 @@
         button.type = 'button';
         button.dataset.action = 'details';
         button.textContent = 'Quick look';
+        button.setAttribute('aria-haspopup', 'dialog');
+        button.setAttribute('aria-controls', 'detail-drawer');
         article.appendChild(button);
 
         row.appendChild(article);
@@ -477,24 +615,37 @@
 
     function openDetail(id) {
       const entry = filtered.find(item => item.id === id);
-      if (!entry) return;
-      const drawer = document.getElementById('detail-drawer');
-      document.getElementById('detail-title').textContent = entry.name;
-      document.getElementById('detail-type').textContent = entry.subtitle;
-      const body = document.getElementById('detail-body');
-      body.textContent = entry.detail;
-      const favoriteToggle = document.getElementById('favorite-toggle');
-      favoriteToggle.dataset.id = entry.id;
-      const isFav = favorites.ids.includes(entry.id);
-      favoriteToggle.textContent = isFav ? 'Remove Favorite' : 'Save to Favorites';
-      drawer.classList.add('open');
-      drawer.setAttribute('aria-hidden', 'false');
+      if (!entry || !detailDrawer) return;
+      if (detailDrawer.classList.contains('open')) {
+        closeDetail();
+      }
+      detailTitle.textContent = entry.name;
+      detailType.textContent = entry.subtitle;
+      detailBody.textContent = entry.detail;
+      if (favoriteToggleButton) {
+        favoriteToggleButton.dataset.id = entry.id;
+        const isFav = favorites.ids.includes(entry.id);
+        favoriteToggleButton.textContent = isFav ? 'Remove Favorite' : 'Save to Favorites';
+        favoriteToggleButton.setAttribute('aria-pressed', String(isFav));
+      }
+      detailDrawer.scrollTop = 0;
+      detailDrawer.classList.add('open');
+      detailDrawer.setAttribute('aria-hidden', 'false');
+      markBackgroundHidden(true);
+      releaseDetailFocus = createFocusTrap(detailDrawer, closeDetail);
     }
 
     function closeDetail() {
-      const drawer = document.getElementById('detail-drawer');
-      drawer.classList.remove('open');
-      drawer.setAttribute('aria-hidden', 'true');
+      if (!detailDrawer) return;
+      if (!detailDrawer.classList.contains('open')) return;
+      detailDrawer.classList.remove('open');
+      detailDrawer.setAttribute('aria-hidden', 'true');
+      markBackgroundHidden(false);
+      if (releaseDetailFocus) {
+        const release = releaseDetailFocus;
+        releaseDetailFocus = null;
+        release();
+      }
     }
 
     function toggleFavorite(id) {
@@ -505,7 +656,11 @@
         favorites.ids.push(id);
       }
       saveFavorites();
-      document.getElementById('favorite-toggle').textContent = favorites.ids.includes(id) ? 'Remove Favorite' : 'Save to Favorites';
+      if (favoriteToggleButton) {
+        const isFav = favorites.ids.includes(id);
+        favoriteToggleButton.textContent = isFav ? 'Remove Favorite' : 'Save to Favorites';
+        favoriteToggleButton.setAttribute('aria-pressed', String(isFav));
+      }
     }
 
     viewport.addEventListener('scroll', () => {
@@ -532,26 +687,45 @@
       openDetail(article.dataset.id);
     });
 
-    document.getElementById('favorite-toggle').addEventListener('click', (event) => {
-      const id = event.target.dataset.id;
-      if (!id) return;
-      toggleFavorite(id);
-    });
+    if (favoriteToggleButton) {
+      favoriteToggleButton.addEventListener('click', (event) => {
+        const target = event.currentTarget;
+        if (!(target instanceof HTMLElement)) return;
+        const id = target.dataset.id;
+        if (!id) return;
+        toggleFavorite(id);
+      });
+    }
 
-    document.getElementById('detail-drawer').addEventListener('click', (event) => {
-      if (event.target.id === 'detail-drawer') {
+    if (detailDrawer) {
+      detailDrawer.addEventListener('click', (event) => {
+        if (event.target === detailDrawer) {
+          closeDetail();
+        }
+      });
+    }
+
+    if (detailClose) {
+      detailClose.addEventListener('click', () => {
         closeDetail();
-      }
-    });
+      });
+    }
 
     document.addEventListener('keydown', (event) => {
-      if (event.key === 'Escape') {
+      if (event.key === 'Escape' && detailDrawer && detailDrawer.classList.contains('open')) {
         closeDetail();
       }
     });
 
     async function init() {
       favorites = loadFavorites();
+      if (detailDrawer) {
+        detailDrawer.setAttribute('aria-hidden', 'true');
+      }
+      if (favoriteToggleButton) {
+        favoriteToggleButton.setAttribute('aria-pressed', 'false');
+      }
+      markBackgroundHidden(false);
       if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
         try {
           await window.dndDataReady;

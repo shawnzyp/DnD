@@ -15,6 +15,9 @@ const indicator = document.getElementById('step-indicator');
 const prevBtn = document.getElementById('prev-step');
 const nextBtn = document.getElementById('next-step');
 const summaryToggle = document.getElementById('toggle-summary');
+const summaryPanel = document.getElementById('summary-panel');
+const summaryClose = summaryPanel ? summaryPanel.querySelector('[data-action="close-summary"]') : null;
+const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 let currentStep = 0;
 let state = {
@@ -23,6 +26,94 @@ let state = {
   saveCount: 1,
   updatedAt: Date.now()
 };
+let releaseSummaryFocus = null;
+
+function createFocusTrap(container, onClose) {
+  if (!container) return () => {};
+  const selectors = [
+    'a[href]',
+    'button:not([disabled])',
+    'textarea:not([disabled])',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])'
+  ].join(',');
+  const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  let focusable = Array.from(container.querySelectorAll(selectors)).filter((element) => !element.hasAttribute('aria-hidden'));
+  if (!focusable.length) {
+    container.setAttribute('tabindex', '-1');
+    focusable = [container];
+  }
+  const [first] = focusable;
+  const last = focusable[focusable.length - 1];
+
+  function handleKeydown(event) {
+    if (event.key === 'Tab') {
+      if (focusable.length === 1) {
+        event.preventDefault();
+        first.focus();
+        return;
+      }
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      onClose?.();
+    }
+  }
+
+  container.addEventListener('keydown', handleKeydown);
+  requestAnimationFrame(() => {
+    if (first && typeof first.focus === 'function') {
+      first.focus();
+    }
+  });
+
+  return () => {
+    container.removeEventListener('keydown', handleKeydown);
+    if (previous && typeof previous.focus === 'function') {
+      previous.focus();
+    }
+  };
+}
+
+function openSummaryPanel() {
+  if (!summaryPanel || !summaryToggle) return;
+  summaryPanel.classList.add('visible');
+  summaryPanel.setAttribute('aria-hidden', 'false');
+  summaryToggle.setAttribute('aria-expanded', 'true');
+  releaseSummaryFocus = createFocusTrap(summaryPanel, closeSummaryPanel);
+}
+
+function closeSummaryPanel() {
+  if (!summaryPanel || !summaryToggle) return;
+  summaryPanel.classList.remove('visible');
+  summaryPanel.setAttribute('aria-hidden', 'true');
+  summaryToggle.setAttribute('aria-expanded', 'false');
+  if (releaseSummaryFocus) {
+    const release = releaseSummaryFocus;
+    releaseSummaryFocus = null;
+    release();
+  } else {
+    summaryToggle.focus();
+  }
+}
+
+function toggleSummaryPanel(force) {
+  if (!summaryPanel) return;
+  const shouldOpen = typeof force === 'boolean' ? force : !summaryPanel.classList.contains('visible');
+  if (shouldOpen) {
+    openSummaryPanel();
+  } else {
+    closeSummaryPanel();
+  }
+}
 
 function getPackData() {
   return window.dndData || {
@@ -126,11 +217,18 @@ function populateDynamicOptions() {
 
 function renderStep(index) {
   steps.forEach((step, i) => {
-    step.classList.toggle('active', i === index);
+    const isActive = i === index;
+    step.classList.toggle('active', isActive);
+    step.setAttribute('aria-hidden', String(!isActive));
   });
   indicator.textContent = `Step ${index + 1} of ${steps.length} · ${steps[index].querySelector('h2').textContent}`;
   prevBtn.disabled = index === 0;
-  nextBtn.textContent = index === steps.length - 1 ? 'Finish' : 'Next';
+  prevBtn.setAttribute('aria-disabled', String(index === 0));
+  const isLastStep = index === steps.length - 1;
+  nextBtn.disabled = false;
+  nextBtn.setAttribute('aria-disabled', 'false');
+  nextBtn.textContent = isLastStep ? 'Finish' : 'Next';
+  nextBtn.setAttribute('aria-label', isLastStep ? 'Finish wizard' : 'Go to next step');
 }
 
 function markStepCompleted(stepId) {
@@ -262,12 +360,18 @@ function nextStep() {
     goToStep(currentStep + 1);
   } else {
     const finalizeStep = document.querySelector('[data-step="finalize"]');
-    finalizeStep.scrollIntoView({ behavior: 'smooth' });
+    if (finalizeStep && typeof finalizeStep.scrollIntoView === 'function') {
+      finalizeStep.scrollIntoView({ behavior: prefersReducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
+    }
     nextBtn.disabled = true;
+    nextBtn.setAttribute('aria-disabled', 'true');
     nextBtn.textContent = 'Saved';
+    nextBtn.setAttribute('aria-label', 'Progress saved');
     setTimeout(() => {
       nextBtn.disabled = false;
+      nextBtn.setAttribute('aria-disabled', 'false');
       nextBtn.textContent = 'Finish';
+      nextBtn.setAttribute('aria-label', 'Finish wizard');
     }, 1600);
   }
 }
@@ -289,10 +393,12 @@ function setupFinalizeActions() {
     if (!action) return;
     if (action === 'print') {
       persistState();
+      toggleSummaryPanel(false);
       window.print();
     }
     if (action === 'export') {
       persistState();
+      toggleSummaryPanel(false);
       const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -307,8 +413,19 @@ function setupFinalizeActions() {
 }
 
 function setupSummaryToggle() {
+  if (!summaryToggle || !summaryPanel) return;
   summaryToggle.addEventListener('click', () => {
-    document.getElementById('summary-panel').classList.toggle('visible');
+    toggleSummaryPanel();
+  });
+  if (summaryClose) {
+    summaryClose.addEventListener('click', () => {
+      toggleSummaryPanel(false);
+    });
+  }
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && summaryPanel.classList.contains('visible')) {
+      toggleSummaryPanel(false);
+    }
   });
 }
 
@@ -323,6 +440,12 @@ async function init() {
   }
   populateDynamicOptions();
   await loadState();
+  if (summaryPanel) {
+    summaryPanel.setAttribute('aria-hidden', 'true');
+  }
+  if (summaryToggle) {
+    summaryToggle.setAttribute('aria-expanded', 'false');
+  }
   renderStep(currentStep);
   form.addEventListener('input', () => {
     state.saveCount += 1;
