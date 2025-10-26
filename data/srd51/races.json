@@ -1,74 +1,213 @@
 [
   {
+    "id": "srd51.race.dwarf",
     "slug": "dwarf",
+    "type": "race",
     "name": "Dwarf",
-    "ability_bonuses": {"Constitution": 2},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Constitution": 2 },
     "size": "Medium",
     "speed": 25,
-    "description": "Stout folk renowned for resilience, craftsmanship, and deep tradition."
+    "languages": ["Common", "Dwarvish"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim conditions.",
+      "Dwarven Resilience: Advantage on saving throws against poison and resistance to poison damage.",
+      "Stonecunning: Double proficiency bonus to History checks related to stonework."
+    ],
+    "summary": "Stout folk known for resilience, craftsmanship, and underground kingdoms.",
+    "description": "Dwarves are short, solid, and enduring. They value tradition and are famed for mining and smithing." 
   },
   {
+    "id": "srd51.race.elf",
     "slug": "elf",
+    "type": "race",
     "name": "Elf",
-    "ability_bonuses": {"Dexterity": 2},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Dexterity": 2 },
     "size": "Medium",
     "speed": 30,
-    "description": "Graceful wanderers attuned to magic and the ancient woods."
+    "languages": ["Common", "Elvish"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim conditions.",
+      "Keen Senses: Proficiency in the Perception skill.",
+      "Fey Ancestry: Advantage on saving throws against being charmed, and magic can't put you to sleep.",
+      "Trance: Elves don't need to sleep and meditate for 4 hours a day."
+    ],
+    "summary": "Graceful and long-lived, elves blend martial and magical talent.",
+    "description": "Elves are slender folk with a supernatural connection to nature and magic."
   },
   {
+    "id": "srd51.race.halfling",
     "slug": "halfling",
+    "type": "race",
     "name": "Halfling",
-    "ability_bonuses": {"Dexterity": 2},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Dexterity": 2 },
     "size": "Small",
     "speed": 25,
-    "description": "Cheerful travelers who rely on luck and nimble reflexes."
+    "languages": ["Common", "Halfling"],
+    "traits": [
+      "Lucky: When you roll a 1 on the d20 for an attack roll, ability check, or saving throw, you can reroll.",
+      "Brave: Advantage on saving throws against being frightened.",
+      "Halfling Nimbleness: Move through the space of any creature larger than you."
+    ],
+    "summary": "Cheerful and resourceful, halflings rely on luck and agility.",
+    "description": "Halflings are small, affable folk who survive through stealth, diplomacy, and uncanny good fortune."
   },
   {
+    "id": "srd51.race.human",
     "slug": "human",
+    "type": "race",
     "name": "Human",
-    "ability_bonuses": {"Strength": 1, "Dexterity": 1, "Constitution": 1, "Intelligence": 1, "Wisdom": 1, "Charisma": 1},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": {
+      "Strength": 1,
+      "Dexterity": 1,
+      "Constitution": 1,
+      "Intelligence": 1,
+      "Wisdom": 1,
+      "Charisma": 1
+    },
     "size": "Medium",
     "speed": 30,
-    "description": "Versatile and ambitious people found in every land."
+    "languages": ["Common", "One extra language"],
+    "traits": ["Versatile: Gain a +1 to all ability scores and an additional language."],
+    "summary": "Humans are adaptable strivers found in every corner of the world.",
+    "description": "Humans are the most diverse and ambitious of the common races, excelling in versatility."
   },
   {
+    "id": "srd51.race.dragonborn",
     "slug": "dragonborn",
+    "type": "race",
     "name": "Dragonborn",
-    "ability_bonuses": {"Strength": 2, "Charisma": 1},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Strength": 2, "Charisma": 1 },
     "size": "Medium",
     "speed": 30,
-    "description": "Descendants of dragons who wield a breath weapon and proud heritage."
+    "languages": ["Common", "Draconic"],
+    "traits": [
+      "Draconic Ancestry: Breath weapon and damage resistance tied to dragon heritage.",
+      "Breath Weapon: Exhale destructive energy in a 15-foot cone or 30-foot line.",
+      "Damage Resistance: Resistance to the damage type associated with your ancestry."
+    ],
+    "summary": "Draconic scions who wield elemental breath and commanding presence.",
+    "description": "Dragonborn look like humanoid dragons and strive to prove their worth through great deeds." 
   },
   {
+    "id": "srd51.race.gnome",
     "slug": "gnome",
+    "type": "race",
     "name": "Gnome",
-    "ability_bonuses": {"Intelligence": 2},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Intelligence": 2 },
     "size": "Small",
     "speed": 25,
-    "description": "Inventive tinkerers whose curiosity drives them to explore."
+    "languages": ["Common", "Gnomish"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim light.",
+      "Gnome Cunning: Advantage on Intelligence, Wisdom, and Charisma saves against magic.",
+      "Artificer's Lore: Double proficiency bonus to History checks related to magic items." 
+    ],
+    "summary": "Curious inventors with quick wits and boundless enthusiasm.",
+    "description": "Gnomes are energetic tinkers and illusionists whose small stature hides a vibrant spirit."
   },
   {
+    "id": "srd51.race.half-elf",
     "slug": "half-elf",
+    "type": "race",
     "name": "Half-Elf",
-    "ability_bonuses": {"Charisma": 2},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Charisma": 2, "Choice": 2 },
     "size": "Medium",
     "speed": 30,
-    "description": "Children of two worlds who blend adaptability with fey grace."
+    "languages": ["Common", "Elvish", "One extra language"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim conditions.",
+      "Fey Ancestry: Advantage on saves against being charmed and immunity to magical sleep.",
+      "Skill Versatility: Gain proficiency in two skills of your choice." 
+    ],
+    "summary": "Bridging two worlds, half-elves are charismatic and versatile.",
+    "description": "Half-elves combine human ambition with elven grace, finding home in both societies or forging their own paths."
   },
   {
+    "id": "srd51.race.half-orc",
     "slug": "half-orc",
+    "type": "race",
     "name": "Half-Orc",
-    "ability_bonuses": {"Strength": 2, "Constitution": 1},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Strength": 2, "Constitution": 1 },
     "size": "Medium",
     "speed": 30,
-    "description": "Fierce combatants whose courage and endurance shine in battle."
+    "languages": ["Common", "Orc"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim light.",
+      "Relentless Endurance: When reduced to 0 hit points but not killed, drop to 1 hit point instead (once per long rest).",
+      "Savage Attacks: When you score a critical hit with a melee weapon attack, roll one extra weapon damage die." 
+    ],
+    "summary": "Fierce warriors whose orcish blood grants tenacity and power.",
+    "description": "Half-orcs inherit the strength of their orc parents and the ambition of their human heritage."
   },
   {
+    "id": "srd51.race.tiefling",
     "slug": "tiefling",
+    "type": "race",
     "name": "Tiefling",
-    "ability_bonuses": {"Charisma": 2, "Intelligence": 1},
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "ability_score_increase": { "Intelligence": 1, "Charisma": 2 },
     "size": "Medium",
     "speed": 30,
-    "description": "People touched by infernal blood who command innate arcane gifts."
+    "languages": ["Common", "Infernal"],
+    "traits": [
+      "Darkvision: 60-foot vision in dim light.",
+      "Hellish Resistance: Resistance to fire damage.",
+      "Infernal Legacy: You know the thaumaturgy cantrip, can cast hellish rebuke, and darkness at higher levels."
+    ],
+    "summary": "Fiend-touched mortals wielding innate infernal magic.",
+    "description": "Tieflings bear the mark of diabolic heritage, combining mortal determination with infernal gifts." 
   }
 ]

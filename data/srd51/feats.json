@@ -1,32 +1,92 @@
 [
   {
+    "id": "srd51.feat.alert",
     "slug": "alert",
+    "type": "feat",
     "name": "Alert",
-    "description": "Your senses are always on the lookout for danger, granting you faster reactions to threats."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": [],
+    "summary": "Always on the lookout, you gain bonuses to initiative and avoid surprise.",
+    "description": "You gain a +5 bonus to initiative, can't be surprised while conscious, and other creatures don't gain advantage on attack rolls against you as a result of being hidden from you."
   },
   {
+    "id": "srd51.feat.great-weapon-master",
     "slug": "great-weapon-master",
+    "type": "feat",
     "name": "Great Weapon Master",
-    "description": "You can channel momentum from mighty swings to strike harder or swing again."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": ["Proficiency with martial weapons"],
+    "summary": "You trade accuracy for devastating strikes with heavy weapons.",
+    "description": "On your turn, when you score a critical hit with a melee weapon or reduce a creature to 0 hit points with one, you can make one melee weapon attack as a bonus action. Before you make a melee attack with a heavy weapon that you are proficient with, you can choose to take a -5 penalty to the attack roll to add +10 to the attack's damage."
   },
   {
+    "id": "srd51.feat.keen-mind",
     "slug": "keen-mind",
+    "type": "feat",
     "name": "Keen Mind",
-    "description": "Your accuracy of recall lets you remember everything you have seen or heard in the past month."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": [],
+    "summary": "You develop perfect recall and sense of time and direction.",
+    "description": "You always know which way is north, the number of hours left before the next sunrise or sunset, and you can accurately recall anything you have seen or heard within the past month. Your Intelligence score increases by 1, to a maximum of 20."
   },
   {
+    "id": "srd51.feat.lucky",
     "slug": "lucky",
+    "type": "feat",
     "name": "Lucky",
-    "description": "You can spend luck to sway the outcome of attacks, checks, or saving throws."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": [],
+    "summary": "Fate favors you with luck points to sway attack rolls and checks.",
+    "description": "You have 3 luck points. Whenever you make an attack roll, an ability check, or a saving throw, you can spend one luck point to roll an additional d20. You can choose to spend one luck point when an attack roll is made against you. You can spend only one luck point on a roll."
   },
   {
+    "id": "srd51.feat.observant",
     "slug": "observant",
+    "type": "feat",
     "name": "Observant",
-    "description": "Your sharp attention to detail improves passive perception and allows you to read subtle cues."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": [],
+    "summary": "You notice details others miss and can read lips from afar.",
+    "description": "Increase your Intelligence or Wisdom score by 1, to a maximum of 20. If you can see a creature's mouth while it is speaking a language you understand, you can interpret what it's saying by reading its lips. Your passive Wisdom (Perception) and passive Intelligence (Investigation) scores increase by 5."
   },
   {
+    "id": "srd51.feat.war-caster",
     "slug": "war-caster",
+    "type": "feat",
     "name": "War Caster",
-    "description": "You have honed battle magic, making it easier to cast spells in the thick of combat."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "prerequisites": ["The ability to cast at least one spell"],
+    "summary": "Battlefield spellcasting becomes easier while your hands are full.",
+    "description": "You have advantage on Constitution saving throws that you make to maintain your concentration on a spell when you take damage. You can perform the somatic components of spells even when you have weapons or a shield in one or both hands. When a hostile creature's movement provokes an opportunity attack from you, you can use your reaction to cast a spell at the creature instead of making an opportunity attack."
   }
 ]

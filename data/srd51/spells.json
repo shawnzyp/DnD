@@ -1,57 +1,107 @@
 [
   {
+    "id": "srd51.spell.cure-wounds",
     "slug": "cure-wounds",
+    "type": "spell",
     "name": "Cure Wounds",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "level": 1,
     "school": "Evocation",
     "casting_time": "1 action",
     "range": "Touch",
     "components": "V, S",
     "duration": "Instantaneous",
-    "description": "A creature you touch regains hit points equal to 1d8 + your spellcasting ability modifier."
+    "classes": ["Bard", "Cleric", "Druid", "Paladin", "Ranger"],
+    "summary": "Touch a creature to restore hit points equal to 1d8 + your spellcasting modifier.",
+    "description": "A creature you touch regains a number of hit points equal to 1d8 + your spellcasting ability modifier. This spell has no effect on undead or constructs."
   },
   {
+    "id": "srd51.spell.fireball",
     "slug": "fireball",
+    "type": "spell",
     "name": "Fireball",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "level": 3,
     "school": "Evocation",
     "casting_time": "1 action",
     "range": "150 feet",
     "components": "V, S, M (a tiny ball of bat guano and sulfur)",
     "duration": "Instantaneous",
-    "description": "A bright streak erupts into a 20-foot radius sphere of flame dealing 8d6 fire damage."
+    "classes": ["Sorcerer", "Wizard"],
+    "summary": "Unleash a 20-foot-radius explosion that deals 8d6 fire damage.",
+    "description": "A bright streak flashes from your pointing finger to a point you choose, blossoming with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere must make a Dexterity saving throw. A target takes 8d6 fire damage on a failed save, or half as much on a successful one."
   },
   {
+    "id": "srd51.spell.mage-armor",
     "slug": "mage-armor",
+    "type": "spell",
     "name": "Mage Armor",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "level": 1,
     "school": "Abjuration",
     "casting_time": "1 action",
     "range": "Touch",
     "components": "V, S, M (a piece of cured leather)",
     "duration": "8 hours",
-    "description": "You ward a willing creature, granting an AC of 13 + Dexterity modifier while it isn't wearing armor."
+    "classes": ["Sorcerer", "Wizard"],
+    "summary": "Protect a willing creature with AC equal to 13 + its Dexterity modifier.",
+    "description": "You touch a willing creature who isn't wearing armor, and a protective magical force surrounds it until the spell ends. The target's base AC becomes 13 + its Dexterity modifier."
   },
   {
+    "id": "srd51.spell.magic-missile",
     "slug": "magic-missile",
+    "type": "spell",
     "name": "Magic Missile",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "level": 1,
     "school": "Evocation",
     "casting_time": "1 action",
     "range": "120 feet",
     "components": "V, S",
     "duration": "Instantaneous",
-    "description": "You create three glowing darts of force that automatically hit and deal 1d4 + 1 force damage each."
+    "classes": ["Sorcerer", "Wizard"],
+    "summary": "Create darts of force that automatically strike for 1d4 + 1 damage each.",
+    "description": "You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals 1d4 + 1 force damage. The darts all strike simultaneously and you can direct them to hit one creature or several."
   },
   {
+    "id": "srd51.spell.shield",
     "slug": "shield",
+    "type": "spell",
     "name": "Shield",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "level": 1,
     "school": "Abjuration",
     "casting_time": "1 reaction",
     "range": "Self",
     "components": "V, S",
     "duration": "1 round",
-    "description": "An invisible barrier of force appears, granting +5 AC until the start of your next turn."
+    "classes": ["Sorcerer", "Wizard"],
+    "summary": "A shimmering barrier grants you +5 AC until the start of your next turn.",
+    "description": "An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from magic missile."
   }
 ]

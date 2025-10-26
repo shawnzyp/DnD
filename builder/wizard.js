@@ -24,15 +24,139 @@ let state = {
   updatedAt: Date.now()
 };
 
-function getPackData() {
-  return window.dndData || {
-    packs: [],
-    classes: [],
-    backgrounds: [],
-    feats: [],
-    items: [],
-    companions: []
+let packData = {
+  packs: [],
+  classes: [],
+  races: [],
+  backgrounds: [],
+  feats: [],
+  items: [],
+  companions: []
+};
+
+function setPackData(data) {
+  packData = {
+    packs: Array.isArray(data?.packs) ? data.packs : [],
+    classes: Array.isArray(data?.classes) ? data.classes : [],
+    races: Array.isArray(data?.races) ? data.races : [],
+    backgrounds: Array.isArray(data?.backgrounds) ? data.backgrounds : [],
+    feats: Array.isArray(data?.feats) ? data.feats : [],
+    items: Array.isArray(data?.items) ? data.items : [],
+    companions: Array.isArray(data?.companions) ? data.companions : []
   };
+  window.dndBuilderData = packData;
+}
+
+function getPackData() {
+  return packData;
+}
+
+function setPackStatus(message) {
+  const status = document.getElementById('builder-pack-status');
+  if (!status) return;
+  status.textContent = message || '';
+}
+
+async function hydratePackData() {
+  if (window.dnd && typeof window.dnd.getBuilderData === 'function') {
+    try {
+      const data = await window.dnd.getBuilderData();
+      setPackData(data);
+    } catch (error) {
+      console.warn('Failed to load builder packs', error);
+      const fallback = window.dndBuilderData || window.dndData || packData;
+      setPackData(fallback);
+    }
+  } else if (window.dndData) {
+    setPackData(window.dndData);
+  }
+  populateDynamicOptions();
+}
+
+function subscribeToPackChanges() {
+  if (window.dnd && typeof window.dnd.onChange === 'function') {
+    window.dnd.onChange((detail) => {
+      if (detail && detail.builder) {
+        setPackData(detail.builder);
+        populateDynamicOptions();
+      }
+    });
+  } else {
+    window.addEventListener('dnd-data-changed', () => {
+      const fallback = window.dndBuilderData || window.dndData || packData;
+      setPackData(fallback);
+      populateDynamicOptions();
+    });
+  }
+}
+
+function wirePackControls() {
+  const fileInput = document.getElementById('builder-pack-file');
+  const importFileButton = document.getElementById('builder-import-file');
+  const importUrlButton = document.getElementById('builder-import-url');
+  const reloadButton = document.getElementById('builder-reload-packs');
+
+  if (importFileButton && fileInput) {
+    importFileButton.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', async (event) => {
+      const [file] = event.target.files || [];
+      if (!file || !window.dnd || typeof window.dnd.importPackFile !== 'function') {
+        setPackStatus('Pack loader unavailable.');
+        return;
+      }
+      setPackStatus(`Importing ${file.name}…`);
+      try {
+        await window.dnd.importPackFile(file);
+        setPackStatus(`Imported ${file.name}`);
+      } catch (error) {
+        console.error('Failed to import pack', error);
+        setPackStatus('Import failed. Check console for details.');
+      } finally {
+        fileInput.value = '';
+        setTimeout(() => setPackStatus(''), 4000);
+      }
+    });
+  }
+
+  if (importUrlButton) {
+    importUrlButton.addEventListener('click', async () => {
+      if (!window.dnd || typeof window.dnd.importPackFromUrl !== 'function') {
+        setPackStatus('Pack loader unavailable.');
+        return;
+      }
+      const url = window.prompt('Enter the URL of a pack manifest JSON file:');
+      if (!url) return;
+      setPackStatus('Fetching pack…');
+      try {
+        await window.dnd.importPackFromUrl(url);
+        setPackStatus('Pack added from URL.');
+      } catch (error) {
+        console.error('Failed to import pack from URL', error);
+        setPackStatus('Import failed. Check console for details.');
+      } finally {
+        setTimeout(() => setPackStatus(''), 4000);
+      }
+    });
+  }
+
+  if (reloadButton) {
+    reloadButton.addEventListener('click', async () => {
+      if (!window.dnd || typeof window.dnd.reload !== 'function') {
+        setPackStatus('Pack loader unavailable.');
+        return;
+      }
+      setPackStatus('Reloading packs…');
+      try {
+        await window.dnd.reload();
+        setPackStatus('Packs reloaded.');
+      } catch (error) {
+        console.error('Failed to reload packs', error);
+        setPackStatus('Reload failed.');
+      } finally {
+        setTimeout(() => setPackStatus(''), 3000);
+      }
+    });
+  }
 }
 
 function ensureAbilityInputs() {
@@ -314,14 +438,9 @@ function setupSummaryToggle() {
 
 async function init() {
   ensureAbilityInputs();
-  if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
-    try {
-      await window.dndDataReady;
-    } catch (error) {
-      console.warn('Failed to hydrate packs before builder init', error);
-    }
-  }
-  populateDynamicOptions();
+  wirePackControls();
+  subscribeToPackChanges();
+  await hydratePackData();
   await loadState();
   renderStep(currentStep);
   form.addEventListener('input', () => {
@@ -337,9 +456,4 @@ async function init() {
 
 document.addEventListener('DOMContentLoaded', () => {
   init();
-});
-
-window.addEventListener('dnd-data-ready', () => {
-  if (document.readyState === 'loading') return;
-  populateDynamicOptions();
 });
