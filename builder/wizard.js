@@ -289,7 +289,10 @@ function setupFinalizeActions() {
     if (!action) return;
     if (action === 'print') {
       persistState();
-      window.print();
+      if (typeof window.persistBuilderState === 'function') {
+        window.persistBuilderState();
+      }
+      window.open('/builder/sheet.html', '_blank', 'noopener');
     }
     if (action === 'export') {
       persistState();

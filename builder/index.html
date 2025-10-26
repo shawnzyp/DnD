@@ -143,11 +143,11 @@
       position: fixed;
       inset: auto 0 calc(env(safe-area-inset-bottom) + 4.5rem);
       margin: 0 1rem;
-      background: rgba(13,17,23,0.92);
+      background: rgba(13,17,23,0.94);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 1rem;
-      padding: 1rem 1.25rem;
-      max-height: 45vh;
+      padding: 0;
+      max-height: clamp(320px, 45vh, 520px);
       overflow-y: auto;
       transform: translateY(110%);
       transition: transform 220ms ease;
@@ -157,22 +157,203 @@
     #summary-panel.visible {
       transform: translateY(0);
     }
-    #summary-panel h3 {
-      margin-top: 0;
-      font-size: 1rem;
+    #summary-root {
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      padding: 1.1rem 1.25rem 1.4rem;
     }
-    #summary-list {
-      list-style: none;
-      padding: 0;
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+    .summary-header h3 {
       margin: 0;
+      font-size: 1.05rem;
+    }
+    .summary-header p {
+      margin: 0.25rem 0 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .summary-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: flex-end;
+    }
+    .summary-actions button {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+    }
+    .summary-actions button.primary {
+      background: var(--accent);
+      color: #042417;
+      border-color: transparent;
+    }
+    .summary-accordion {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .summary-accordion details {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.1rem 0.9rem 0.9rem;
+    }
+    .summary-accordion details summary {
+      list-style: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin: 0 -0.2rem;
+      padding: 0.65rem 0.2rem;
+    }
+    .summary-accordion details summary::-webkit-details-marker {
+      display: none;
+    }
+    .summary-accordion details[open] summary {
+      color: var(--accent);
+    }
+    .summary-accordion .section-body {
+      display: grid;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+    }
+    .abilities-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.65rem;
+    }
+    .ability-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      display: grid;
+      gap: 0.4rem;
+    }
+    .ability-card header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--muted);
+    }
+    .ability-card strong {
+      font-size: 1.2rem;
+    }
+    .ability-card span.modifier {
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .resource-grid {
       display: grid;
       gap: 0.65rem;
     }
-    #summary-list li {
-      background: rgba(255, 255, 255, 0.04);
+    .resource-grid .resource-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.75rem;
+      padding: 0.7rem 0.75rem;
+      display: grid;
+      gap: 0.5rem;
+    }
+    .resource-card h4 {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .resource-card label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .resource-card input, .resource-card select {
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.05);
+      color: var(--fg);
+      padding: 0.4rem 0.5rem;
+      font-size: 0.8rem;
+      min-width: 0;
+    }
+    .counter-list {
+      display: grid;
+      gap: 0.6rem;
+    }
+    .counter-item {
+      display: grid;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.05);
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.75rem;
+    }
+    .counter-item header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .counter-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .counter-controls input, .counter-controls select {
+      width: 60px;
+      text-align: center;
+    }
+    .counter-controls button {
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.06);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.3rem 0.5rem;
+      cursor: pointer;
+    }
+    .summary-banner {
+      background: rgba(91,214,160,0.12);
+      border: 1px solid rgba(91,214,160,0.35);
+      color: var(--fg);
       border-radius: 0.75rem;
       padding: 0.6rem 0.75rem;
-      font-size: 0.88rem;
+      font-size: 0.78rem;
+      display: grid;
+      gap: 0.4rem;
+    }
+    .summary-banner button {
+      justify-self: flex-start;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.55rem;
+      cursor: pointer;
+    }
+    .summary-empty {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .summary-toast {
+      font-size: 0.76rem;
+      color: var(--muted);
+      text-align: right;
     }
     .legal-link {
       padding: 0.75rem 1.5rem;
@@ -303,8 +484,7 @@
     <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">SRD 5.1 licensing notice</a>
   </p>
   <aside id="summary-panel" aria-live="polite">
-    <h3>Adventure summary</h3>
-    <ul id="summary-list"></ul>
+    <div id="summary-root" class="summary-empty">Start filling out the wizard to see your live sheet.</div>
   </aside>
   <nav class="sticky-nav" aria-label="Wizard navigation">
     <button type="button" class="secondary" id="prev-step">Back</button>
