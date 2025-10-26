@@ -1,0 +1,20 @@
+[
+  {
+    "slug": "ability-checks",
+    "name": "Ability Checks",
+    "category": "Core Rule",
+    "description": "To make an ability check, roll a d20 and add the relevant ability modifier plus proficiency if appropriate."
+  },
+  {
+    "slug": "saving-throws",
+    "name": "Saving Throws",
+    "category": "Core Rule",
+    "description": "Saving throws represent a heroic effort to resist a spell, trap, or other hazard; roll a d20 plus the relevant modifier."
+  },
+  {
+    "slug": "advantage-disadvantage",
+    "name": "Advantage and Disadvantage",
+    "category": "Core Rule",
+    "description": "When a situation grants advantage, roll two d20 and use the higher result; disadvantage uses the lower result."
+  }
+]

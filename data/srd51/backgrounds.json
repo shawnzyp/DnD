@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "acolyte",
+    "name": "Acolyte",
+    "skills": ["Insight", "Religion"],
+    "feature": "Shelter of the Faithful",
+    "description": "Raised in service to a temple, you can draw on the aid of fellow worshipers."
+  },
+  {
+    "slug": "criminal",
+    "name": "Criminal",
+    "skills": ["Deception", "Stealth"],
+    "feature": "Criminal Contact",
+    "description": "Experienced in illicit dealings, you have a reliable underworld contact."
+  },
+  {
+    "slug": "folk-hero",
+    "name": "Folk Hero",
+    "skills": ["Animal Handling", "Survival"],
+    "feature": "Rustic Hospitality",
+    "description": "Common folk respect your humble origins and will hide or shelter you."
+  },
+  {
+    "slug": "noble",
+    "name": "Noble",
+    "skills": ["History", "Persuasion"],
+    "feature": "Position of Privilege",
+    "description": "You were born to wealth and wield the manners and influence of the upper class."
+  },
+  {
+    "slug": "sage",
+    "name": "Sage",
+    "skills": ["Arcana", "History"],
+    "feature": "Researcher",
+    "description": "Years of study grant you knowledge of where to find lore on obscure topics."
+  },
+  {
+    "slug": "soldier",
+    "name": "Soldier",
+    "skills": ["Athletics", "Intimidation"],
+    "feature": "Military Rank",
+    "description": "You served in a standing army and can leverage your former rank among veterans."
+  }
+]

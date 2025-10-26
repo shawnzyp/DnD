@@ -1,0 +1,57 @@
+[
+  {
+    "slug": "cure-wounds",
+    "name": "Cure Wounds",
+    "level": 1,
+    "school": "Evocation",
+    "casting_time": "1 action",
+    "range": "Touch",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "A creature you touch regains hit points equal to 1d8 + your spellcasting ability modifier."
+  },
+  {
+    "slug": "fireball",
+    "name": "Fireball",
+    "level": 3,
+    "school": "Evocation",
+    "casting_time": "1 action",
+    "range": "150 feet",
+    "components": "V, S, M (a tiny ball of bat guano and sulfur)",
+    "duration": "Instantaneous",
+    "description": "A bright streak erupts into a 20-foot radius sphere of flame dealing 8d6 fire damage."
+  },
+  {
+    "slug": "mage-armor",
+    "name": "Mage Armor",
+    "level": 1,
+    "school": "Abjuration",
+    "casting_time": "1 action",
+    "range": "Touch",
+    "components": "V, S, M (a piece of cured leather)",
+    "duration": "8 hours",
+    "description": "You ward a willing creature, granting an AC of 13 + Dexterity modifier while it isn't wearing armor."
+  },
+  {
+    "slug": "magic-missile",
+    "name": "Magic Missile",
+    "level": 1,
+    "school": "Evocation",
+    "casting_time": "1 action",
+    "range": "120 feet",
+    "components": "V, S",
+    "duration": "Instantaneous",
+    "description": "You create three glowing darts of force that automatically hit and deal 1d4 + 1 force damage each."
+  },
+  {
+    "slug": "shield",
+    "name": "Shield",
+    "level": 1,
+    "school": "Abjuration",
+    "casting_time": "1 reaction",
+    "range": "Self",
+    "components": "V, S",
+    "duration": "1 round",
+    "description": "An invisible barrier of force appears, granting +5 AC until the start of your next turn."
+  }
+]

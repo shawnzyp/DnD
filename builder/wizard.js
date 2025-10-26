@@ -24,6 +24,17 @@ let state = {
   updatedAt: Date.now()
 };
 
+function getPackData() {
+  return window.dndData || {
+    packs: [],
+    classes: [],
+    backgrounds: [],
+    feats: [],
+    items: [],
+    companions: []
+  };
+}
+
 function ensureAbilityInputs() {
   const container = document.getElementById('abilities-grid');
   if (!container) return;
@@ -41,6 +52,76 @@ function ensureAbilityInputs() {
     wrapper.appendChild(input);
     container.appendChild(wrapper);
   });
+}
+
+function populateSelectOptions(select, entries, placeholderText) {
+  if (!select) return;
+  const previousValue = select.value;
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = placeholderText;
+  select.appendChild(placeholder);
+  entries.forEach(entry => {
+    const option = document.createElement('option');
+    option.value = entry.slug || entry.id || entry.name;
+    option.textContent = entry.name || entry.title || option.value;
+    if (entry.source && entry.source.name) {
+      option.dataset.source = entry.source.name;
+    }
+    select.appendChild(option);
+  });
+  if (previousValue && entries.some(entry => (entry.slug || entry.id || entry.name) === previousValue)) {
+    select.value = previousValue;
+  }
+}
+
+function populateDatalist(id, entries, formatter) {
+  const list = document.getElementById(id);
+  if (!list) return;
+  list.innerHTML = '';
+  entries.forEach(entry => {
+    const option = document.createElement('option');
+    const label = formatter ? formatter(entry) : (entry.name || entry.title || entry.slug);
+    option.value = entry.name || entry.title || entry.slug;
+    if (label && label !== option.value) {
+      option.label = label;
+    }
+    list.appendChild(option);
+  });
+}
+
+function updatePackMeta() {
+  const target = document.getElementById('builder-pack-meta');
+  if (!target) return;
+  const { packs = [] } = getPackData();
+  if (!packs.length) {
+    target.textContent = 'No licensed content packs loaded.';
+    return;
+  }
+  const summary = packs.map(pack => {
+    const edition = pack.edition ? ` · ${pack.edition}` : '';
+    const license = pack.license ? ` • ${pack.license}` : '';
+    return `${pack.name}${edition}${license}`;
+  }).join(' | ');
+  target.textContent = `Loaded packs: ${summary}`;
+}
+
+function populateDynamicOptions() {
+  const data = getPackData();
+  if (form && form.elements) {
+    const classField = form.elements.namedItem('class');
+    populateSelectOptions(classField, data.classes || [], 'Choose a class');
+    const familiarField = form.elements.namedItem('familiarType');
+    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
+  }
+  populateDatalist('background-options', data.backgrounds || []);
+  populateDatalist('feat-options', data.feats || []);
+  populateDatalist('item-options', data.items || [], (entry) => {
+    const category = entry.category ? ` (${entry.category})` : '';
+    return `${entry.name}${category}`;
+  });
+  updatePackMeta();
 }
 
 function renderStep(index) {
@@ -231,11 +312,18 @@ function setupSummaryToggle() {
   });
 }
 
-function init() {
+async function init() {
   ensureAbilityInputs();
-  loadState().then(() => {
-    renderStep(currentStep);
-  });
+  if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
+    try {
+      await window.dndDataReady;
+    } catch (error) {
+      console.warn('Failed to hydrate packs before builder init', error);
+    }
+  }
+  populateDynamicOptions();
+  await loadState();
+  renderStep(currentStep);
   form.addEventListener('input', () => {
     state.saveCount += 1;
     handleInput();
@@ -247,4 +335,11 @@ function init() {
   window.addEventListener('beforeunload', persistState);
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', () => {
+  init();
+});
+
+window.addEventListener('dnd-data-ready', () => {
+  if (document.readyState === 'loading') return;
+  populateDynamicOptions();
+});

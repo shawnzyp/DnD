@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Adventurer Companion</title>
+  <script src="/js/loader.js" defer></script>
   <style>
     :root {
       color-scheme: dark light;
@@ -90,6 +91,11 @@
       color: var(--muted);
       margin-top: 0.4rem;
     }
+    .pack-meta {
+      margin: 0.5rem 0 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
     .tab-bar {
       position: sticky;
       bottom: 0;
@@ -155,6 +161,7 @@
           <span id="pack-count"></span>
         </div>
       </div>
+      <p id="home-pack-meta" class="pack-meta" aria-live="polite">Loading licensed content…</p>
     </section>
 
     <section class="card actions">
@@ -199,6 +206,26 @@
     const STORAGE_KEY = 'dndBuilderState';
     const FAVORITES_KEY = 'dndCompendiumFavorites';
 
+    function getPackData() {
+      return window.dndData || { packs: [] };
+    }
+
+    function updatePackMeta() {
+      const target = document.getElementById('home-pack-meta');
+      if (!target) return;
+      const { packs = [] } = getPackData();
+      if (!packs.length) {
+        target.textContent = 'No licensed content packs loaded.';
+        return;
+      }
+      const summary = packs.map(pack => {
+        const edition = pack.edition ? ` · ${pack.edition}` : '';
+        const license = pack.license ? ` • ${pack.license}` : '';
+        return `${pack.name}${edition}${license}`;
+      }).join(' | ');
+      target.textContent = `Loaded packs: ${summary}`;
+    }
+
     async function readIndexedDB(key) {
       if (!('indexedDB' in window)) return null;
       return new Promise((resolve) => {
@@ -232,6 +259,14 @@
     }
 
     async function hydrate() {
+      if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
+        try {
+          await window.dndDataReady;
+        } catch (error) {
+          console.warn('Unable to hydrate pack metadata', error);
+        }
+      }
+      updatePackMeta();
       let state = readLocal(STORAGE_KEY) || await readIndexedDB(STORAGE_KEY) || { completedSteps: [] };
       if (!Array.isArray(state.completedSteps)) state.completedSteps = [];
       const favorites = readLocal(FAVORITES_KEY) || { ids: [] };
@@ -251,6 +286,10 @@
 
     document.addEventListener('DOMContentLoaded', hydrate);
     window.addEventListener('dnd-state-changed', hydrate);
+    window.addEventListener('dnd-data-ready', () => {
+      if (document.readyState === 'loading') return;
+      updatePackMeta();
+    });
   </script>
 </body>
 </html>
