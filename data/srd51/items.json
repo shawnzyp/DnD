@@ -1,0 +1,50 @@
+[
+  {
+    "slug": "longsword",
+    "name": "Longsword",
+    "category": "Weapon",
+    "cost": "15 gp",
+    "weight": "3 lb.",
+    "description": "Versatile martial weapon that deals 1d8 slashing damage (1d10 when wielded with two hands)."
+  },
+  {
+    "slug": "longbow",
+    "name": "Longbow",
+    "category": "Weapon",
+    "cost": "50 gp",
+    "weight": "2 lb.",
+    "description": "Two-handed ranged weapon that fires arrows for 1d8 piercing damage with long range."
+  },
+  {
+    "slug": "chain-mail",
+    "name": "Chain Mail",
+    "category": "Armor",
+    "cost": "75 gp",
+    "weight": "55 lb.",
+    "description": "Heavy armor providing AC 16 but imposing disadvantage on Stealth checks."
+  },
+  {
+    "slug": "shield",
+    "name": "Shield",
+    "category": "Armor",
+    "cost": "10 gp",
+    "weight": "6 lb.",
+    "description": "Sturdy shield that increases your Armor Class by 2 while equipped."
+  },
+  {
+    "slug": "explorers-pack",
+    "name": "Explorer's Pack",
+    "category": "Gear",
+    "cost": "10 gp",
+    "weight": "-",
+    "description": "Includes a backpack, bedroll, mess kit, tinderbox, torches, rations, and waterskin."
+  },
+  {
+    "slug": "healers-kit",
+    "name": "Healer's Kit",
+    "category": "Gear",
+    "cost": "5 gp",
+    "weight": "3 lb.",
+    "description": "Contains bandages and salves; expend one use to stabilize a creature without a Medicine check."
+  }
+]

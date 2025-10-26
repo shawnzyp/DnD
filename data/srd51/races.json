@@ -1,0 +1,74 @@
+[
+  {
+    "slug": "dwarf",
+    "name": "Dwarf",
+    "ability_bonuses": {"Constitution": 2},
+    "size": "Medium",
+    "speed": 25,
+    "description": "Stout folk renowned for resilience, craftsmanship, and deep tradition."
+  },
+  {
+    "slug": "elf",
+    "name": "Elf",
+    "ability_bonuses": {"Dexterity": 2},
+    "size": "Medium",
+    "speed": 30,
+    "description": "Graceful wanderers attuned to magic and the ancient woods."
+  },
+  {
+    "slug": "halfling",
+    "name": "Halfling",
+    "ability_bonuses": {"Dexterity": 2},
+    "size": "Small",
+    "speed": 25,
+    "description": "Cheerful travelers who rely on luck and nimble reflexes."
+  },
+  {
+    "slug": "human",
+    "name": "Human",
+    "ability_bonuses": {"Strength": 1, "Dexterity": 1, "Constitution": 1, "Intelligence": 1, "Wisdom": 1, "Charisma": 1},
+    "size": "Medium",
+    "speed": 30,
+    "description": "Versatile and ambitious people found in every land."
+  },
+  {
+    "slug": "dragonborn",
+    "name": "Dragonborn",
+    "ability_bonuses": {"Strength": 2, "Charisma": 1},
+    "size": "Medium",
+    "speed": 30,
+    "description": "Descendants of dragons who wield a breath weapon and proud heritage."
+  },
+  {
+    "slug": "gnome",
+    "name": "Gnome",
+    "ability_bonuses": {"Intelligence": 2},
+    "size": "Small",
+    "speed": 25,
+    "description": "Inventive tinkerers whose curiosity drives them to explore."
+  },
+  {
+    "slug": "half-elf",
+    "name": "Half-Elf",
+    "ability_bonuses": {"Charisma": 2},
+    "size": "Medium",
+    "speed": 30,
+    "description": "Children of two worlds who blend adaptability with fey grace."
+  },
+  {
+    "slug": "half-orc",
+    "name": "Half-Orc",
+    "ability_bonuses": {"Strength": 2, "Constitution": 1},
+    "size": "Medium",
+    "speed": 30,
+    "description": "Fierce combatants whose courage and endurance shine in battle."
+  },
+  {
+    "slug": "tiefling",
+    "name": "Tiefling",
+    "ability_bonuses": {"Charisma": 2, "Intelligence": 1},
+    "size": "Medium",
+    "speed": 30,
+    "description": "People touched by infernal blood who command innate arcane gifts."
+  }
+]

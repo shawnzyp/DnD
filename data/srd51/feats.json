@@ -1,0 +1,32 @@
+[
+  {
+    "slug": "alert",
+    "name": "Alert",
+    "description": "Your senses are always on the lookout for danger, granting you faster reactions to threats."
+  },
+  {
+    "slug": "great-weapon-master",
+    "name": "Great Weapon Master",
+    "description": "You can channel momentum from mighty swings to strike harder or swing again."
+  },
+  {
+    "slug": "keen-mind",
+    "name": "Keen Mind",
+    "description": "Your accuracy of recall lets you remember everything you have seen or heard in the past month."
+  },
+  {
+    "slug": "lucky",
+    "name": "Lucky",
+    "description": "You can spend luck to sway the outcome of attacks, checks, or saving throws."
+  },
+  {
+    "slug": "observant",
+    "name": "Observant",
+    "description": "Your sharp attention to detail improves passive perception and allows you to read subtle cues."
+  },
+  {
+    "slug": "war-caster",
+    "name": "War Caster",
+    "description": "You have honed battle magic, making it easier to cast spells in the thick of combat."
+  }
+]

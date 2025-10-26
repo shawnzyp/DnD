@@ -1,0 +1,37 @@
+[
+  {
+    "slug": "bat",
+    "name": "Bat",
+    "type": "Beast",
+    "role": "Keen-eared scout",
+    "description": "Tiny flying mammal with blindsight that excels at navigating darkness."
+  },
+  {
+    "slug": "cat",
+    "name": "Cat",
+    "type": "Beast",
+    "role": "Stealthy observer",
+    "description": "Graceful familiar with keen smell and balance ideal for urban scouting."
+  },
+  {
+    "slug": "hawk",
+    "name": "Hawk",
+    "type": "Beast",
+    "role": "Aerial lookout",
+    "description": "Swift bird of prey that provides sharp eyesight and mobility."
+  },
+  {
+    "slug": "owl",
+    "name": "Owl",
+    "type": "Beast",
+    "role": "Silent night scout",
+    "description": "Nocturnal raptor with advantage on sight checks in dim light."
+  },
+  {
+    "slug": "weasel",
+    "name": "Weasel",
+    "type": "Beast",
+    "role": "Burrowing infiltrator",
+    "description": "Sinuous creature able to wriggle through tight passages unseen."
+  }
+]

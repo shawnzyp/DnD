@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Adventurer Companion</title>
+  <script src="/js/loader.js" defer></script>
+  <style>
+    :root {
+      color-scheme: dark light;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #111417;
+      --fg: #f8fafc;
+      --accent: #5bd6a0;
+      --muted: rgba(255, 255, 255, 0.65);
+      --surface: rgba(255, 255, 255, 0.08);
+    }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      color: var(--fg);
+    }
+    header {
+      padding: 1.5rem 1.5rem 1rem;
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, rgba(17, 20, 23, 0.95) 0%, rgba(17, 20, 23, 0.7) 100%);
+      backdrop-filter: blur(16px);
+      z-index: 2;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+    }
+    main {
+      flex: 1;
+      padding: 1rem 1.5rem 6.5rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 1.25rem 3rem -1.5rem rgba(0, 0, 0, 0.6);
+    }
+    .progress-shell {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .progress {
+      height: 0.75rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+    .progress > div {
+      height: 100%;
+      background: linear-gradient(90deg, #36b37e, #5bd6a0);
+      width: 0%;
+      transition: width 180ms ease;
+    }
+    .actions {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .actions a {
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.25rem;
+      border-radius: 0.9rem;
+      background: rgba(91, 214, 160, 0.15);
+      border: 1px solid rgba(91, 214, 160, 0.3);
+      font-weight: 600;
+    }
+    .actions a.secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-weight: 500;
+    }
+    .actions small {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 0.4rem;
+    }
+    .pack-meta {
+      margin: 0.5rem 0 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .tab-bar {
+      position: sticky;
+      bottom: 0;
+      inset-inline: 0;
+      display: flex;
+      justify-content: space-around;
+      padding: 0.35rem calc(env(safe-area-inset-left) + 0.75rem) calc(env(safe-area-inset-bottom) + 0.5rem);
+      background: linear-gradient(180deg, rgba(17, 20, 23, 0.5) 0%, rgba(17, 20, 23, 0.95) 70%);
+      backdrop-filter: blur(18px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 3;
+      gap: 0.75rem;
+    }
+    .tab-bar a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.8rem;
+      padding: 0.65rem 0.5rem;
+      border-radius: 0.75rem;
+      transition: background 160ms ease, color 160ms ease;
+    }
+    .tab-bar a.active {
+      background: rgba(91, 214, 160, 0.18);
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 1rem;
+    }
+    .stat {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 0.8rem;
+      padding: 0.75rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .stat span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .stat strong {
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+    }
+    footer {
+      padding: 1rem 1.5rem 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+    footer a {
+      color: inherit;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Quest Kit</h1>
+    <p style="margin:0;color:var(--muted);font-size:0.9rem;">Pick up where you left off and finish your mobile build.</p>
+  </header>
+  <main>
+    <section class="card">
+      <h2 style="margin:0 0 0.75rem;font-size:1.1rem;">Pack completeness</h2>
+      <div class="progress-shell">
+        <div class="progress"><div id="pack-progress"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:var(--muted);">
+          <span id="pack-status">Loading…</span>
+          <span id="pack-count"></span>
+        </div>
+      </div>
+      <p id="home-pack-meta" class="pack-meta" aria-live="polite">Loading licensed content…</p>
+    </section>
+
+    <section class="card actions">
+      <a href="/builder/index.html">
+        Resume Builder
+        <span aria-hidden="true">⤴</span>
+        <small>Continue the seven-step wizard with your saved character.</small>
+      </a>
+      <a class="secondary" href="/builder/index.html#finalize">
+        Print / Export
+        <span aria-hidden="true">🖨️</span>
+        <small>Jump straight to the finalize step for printing, PDFs, and exports.</small>
+      </a>
+      <a href="/compendium/index.html">
+        Explore Compendium
+        <span aria-hidden="true">📚</span>
+        <small>Search rules, spells, and feats with quick filters.</small>
+      </a>
+    </section>
+
+    <section class="card stats">
+      <div class="stat">
+        <span>Builder saves</span>
+        <strong id="save-count">0</strong>
+      </div>
+      <div class="stat">
+        <span>Favorites</span>
+        <strong id="favorite-count">0</strong>
+      </div>
+      <div class="stat">
+        <span>Last updated</span>
+        <strong id="last-updated">—</strong>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">SRD 5.1 licensing notice</a>
+  </footer>
+  <nav class="tab-bar" role="tablist">
+    <a class="active" href="/index.html" role="tab" aria-selected="true">Home</a>
+    <a href="/builder/index.html" role="tab">Builder</a>
+    <a href="/compendium/index.html" role="tab">Compendium</a>
+  </nav>
+  <script>
+    const STORAGE_KEY = 'dndBuilderState';
+    const FAVORITES_KEY = 'dndCompendiumFavorites';
+
+    function getPackData() {
+      return window.dndData || { packs: [] };
+    }
+
+    function updatePackMeta() {
+      const target = document.getElementById('home-pack-meta');
+      if (!target) return;
+      const { packs = [] } = getPackData();
+      if (!packs.length) {
+        target.textContent = 'No licensed content packs loaded.';
+        return;
+      }
+      const summary = packs.map(pack => {
+        const edition = pack.edition ? ` · ${pack.edition}` : '';
+        const license = pack.license ? ` • ${pack.license}` : '';
+        return `${pack.name}${edition}${license}`;
+      }).join(' | ');
+      target.textContent = `Loaded packs: ${summary}`;
+    }
+
+    async function readIndexedDB(key) {
+      if (!('indexedDB' in window)) return null;
+      return new Promise((resolve) => {
+        const open = indexedDB.open('dndApp', 1);
+        open.onupgradeneeded = () => {
+          const db = open.result;
+          if (!db.objectStoreNames.contains('state')) {
+            db.createObjectStore('state');
+          }
+        };
+        open.onerror = () => resolve(null);
+        open.onsuccess = () => {
+          const db = open.result;
+          const tx = db.transaction('state', 'readonly');
+          const store = tx.objectStore('state');
+          const request = store.get(key);
+          request.onsuccess = () => resolve(request.result || null);
+          request.onerror = () => resolve(null);
+        };
+      });
+    }
+
+    function readLocal(key) {
+      try {
+        const raw = localStorage.getItem(key);
+        return raw ? JSON.parse(raw) : null;
+      } catch (err) {
+        console.warn('localStorage read failed', err);
+        return null;
+      }
+    }
+
+    async function hydrate() {
+      if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
+        try {
+          await window.dndDataReady;
+        } catch (error) {
+          console.warn('Unable to hydrate pack metadata', error);
+        }
+      }
+      updatePackMeta();
+      let state = readLocal(STORAGE_KEY) || await readIndexedDB(STORAGE_KEY) || { completedSteps: [] };
+      if (!Array.isArray(state.completedSteps)) state.completedSteps = [];
+      const favorites = readLocal(FAVORITES_KEY) || { ids: [] };
+
+      const requiredSteps = ['identity','classLevel','abilities','feats','equipment','familiar','finalize'];
+      const completedSet = new Set(state.completedSteps);
+      const completedCount = requiredSteps.reduce((acc, step) => acc + (completedSet.has(step) ? 1 : 0), 0);
+      const pct = Math.round((completedCount / requiredSteps.length) * 100);
+      document.getElementById('pack-progress').style.width = pct + '%';
+      document.getElementById('pack-status').textContent = pct === 100 ? 'Ready to adventure!' : pct >= 50 ? 'On track to finish' : 'Let\'s get building';
+      document.getElementById('pack-count').textContent = `${completedCount}/${requiredSteps.length}`;
+
+      document.getElementById('save-count').textContent = state.saveCount || 1;
+      document.getElementById('favorite-count').textContent = favorites.ids.length;
+      document.getElementById('last-updated').textContent = state.updatedAt ? new Date(state.updatedAt).toLocaleString() : '—';
+    }
+
+    document.addEventListener('DOMContentLoaded', hydrate);
+    window.addEventListener('dnd-state-changed', hydrate);
+    window.addEventListener('dnd-data-ready', () => {
+      if (document.readyState === 'loading') return;
+      updatePackMeta();
+    });
+  </script>
+</body>
+</html>

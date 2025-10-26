@@ -1,0 +1,98 @@
+[
+  {
+    "slug": "barbarian",
+    "name": "Barbarian",
+    "hit_die": "d12",
+    "primary_abilities": ["Strength"],
+    "saving_throws": ["Strength", "Constitution"],
+    "description": "A fierce warrior whose fury fuels relentless assaults."
+  },
+  {
+    "slug": "bard",
+    "name": "Bard",
+    "hit_die": "d8",
+    "primary_abilities": ["Charisma"],
+    "saving_throws": ["Dexterity", "Charisma"],
+    "description": "A performer and storyteller who can weave magic through music and lore."
+  },
+  {
+    "slug": "cleric",
+    "name": "Cleric",
+    "hit_die": "d8",
+    "primary_abilities": ["Wisdom"],
+    "saving_throws": ["Wisdom", "Charisma"],
+    "description": "A champion of the gods who channels divine magic to heal and smite."
+  },
+  {
+    "slug": "druid",
+    "name": "Druid",
+    "hit_die": "d8",
+    "primary_abilities": ["Wisdom"],
+    "saving_throws": ["Intelligence", "Wisdom"],
+    "description": "A guardian of the wilds whose spellcraft and shapechanging draw upon nature."
+  },
+  {
+    "slug": "fighter",
+    "name": "Fighter",
+    "hit_die": "d10",
+    "primary_abilities": ["Strength", "Dexterity"],
+    "saving_throws": ["Strength", "Constitution"],
+    "description": "A master of arms adept with weapons, armor, and battlefield tactics."
+  },
+  {
+    "slug": "monk",
+    "name": "Monk",
+    "hit_die": "d8",
+    "primary_abilities": ["Dexterity", "Wisdom"],
+    "saving_throws": ["Strength", "Dexterity"],
+    "description": "A disciplined artist of martial combat who channels inner energy into precise strikes."
+  },
+  {
+    "slug": "paladin",
+    "name": "Paladin",
+    "hit_die": "d10",
+    "primary_abilities": ["Strength", "Charisma"],
+    "saving_throws": ["Wisdom", "Charisma"],
+    "description": "A sworn knight bound by oath who combines martial prowess with divine blessings."
+  },
+  {
+    "slug": "ranger",
+    "name": "Ranger",
+    "hit_die": "d10",
+    "primary_abilities": ["Dexterity", "Wisdom"],
+    "saving_throws": ["Strength", "Dexterity"],
+    "description": "A hunter and wanderer who excels at tracking foes and surviving the wilderness."
+  },
+  {
+    "slug": "rogue",
+    "name": "Rogue",
+    "hit_die": "d8",
+    "primary_abilities": ["Dexterity"],
+    "saving_throws": ["Dexterity", "Intelligence"],
+    "description": "A deft infiltrator who relies on agility, subtlety, and precision strikes."
+  },
+  {
+    "slug": "sorcerer",
+    "name": "Sorcerer",
+    "hit_die": "d6",
+    "primary_abilities": ["Charisma"],
+    "saving_throws": ["Constitution", "Charisma"],
+    "description": "An innate spellcaster whose magic arises from a powerful lineage or force."
+  },
+  {
+    "slug": "warlock",
+    "name": "Warlock",
+    "hit_die": "d8",
+    "primary_abilities": ["Charisma"],
+    "saving_throws": ["Wisdom", "Charisma"],
+    "description": "A wielder of eldritch powers who forges a pact with a mysterious patron."
+  },
+  {
+    "slug": "wizard",
+    "name": "Wizard",
+    "hit_die": "d6",
+    "primary_abilities": ["Intelligence"],
+    "saving_throws": ["Intelligence", "Wisdom"],
+    "description": "A learned spellcaster who records arcane discoveries in a spellbook."
+  }
+]
