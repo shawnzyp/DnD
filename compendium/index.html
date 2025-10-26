@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compendium</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #0b1014;
+      --fg: #f5f8fd;
+      --muted: rgba(245, 248, 253, 0.65);
+      --surface: rgba(245, 248, 253, 0.05);
+      --accent: #4cc2ff;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      padding: 1rem 1.25rem 0.5rem;
+      background: linear-gradient(180deg, rgba(11,16,20,0.95) 0%, rgba(11,16,20,0.55) 100%);
+      backdrop-filter: blur(18px);
+      z-index: 3;
+    }
+    h1 {
+      margin: 0 0 0.5rem;
+      font-size: 1.35rem;
+    }
+    .search-shell {
+      display: grid;
+      gap: 0.5rem;
+    }
+    .search-shell input[type="search"] {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.04);
+      color: inherit;
+      font-size: 0.95rem;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding-bottom: 0.35rem;
+    }
+    .chip {
+      border-radius: 999px;
+      padding: 0.4rem 0.9rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.06);
+      color: var(--muted);
+      font-size: 0.75rem;
+      letter-spacing: 0.02em;
+    }
+    .chip[aria-pressed="true"] {
+      background: rgba(76, 194, 255, 0.22);
+      border-color: rgba(76, 194, 255, 0.45);
+      color: var(--fg);
+    }
+    main {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    #list-viewport {
+      height: calc(100vh - 210px);
+      min-height: 360px;
+      overflow-y: auto;
+      padding: 0 0.75rem 6rem;
+    }
+    @media (min-height: 740px) {
+      #list-viewport {
+        height: calc(100vh - 240px);
+      }
+    }
+    .virtual-list {
+      position: relative;
+    }
+    .virtual-row {
+      position: absolute;
+      left: 0;
+      right: 0;
+      padding: 0.75rem 0.5rem;
+      transform: translateZ(0);
+    }
+    .entry {
+      border-radius: 0.85rem;
+      padding: 0.75rem 1rem;
+      background: var(--surface);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: grid;
+      gap: 0.3rem;
+    }
+    .entry h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .entry small {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+    .entry button {
+      justify-self: flex-start;
+      padding: 0.35rem 0.7rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.08);
+      color: inherit;
+      font-size: 0.7rem;
+    }
+    #detail-drawer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(11,16,20,0.98);
+      border-radius: 1.1rem 1.1rem 0 0;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 1rem 1.25rem calc(env(safe-area-inset-bottom) + 1.25rem);
+      transform: translateY(100%);
+      transition: transform 220ms ease;
+      max-height: 65vh;
+      overflow-y: auto;
+      box-shadow: 0 -1.5rem 3rem -1.5rem rgba(0,0,0,0.5);
+      z-index: 5;
+    }
+    #detail-drawer.open {
+      transform: translateY(0);
+    }
+    #detail-drawer header {
+      position: sticky;
+      top: 0;
+      background: inherit;
+      padding: 0 0 0.75rem;
+      margin-bottom: 0.5rem;
+    }
+    #detail-drawer h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    #detail-body {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: space-around;
+      padding: 0.45rem calc(env(safe-area-inset-left) + 0.85rem) calc(env(safe-area-inset-bottom) + 0.6rem);
+      background: linear-gradient(180deg, rgba(11,16,20,0.35) 0%, rgba(11,16,20,0.98) 80%);
+      backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      z-index: 6;
+      gap: 0.75rem;
+    }
+    .tab-bar a {
+      flex: 1;
+      text-align: center;
+      text-decoration: none;
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 0.65rem 0.5rem;
+      border-radius: 0.75rem;
+    }
+    .tab-bar a.active {
+      background: rgba(76, 194, 255, 0.2);
+      color: var(--fg);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Compendium</h1>
+    <div class="search-shell">
+      <input type="search" id="search-input" placeholder="Search spells, feats, and rules" />
+      <div class="chips" role="group" aria-label="Filters">
+        <button class="chip" data-filter="spell" aria-pressed="false">Spell</button>
+        <button class="chip" data-filter="feat" aria-pressed="false">Feat</button>
+        <button class="chip" data-filter="item" aria-pressed="false">Item</button>
+        <button class="chip" data-filter="rule" aria-pressed="false">Rule</button>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div id="list-viewport">
+      <div id="virtual-list" class="virtual-list"></div>
+    </div>
+  </main>
+  <aside id="detail-drawer" aria-modal="true" role="dialog" aria-hidden="true">
+    <header>
+      <h2 id="detail-title">Detail</h2>
+      <p id="detail-type" style="margin:0;color:var(--muted);font-size:0.8rem;"></p>
+    </header>
+    <div id="detail-body"></div>
+    <button id="favorite-toggle" style="margin-top:1rem;padding:0.6rem 1rem;border-radius:0.85rem;border:none;background:var(--accent);color:#04121b;font-weight:600;">Save to Favorites</button>
+  </aside>
+  <nav class="tab-bar">
+    <a href="/index.html">Home</a>
+    <a href="/builder/index.html">Builder</a>
+    <a href="/compendium/index.html" class="active">Compendium</a>
+  </nav>
+  <script>
+    const FAVORITES_KEY = 'dndCompendiumFavorites';
+    const STORAGE_KEY = 'dndBuilderState';
+
+    const data = Array.from({ length: 220 }, (_, i) => {
+      const types = ['spell', 'feat', 'item', 'rule'];
+      const type = types[i % types.length];
+      return {
+        id: `entry-${i + 1}`,
+        name: `${type.charAt(0).toUpperCase() + type.slice(1)} ${i + 1}`,
+        type,
+        level: type === 'spell' ? (i % 9) : null,
+        text: `Lorem ipsum dolor sit amet, ${type} description number ${i + 1}. Provides flavorful details for quick reference.`
+      };
+    });
+
+    const viewport = document.getElementById('list-viewport');
+    const list = document.getElementById('virtual-list');
+    const rowHeight = 104; // px
+    let filtered = data;
+    let startIndex = 0;
+    let endIndex = 0;
+    let favorites = loadFavorites();
+
+    function loadFavorites() {
+      try {
+        const raw = localStorage.getItem(FAVORITES_KEY);
+        return raw ? JSON.parse(raw) : { ids: [] };
+      } catch (err) {
+        console.warn('Failed to read favorites', err);
+        return { ids: [] };
+      }
+    }
+
+    function saveFavorites() {
+      try {
+        localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
+      } catch (err) {
+        console.warn('Failed to save favorites', err);
+      }
+      window.dispatchEvent(new CustomEvent('dnd-state-changed'));
+    }
+
+    function applyFilters() {
+      const query = document.getElementById('search-input').value.trim().toLowerCase();
+      const activeFilters = Array.from(document.querySelectorAll('.chip[aria-pressed="true"]')).map(chip => chip.dataset.filter);
+      filtered = data.filter(entry => {
+        const matchesQuery = !query || entry.name.toLowerCase().includes(query) || entry.text.toLowerCase().includes(query);
+        const matchesFilter = !activeFilters.length || activeFilters.includes(entry.type);
+        return matchesQuery && matchesFilter;
+      });
+      list.style.height = `${filtered.length * rowHeight}px`;
+      renderVirtualRows();
+    }
+
+    function renderVirtualRows() {
+      const scrollTop = viewport.scrollTop;
+      const viewportHeight = viewport.clientHeight;
+      const buffer = 4;
+      startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - buffer);
+      endIndex = Math.min(filtered.length, Math.ceil((scrollTop + viewportHeight) / rowHeight) + buffer);
+
+      list.innerHTML = '';
+      for (let i = startIndex; i < endIndex; i++) {
+        const entry = filtered[i];
+        const row = document.createElement('div');
+        row.className = 'virtual-row';
+        row.style.top = `${i * rowHeight}px`;
+        row.innerHTML = `
+          <article class="entry" data-id="${entry.id}" data-type="${entry.type}">
+            <h3>${entry.name}</h3>
+            <small>${entry.type.toUpperCase()}${entry.level !== null ? ` · Level ${entry.level}` : ''}</small>
+            <p style="margin:0;color:var(--muted);font-size:0.78rem;">${entry.text}</p>
+            <button type="button" data-action="details">Quick look</button>
+          </article>
+        `;
+        list.appendChild(row);
+      }
+    }
+
+    function openDetail(id) {
+      const entry = filtered.find(item => item.id === id);
+      if (!entry) return;
+      const drawer = document.getElementById('detail-drawer');
+      document.getElementById('detail-title').textContent = entry.name;
+      document.getElementById('detail-type').textContent = entry.type.toUpperCase();
+      document.getElementById('detail-body').textContent = entry.text.repeat(2);
+      const favoriteToggle = document.getElementById('favorite-toggle');
+      favoriteToggle.dataset.id = entry.id;
+      const isFav = favorites.ids.includes(entry.id);
+      favoriteToggle.textContent = isFav ? 'Remove Favorite' : 'Save to Favorites';
+      drawer.classList.add('open');
+      drawer.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeDetail() {
+      const drawer = document.getElementById('detail-drawer');
+      drawer.classList.remove('open');
+      drawer.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleFavorite(id) {
+      const index = favorites.ids.indexOf(id);
+      if (index >= 0) {
+        favorites.ids.splice(index, 1);
+      } else {
+        favorites.ids.push(id);
+      }
+      saveFavorites();
+      document.getElementById('favorite-toggle').textContent = favorites.ids.includes(id) ? 'Remove Favorite' : 'Save to Favorites';
+    }
+
+    viewport.addEventListener('scroll', () => {
+      requestAnimationFrame(renderVirtualRows);
+    });
+
+    document.getElementById('search-input').addEventListener('input', () => {
+      requestAnimationFrame(applyFilters);
+    });
+
+    document.querySelector('.chips').addEventListener('click', (event) => {
+      const button = event.target.closest('.chip');
+      if (!button) return;
+      const pressed = button.getAttribute('aria-pressed') === 'true';
+      button.setAttribute('aria-pressed', String(!pressed));
+      requestAnimationFrame(applyFilters);
+    });
+
+    list.addEventListener('click', (event) => {
+      const button = event.target.closest('button[data-action="details"]');
+      if (!button) return;
+      const article = button.closest('.entry');
+      if (!article) return;
+      openDetail(article.dataset.id);
+    });
+
+    document.getElementById('favorite-toggle').addEventListener('click', (event) => {
+      const id = event.target.dataset.id;
+      if (!id) return;
+      toggleFavorite(id);
+    });
+
+    document.getElementById('detail-drawer').addEventListener('click', (event) => {
+      if (event.target.id === 'detail-drawer') {
+        closeDetail();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        closeDetail();
+      }
+    });
+
+    function init() {
+      list.style.height = `${filtered.length * rowHeight}px`;
+      renderVirtualRows();
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

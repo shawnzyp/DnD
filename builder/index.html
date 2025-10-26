@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Character Builder</title>
+  <link rel="preload" href="/builder/wizard.js" as="script">
+  <style>
+    :root {
+      color-scheme: dark light;
+      font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      --bg: #0d1117;
+      --fg: #f4f6fb;
+      --muted: rgba(244, 246, 251, 0.7);
+      --surface: rgba(244, 246, 251, 0.05);
+      --accent: #5bd6a0;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--fg);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      padding: 1rem 1.5rem 0.5rem;
+      position: sticky;
+      top: 0;
+      background: linear-gradient(180deg, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.5) 100%);
+      backdrop-filter: blur(20px);
+      z-index: 3;
+    }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+    }
+    #step-indicator {
+      margin: 0.35rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    main {
+      flex: 1;
+      padding: 1rem 1.5rem 7rem;
+      display: grid;
+      gap: 1.25rem;
+    }
+    section.step {
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    section.step.active {
+      display: flex;
+    }
+    .step h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.1rem;
+    }
+    label {
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    input, select, textarea {
+      padding: 0.75rem 0.8rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--fg);
+      font-size: 0.95rem;
+    }
+    textarea {
+      min-height: 120px;
+      resize: vertical;
+    }
+    .grid {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+    .ability {
+      display: grid;
+      gap: 0.35rem;
+      padding: 0.75rem;
+      border-radius: 0.8rem;
+      background: rgba(91, 214, 160, 0.12);
+      border: 1px solid rgba(91, 214, 160, 0.25);
+      color: var(--fg);
+    }
+    .ability span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .sticky-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      padding: 0.75rem calc(env(safe-area-inset-left) + 1rem) calc(env(safe-area-inset-bottom) + 1rem);
+      gap: 0.75rem;
+      background: linear-gradient(180deg, rgba(13,17,23,0.2) 0%, rgba(13,17,23,0.95) 80%);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      z-index: 5;
+    }
+    .sticky-nav button {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      border-radius: 0.9rem;
+      border: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease;
+    }
+    .sticky-nav button.primary {
+      background: var(--accent);
+      color: #042417;
+    }
+    .sticky-nav button.secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+    }
+    .sticky-nav button.ghost {
+      flex: 0.75;
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: var(--muted);
+    }
+    #summary-panel {
+      position: fixed;
+      inset: auto 0 calc(env(safe-area-inset-bottom) + 4.5rem);
+      margin: 0 1rem;
+      background: rgba(13,17,23,0.92);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      max-height: 45vh;
+      overflow-y: auto;
+      transform: translateY(110%);
+      transition: transform 220ms ease;
+      z-index: 4;
+      box-shadow: 0 1.5rem 3.5rem -1.5rem rgba(0,0,0,0.6);
+    }
+    #summary-panel.visible {
+      transform: translateY(0);
+    }
+    #summary-panel h3 {
+      margin-top: 0;
+      font-size: 1rem;
+    }
+    #summary-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: grid;
+      gap: 0.65rem;
+    }
+    #summary-list li {
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 0.75rem;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Character Builder</h1>
+    <p id="step-indicator">Step 1 of 7 · Identity</p>
+  </header>
+  <main>
+    <form id="builder-form" class="grid" novalidate>
+      <section class="step active" data-step="identity">
+        <h2>Identity</h2>
+        <label>Character name
+          <input type="text" name="name" placeholder="Ailith Stormbreath" required />
+        </label>
+        <label>Background
+          <input type="text" name="background" placeholder="Wanderer" />
+        </label>
+        <label>Alignment
+          <select name="alignment">
+            <option value="">Select alignment</option>
+            <option>Lawful Good</option>
+            <option>Neutral Good</option>
+            <option>Chaotic Good</option>
+            <option>Lawful Neutral</option>
+            <option>True Neutral</option>
+            <option>Chaotic Neutral</option>
+            <option>Lawful Evil</option>
+            <option>Neutral Evil</option>
+            <option>Chaotic Evil</option>
+          </select>
+        </label>
+      </section>
+      <section class="step" data-step="classLevel">
+        <h2>Class &amp; Level</h2>
+        <div class="grid two">
+          <label>Primary class
+            <select name="class">
+              <option value="">Choose a class</option>
+              <option>Barbarian</option>
+              <option>Bard</option>
+              <option>Cleric</option>
+              <option>Druid</option>
+              <option>Fighter</option>
+              <option>Monk</option>
+              <option>Paladin</option>
+              <option>Ranger</option>
+              <option>Rogue</option>
+              <option>Sorcerer</option>
+              <option>Warlock</option>
+              <option>Wizard</option>
+            </select>
+          </label>
+          <label>Level
+            <input type="number" min="1" max="20" name="level" value="1" />
+          </label>
+        </div>
+        <label>Subclass focus
+          <input type="text" name="subclass" placeholder="Circle of Stars" />
+        </label>
+      </section>
+      <section class="step" data-step="abilities">
+        <h2>Ability Scores</h2>
+        <div class="grid two">
+          <label>Generation method
+            <select name="abilityMethod">
+              <option>Standard Array</option>
+              <option>Point Buy</option>
+              <option>Manual Entry</option>
+            </select>
+          </label>
+          <label>Total score pool
+            <input type="number" name="scorePool" value="27" />
+          </label>
+        </div>
+        <div class="grid two" id="abilities-grid">
+          <!-- ability inputs inserted by wizard.js -->
+        </div>
+      </section>
+      <section class="step" data-step="feats">
+        <h2>Feats &amp; Talents</h2>
+        <label>Signature feat
+          <input type="text" name="signatureFeat" placeholder="Alert" />
+        </label>
+        <label>Bonus feats
+          <textarea name="bonusFeats" placeholder="Great Weapon Master, Mage Slayer"></textarea>
+        </label>
+      </section>
+      <section class="step" data-step="equipment">
+        <h2>Equipment</h2>
+        <label>Weapon loadout
+          <textarea name="weapons" placeholder="Longsword, hand crossbow"></textarea>
+        </label>
+        <label>Armor &amp; defenses
+          <textarea name="armor" placeholder="Half-plate, cloak of protection"></textarea>
+        </label>
+        <label>Adventuring gear
+          <textarea name="gear" placeholder="Explorer's pack, sending stones"></textarea>
+        </label>
+      </section>
+      <section class="step" data-step="familiar">
+        <h2>Companions &amp; Familiars</h2>
+        <label>Companion name
+          <input type="text" name="familiarName" placeholder="Nimbus" />
+        </label>
+        <label>Creature type
+          <select name="familiarType">
+            <option value="">Select a creature</option>
+            <option>Sprite</option>
+            <option>Hawk</option>
+            <option>Wolf</option>
+            <option>Homunculus</option>
+            <option>Construct</option>
+          </select>
+        </label>
+        <label>Notes
+          <textarea name="familiarNotes" placeholder="Track hit points, special abilities, and personality"></textarea>
+        </label>
+      </section>
+      <section class="step" data-step="finalize" id="finalize">
+        <h2>Finalize &amp; Export</h2>
+        <p style="margin:0 0 0.75rem;color:var(--muted);">Review your summary, generate a printable sheet, or export your data for VTT import.</p>
+        <div class="grid">
+          <button type="button" data-action="print" class="ghost" style="justify-self:flex-start;">Print builder sheet</button>
+          <button type="button" data-action="export" class="ghost" style="justify-self:flex-start;">Export JSON</button>
+        </div>
+        <small style="color:var(--muted);">Your progress is saved automatically.</small>
+      </section>
+    </form>
+  </main>
+  <aside id="summary-panel" aria-live="polite">
+    <h3>Adventure summary</h3>
+    <ul id="summary-list"></ul>
+  </aside>
+  <nav class="sticky-nav" aria-label="Wizard navigation">
+    <button type="button" class="secondary" id="prev-step">Back</button>
+    <button type="button" class="ghost" id="toggle-summary">Summary</button>
+    <button type="button" class="primary" id="next-step">Next</button>
+  </nav>
+  <script src="/builder/wizard.js" type="module" defer></script>
+  <script src="/builder/summary.js" type="module" defer></script>
+</body>
+</html>
