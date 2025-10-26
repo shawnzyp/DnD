@@ -1,10 +1,14 @@
-Adventurer Companion Licensing Notice
-=====================================
+Quest Kit SRD 5.1 Attribution Notice
+====================================
 
-This application includes or references material taken from the *System Reference Document 5.1* ("SRD 5.1") by Wizards of the Coast LLC. The SRD 5.1 is available at https://dnd.wizards.com/systems-reference-document and is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0).
+This project includes content derived from the *System Reference Document 5.1* ("SRD 5.1"), created by Wizards of the Coast LLC.
 
-The SRD 5.1 content is provided subject to the terms of the CC BY 4.0 license. A copy of that license can be viewed at https://creativecommons.org/licenses/by/4.0/.
+The SRD 5.1 is licensed for use under the Creative Commons Attribution 4.0 International License (CC BY 4.0) and is available at:
+https://dnd.wizards.com/systems-reference-document
 
-Wizards of the Coast, Dungeons & Dragons, and all other related trademarks are the property of Wizards of the Coast LLC in the U.S.A. and other countries. This application is not affiliated with, endorsed, sponsored, or specifically approved by Wizards of the Coast LLC. For more information about Wizards of the Coast or Dungeons & Dragons, please visit https://dnd.wizards.com/.
+Under the terms of the CC BY 4.0 license you are free to share and adapt the SRD 5.1 content, provided that you give appropriate credit. A full copy of the license text can be found at:
+https://creativecommons.org/licenses/by/4.0/
 
-All original content in this application is © the respective contributors and released under the same CC BY 4.0 terms unless otherwise noted.
+Wizards of the Coast, Dungeons & Dragons, and their respective logos are trademarks of Wizards of the Coast LLC in the United States and other countries. Quest Kit is not affiliated with, endorsed, sponsored, or specifically approved by Wizards of the Coast LLC.
+
+All original material in Quest Kit is © its respective contributors and is released under the same CC BY 4.0 terms unless another license is expressly indicated.
