@@ -9,6 +9,7 @@
   <script src="/js/home.js" type="module" defer></script>
 </head>
 <body class="app-shell">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <header class="app-header surface-blur">
     <div class="header-group">
       <p class="eyebrow">Adventurer Companion</p>
@@ -21,13 +22,13 @@
     </div>
   </header>
 
-  <main class="app-main" aria-live="polite">
+  <main class="app-main" id="main-content" aria-live="polite" tabindex="-1">
     <section class="card pack-card">
       <div class="card-header">
         <h2 class="card-title">Content completeness</h2>
         <span class="card-meta" data-pack-summary>Checking active packs&hellip;</span>
       </div>
-      <p class="muted">Your compendium automatically merges every enabled content pack. The meter below tracks how much of the expected data is available.</p>
+      <p class="muted" id="pack-meter-description">Your compendium automatically merges every enabled content pack. The meter below tracks how much of the expected data is available.</p>
       <div
         class="pack-meter"
         data-pack-meter
@@ -36,13 +37,14 @@
         aria-valuemax="100"
         aria-valuenow="0"
         aria-valuetext="Preparing content"
+        aria-describedby="pack-meter-description pack-meter-status"
       >
         <div class="pack-meter__bar">
           <div class="pack-meter__fill" data-pack-fill style="width: 0%"></div>
         </div>
         <div class="pack-meter__legend">
           <strong data-pack-percent>0%</strong>
-          <span class="muted" data-pack-count>Loading datasets&hellip;</span>
+          <span class="muted" id="pack-meter-status" data-pack-count>Loading datasets&hellip;</span>
         </div>
       </div>
       <ul class="chip-set" data-dataset-chips aria-label="Dataset availability"></ul>
@@ -60,7 +62,13 @@
     </section>
   </main>
 
-  <aside class="bottom-sheet surface-blur" data-bottom-sheet data-state="expanded">
+  <aside
+    class="bottom-sheet surface-blur"
+    data-bottom-sheet
+    data-state="expanded"
+    role="complementary"
+    aria-labelledby="active-sources-title"
+  >
     <button
       class="bottom-sheet__handle"
       type="button"
@@ -68,12 +76,12 @@
       aria-expanded="true"
       aria-controls="active-sources"
     >
-      <span class="bottom-sheet__title">Active sources</span>
+      <span class="bottom-sheet__title" id="active-sources-title">Active sources</span>
       <svg class="bottom-sheet__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
         <path d="M6.3 9.3a1 1 0 0 1 1.4 0L12 13.59l4.3-4.3a1 1 0 1 1 1.4 1.42l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 0 1 0-1.42z" />
       </svg>
     </button>
-    <div class="bottom-sheet__content" id="active-sources">
+    <div class="bottom-sheet__content" id="active-sources" tabindex="-1">
       <p class="muted">Content packs currently merged into your compendium.</p>
       <ul class="chip-set" data-pack-sources aria-label="Active content packs"></ul>
     </div>

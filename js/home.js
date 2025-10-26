@@ -181,15 +181,31 @@ function initBottomSheets() {
     const expandedLabel = toggle.dataset.expandedLabel || `${baseTitle} (collapse)`;
     const collapsedLabel = toggle.dataset.collapsedLabel || `${baseTitle} (expand)`;
 
-    function applyState(expanded) {
+    function applyState(expanded, { focusSource } = {}) {
       sheet.setAttribute('data-state', expanded ? 'expanded' : 'collapsed');
       toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
       toggle.setAttribute('aria-label', expanded ? expandedLabel : collapsedLabel);
+      const content = sheet.querySelector('.bottom-sheet__content');
+      if (expanded && focusSource === 'keyboard' && content) {
+        requestAnimationFrame(() => {
+          if (typeof content.focus === 'function') {
+            content.focus({ preventScroll: true });
+          }
+        });
+      }
+      if (!expanded && focusSource === 'keyboard') {
+        requestAnimationFrame(() => {
+          if (typeof toggle.focus === 'function') {
+            toggle.focus({ preventScroll: true });
+          }
+        });
+      }
     }
 
-    toggle.addEventListener('click', () => {
+    toggle.addEventListener('click', (event) => {
       const next = sheet.getAttribute('data-state') !== 'expanded';
-      applyState(next);
+      const focusSource = event.detail === 0 ? 'keyboard' : null;
+      applyState(next, { focusSource });
     });
 
     const initial = sheet.getAttribute('data-state') !== 'collapsed';
