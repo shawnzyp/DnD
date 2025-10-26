@@ -4,7 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Character Builder</title>
-  <link rel="preload" href="/builder/wizard.js" as="script">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+  <meta name="theme-color" content="#0d1117">
   <script src="/js/loader.js" defer></script>
   <style>
     :root {
@@ -311,7 +313,34 @@
     <button type="button" class="ghost" id="toggle-summary">Summary</button>
     <button type="button" class="primary" id="next-step">Next</button>
   </nav>
-  <script src="/builder/wizard.js" type="module" defer></script>
-  <script src="/builder/summary.js" type="module" defer></script>
+  <script type="module">
+    const loadBuilder = () => import('/builder/wizard.js');
+    const loadSummary = () => import('/builder/summary.js');
+
+    async function boot() {
+      try {
+        const { initBuilder } = await loadBuilder();
+        if (typeof initBuilder === 'function') {
+          await initBuilder();
+        }
+      } catch (error) {
+        console.error('Failed to initialise builder', error);
+        return;
+      }
+      loadSummary().then((module) => {
+        if (module && typeof module.initSummary === 'function') {
+          module.initSummary();
+        }
+      }).catch((error) => {
+        console.error('Failed to load summary module', error);
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', boot, { once: true });
+    } else {
+      boot();
+    }
+  </script>
 </body>
 </html>

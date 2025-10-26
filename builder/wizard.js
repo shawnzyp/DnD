@@ -9,14 +9,14 @@ const abilityFields = [
   { id: 'cha', label: 'Charisma' }
 ];
 
-const steps = Array.from(document.querySelectorAll('section.step'));
-const form = document.getElementById('builder-form');
-const indicator = document.getElementById('step-indicator');
-const prevBtn = document.getElementById('prev-step');
-const nextBtn = document.getElementById('next-step');
-const summaryToggle = document.getElementById('toggle-summary');
-
+let steps = [];
+let form;
+let indicator;
+let prevBtn;
+let nextBtn;
+let summaryToggle;
 let currentStep = 0;
+let isInitialised = false;
 let state = {
   data: {},
   completedSteps: [],
@@ -37,8 +37,7 @@ function getPackData() {
 
 function ensureAbilityInputs() {
   const container = document.getElementById('abilities-grid');
-  if (!container) return;
-  if (container.children.length > 0) return;
+  if (!container || container.children.length > 0) return;
   abilityFields.forEach(field => {
     const wrapper = document.createElement('label');
     wrapper.className = 'ability';
@@ -108,13 +107,12 @@ function updatePackMeta() {
 }
 
 function populateDynamicOptions() {
+  if (!form) return;
   const data = getPackData();
-  if (form && form.elements) {
-    const classField = form.elements.namedItem('class');
-    populateSelectOptions(classField, data.classes || [], 'Choose a class');
-    const familiarField = form.elements.namedItem('familiarType');
-    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
-  }
+  const classField = form.elements.namedItem('class');
+  populateSelectOptions(classField, data.classes || [], 'Choose a class');
+  const familiarField = form.elements.namedItem('familiarType');
+  populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
   populateDatalist('background-options', data.backgrounds || []);
   populateDatalist('feat-options', data.feats || []);
   populateDatalist('item-options', data.items || [], (entry) => {
@@ -125,21 +123,26 @@ function populateDynamicOptions() {
 }
 
 function renderStep(index) {
+  if (!steps.length || !indicator || !prevBtn || !nextBtn) return;
   steps.forEach((step, i) => {
     step.classList.toggle('active', i === index);
   });
-  indicator.textContent = `Step ${index + 1} of ${steps.length} · ${steps[index].querySelector('h2').textContent}`;
+  const title = steps[index] && steps[index].querySelector('h2');
+  const heading = title ? title.textContent : `Step ${index + 1}`;
+  indicator.textContent = `Step ${index + 1} of ${steps.length} · ${heading}`;
   prevBtn.disabled = index === 0;
   nextBtn.textContent = index === steps.length - 1 ? 'Finish' : 'Next';
 }
 
 function markStepCompleted(stepId) {
+  if (!stepId) return;
   if (!state.completedSteps.includes(stepId)) {
     state.completedSteps.push(stepId);
   }
 }
 
 function serializeForm() {
+  if (!form) return {};
   const formData = new FormData(form);
   const data = {};
   for (const [key, value] of formData.entries()) {
@@ -201,9 +204,13 @@ function writeLocal(key, value) {
 }
 
 async function persistState() {
+  if (!steps.length) return;
   state.data = serializeForm();
   state.updatedAt = Date.now();
-  markStepCompleted(steps[currentStep].dataset.step);
+  const activeStep = steps[currentStep];
+  if (activeStep && activeStep.dataset.step) {
+    markStepCompleted(activeStep.dataset.step);
+  }
   writeLocal(STORAGE_KEY, state);
   await writeIndexedDB(STORAGE_KEY, state);
   window.dndBuilderState = state;
@@ -212,7 +219,7 @@ async function persistState() {
 }
 
 function hydrateForm(data) {
-  if (!data) return;
+  if (!data || !form) return;
   state = { ...state, ...data };
   state.data = data.data || state.data;
   state.completedSteps = Array.isArray(data.completedSteps) ? data.completedSteps : [];
@@ -262,13 +269,17 @@ function nextStep() {
     goToStep(currentStep + 1);
   } else {
     const finalizeStep = document.querySelector('[data-step="finalize"]');
-    finalizeStep.scrollIntoView({ behavior: 'smooth' });
-    nextBtn.disabled = true;
-    nextBtn.textContent = 'Saved';
-    setTimeout(() => {
-      nextBtn.disabled = false;
-      nextBtn.textContent = 'Finish';
-    }, 1600);
+    if (finalizeStep) {
+      finalizeStep.scrollIntoView({ behavior: 'smooth' });
+    }
+    if (nextBtn) {
+      nextBtn.disabled = true;
+      nextBtn.textContent = 'Saved';
+      setTimeout(() => {
+        nextBtn.disabled = false;
+        nextBtn.textContent = 'Finish';
+      }, 1600);
+    }
   }
 }
 
@@ -278,10 +289,12 @@ function prevStep() {
 }
 
 function handleInput() {
+  state.saveCount += 1;
   persistState();
 }
 
 function setupFinalizeActions() {
+  if (!form) return;
   form.addEventListener('click', (event) => {
     const target = event.target;
     if (!(target instanceof HTMLElement)) return;
@@ -307,12 +320,34 @@ function setupFinalizeActions() {
 }
 
 function setupSummaryToggle() {
+  if (!summaryToggle) return;
   summaryToggle.addEventListener('click', () => {
-    document.getElementById('summary-panel').classList.toggle('visible');
+    const panel = document.getElementById('summary-panel');
+    if (!panel) return;
+    panel.classList.toggle('visible');
   });
 }
 
-async function init() {
+function handleDataReady() {
+  if (document.readyState === 'loading') return;
+  populateDynamicOptions();
+}
+
+export async function initBuilder() {
+  if (isInitialised) return;
+  steps = Array.from(document.querySelectorAll('section.step'));
+  form = document.getElementById('builder-form');
+  indicator = document.getElementById('step-indicator');
+  prevBtn = document.getElementById('prev-step');
+  nextBtn = document.getElementById('next-step');
+  summaryToggle = document.getElementById('toggle-summary');
+
+  if (!form || !steps.length || !indicator || !prevBtn || !nextBtn) {
+    console.warn('Builder init aborted: missing DOM nodes');
+    return;
+  }
+
+  isInitialised = true;
   ensureAbilityInputs();
   if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
     try {
@@ -324,22 +359,13 @@ async function init() {
   populateDynamicOptions();
   await loadState();
   renderStep(currentStep);
-  form.addEventListener('input', () => {
-    state.saveCount += 1;
-    handleInput();
-  });
+  form.addEventListener('input', handleInput, { passive: true });
   prevBtn.addEventListener('click', prevStep);
   nextBtn.addEventListener('click', nextStep);
   setupFinalizeActions();
   setupSummaryToggle();
   window.addEventListener('beforeunload', persistState);
+  window.addEventListener('dnd-data-ready', handleDataReady);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  init();
-});
-
-window.addEventListener('dnd-data-ready', () => {
-  if (document.readyState === 'loading') return;
-  populateDynamicOptions();
-});
+export default initBuilder;

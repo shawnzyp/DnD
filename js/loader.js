@@ -1,5 +1,7 @@
 (function () {
   const MANIFEST_URL = '/packs/manifest.json';
+  const SERVICE_WORKER_URL = '/sw.js';
+  const PACK_CACHE_MESSAGE = 'CACHE_PACKS';
   const USER_PACKS_KEY = 'dndUserPacks';
   const DEFAULT_FILES = ['classes', 'races', 'backgrounds', 'feats', 'spells', 'items', 'companions', 'rules'];
   const TYPE_MAP = {
@@ -8,6 +10,35 @@
     items: 'item',
     rules: 'rule'
   };
+
+  function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    window.addEventListener('load', async () => {
+      try {
+        const registration = await navigator.serviceWorker.register(SERVICE_WORKER_URL);
+        if (registration.waiting) {
+          registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      } catch (error) {
+        console.warn('Service worker registration failed', error);
+      }
+    });
+  }
+
+  function pushPackAssetsToServiceWorker(assets) {
+    if (!('serviceWorker' in navigator)) return;
+    if (!Array.isArray(assets) || assets.length === 0) return;
+    navigator.serviceWorker.ready
+      .then((registration) => {
+        const target = navigator.serviceWorker.controller || registration.active;
+        if (target) {
+          target.postMessage({ type: PACK_CACHE_MESSAGE, assets });
+        }
+      })
+      .catch((error) => {
+        console.warn('Unable to send pack assets to service worker', error);
+      });
+  }
 
   function safeLocalStorageGet(key) {
     try {
@@ -70,6 +101,20 @@
       }
     }));
     return pack;
+  }
+
+  function resolvePackAssets(pack) {
+    const basePath = (pack && pack.path ? pack.path : '').replace(/\/$/, '');
+    if (!basePath) return [];
+    const files = Array.isArray(pack.files) && pack.files.length ? pack.files : DEFAULT_FILES;
+    return files.map((file) => {
+      const relative = `${basePath}/${file}.json`;
+      try {
+        return new URL(relative, window.location.origin).toString();
+      } catch (error) {
+        return relative;
+      }
+    });
   }
 
   function mergeData(packs) {
@@ -151,10 +196,12 @@
       .sort((a, b) => (a.priority || 0) - (b.priority || 0));
 
     const loaded = [];
+    const assetSet = new Set();
     for (const definition of definitions) {
       try {
         const pack = await loadPack(definition);
         loaded.push(pack);
+        resolvePackAssets(pack).forEach((asset) => asset && assetSet.add(asset));
       } catch (error) {
         console.error(`Failed to load pack ${definition.id}`, error);
         loaded.push({ ...definition, data: {} });
@@ -175,6 +222,7 @@
     return {
       manifest,
       packs: packSummaries,
+      packAssets: Array.from(assetSet),
       ...merged
     };
   }
@@ -193,6 +241,8 @@
       window.dndPacks = {};
     }
   }
+
+  registerServiceWorker();
 
   const readyPromise = loadAllPacks().catch((error) => {
     console.error('Pack loading failed', error);
@@ -215,6 +265,9 @@
   window.dndDataReady = readyPromise.then((data) => {
     window.dndData = data;
     window.dispatchEvent(new CustomEvent('dnd-data-ready', { detail: data }));
+    if (data && data.packAssets) {
+      pushPackAssetsToServiceWorker(data.packAssets);
+    }
     return data;
   });
 

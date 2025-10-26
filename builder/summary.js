@@ -62,12 +62,26 @@ function renderSummary(state) {
   }
 }
 
-window.addEventListener('dnd-builder-updated', (event) => {
+function handleBuilderUpdated(event) {
   renderSummary(event.detail);
-});
+}
 
-document.addEventListener('DOMContentLoaded', () => {
+function handleDataReady() {
   if (window.dndBuilderState) {
     renderSummary(window.dndBuilderState);
   }
-});
+}
+
+let initialised = false;
+
+export function initSummary() {
+  if (initialised) return;
+  initialised = true;
+  window.addEventListener('dnd-builder-updated', handleBuilderUpdated);
+  window.addEventListener('dnd-data-ready', handleDataReady);
+  if (window.dndBuilderState) {
+    renderSummary(window.dndBuilderState);
+  }
+}
+
+export default initSummary;

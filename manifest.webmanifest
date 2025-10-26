@@ -1,0 +1,24 @@
+{
+  "name": "Quest Kit Companion",
+  "short_name": "Quest Kit",
+  "description": "Offline-ready tools for your tabletop adventures.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#111417",
+  "theme_color": "#111417",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
