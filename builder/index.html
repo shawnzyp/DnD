@@ -41,6 +41,49 @@
       font-size: 0.82rem;
       color: var(--muted);
     }
+    #builder-progress {
+      margin: 0.75rem 0 0;
+    }
+    #builder-progress ol {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.4rem;
+    }
+    #builder-progress li {
+      display: contents;
+    }
+    #builder-progress button {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-align: left;
+      cursor: pointer;
+      display: grid;
+      gap: 0.1rem;
+      transition: border-color 120ms ease, color 120ms ease, background 120ms ease;
+    }
+    #builder-progress button span {
+      display: block;
+      font-weight: 600;
+      color: var(--fg);
+      font-size: 0.78rem;
+    }
+    #builder-progress button[aria-current="step"] {
+      border-color: rgba(91, 214, 160, 0.6);
+      color: var(--fg);
+      background: rgba(91, 214, 160, 0.12);
+    }
+    #builder-progress button[data-complete="true"] {
+      border-color: rgba(91, 214, 160, 0.35);
+      color: var(--fg);
+    }
     .pack-meta {
       margin: 0.25rem 0 0;
       font-size: 0.75rem;
@@ -101,6 +144,31 @@
     .ability span {
       font-size: 0.75rem;
       color: var(--muted);
+    }
+    .ability.recommended {
+      border-color: rgba(91, 214, 160, 0.6);
+      background: rgba(91, 214, 160, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(91, 214, 160, 0.3);
+    }
+    .step-details {
+      margin: 0.25rem 0 0;
+      padding: 0.65rem 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 0.78rem;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .step-details strong {
+      display: block;
+      color: var(--fg);
+      font-size: 0.8rem;
+      margin-bottom: 0.2rem;
+    }
+    .step-details ul {
+      margin: 0.35rem 0 0.25rem;
+      padding-left: 1rem;
     }
     .sticky-nav {
       position: fixed;
@@ -188,19 +256,23 @@
 <body>
   <header>
     <h1>Character Builder</h1>
-    <p id="step-indicator">Step 1 of 7 · Identity</p>
+    <p id="step-indicator" role="status" aria-live="polite">Step 1 of 7 · Identity</p>
+    <nav id="builder-progress" aria-label="Step progress" aria-live="polite">
+      <ol id="progress-list"></ol>
+    </nav>
     <p id="builder-pack-meta" class="pack-meta" aria-live="polite">Loading System Reference Document…</p>
   </header>
   <main>
     <form id="builder-form" class="grid" novalidate>
-      <section class="step active" data-step="identity">
-        <h2>Identity</h2>
+      <section class="step active" data-step="identity" role="group" aria-labelledby="step-title-identity">
+        <h2 id="step-title-identity">Identity</h2>
         <label>Character name
           <input type="text" name="name" placeholder="Ailith Stormbreath" required />
         </label>
         <label>Background
           <input type="text" name="background" placeholder="Wanderer" list="background-options" />
         </label>
+        <div id="background-details" class="step-details" aria-live="polite"></div>
         <label>Alignment
           <select name="alignment">
             <option value="">Select alignment</option>
@@ -216,8 +288,8 @@
           </select>
         </label>
       </section>
-      <section class="step" data-step="classLevel">
-        <h2>Class &amp; Level</h2>
+      <section class="step" data-step="classLevel" role="group" aria-labelledby="step-title-classLevel">
+        <h2 id="step-title-classLevel">Class &amp; Level</h2>
         <div class="grid two">
           <label>Primary class
             <select name="class">
@@ -231,9 +303,10 @@
         <label>Subclass focus
           <input type="text" name="subclass" placeholder="Circle of Stars" />
         </label>
+        <div id="class-details" class="step-details" aria-live="polite"></div>
       </section>
-      <section class="step" data-step="abilities">
-        <h2>Ability Scores</h2>
+      <section class="step" data-step="abilities" role="group" aria-labelledby="step-title-abilities">
+        <h2 id="step-title-abilities">Ability Scores</h2>
         <div class="grid two">
           <label>Generation method
             <select name="abilityMethod">
@@ -249,18 +322,20 @@
         <div class="grid two" id="abilities-grid">
           <!-- ability inputs inserted by wizard.js -->
         </div>
+        <div id="ability-details" class="step-details" aria-live="polite"></div>
       </section>
-      <section class="step" data-step="feats">
-        <h2>Feats &amp; Talents</h2>
+      <section class="step" data-step="feats" role="group" aria-labelledby="step-title-feats">
+        <h2 id="step-title-feats">Feats &amp; Talents</h2>
         <label>Signature feat
           <input type="text" name="signatureFeat" placeholder="Alert" list="feat-options" />
         </label>
+        <div id="feat-details" class="step-details" aria-live="polite"></div>
         <label>Bonus feats
           <textarea name="bonusFeats" placeholder="Great Weapon Master, Mage Slayer"></textarea>
         </label>
       </section>
-      <section class="step" data-step="equipment">
-        <h2>Equipment</h2>
+      <section class="step" data-step="equipment" role="group" aria-labelledby="step-title-equipment">
+        <h2 id="step-title-equipment">Equipment</h2>
         <label>Weapon loadout
           <textarea name="weapons" placeholder="Longsword, hand crossbow"></textarea>
         </label>
@@ -271,8 +346,8 @@
           <input type="text" name="gear" placeholder="Explorer's pack, sending stones" list="item-options" />
         </label>
       </section>
-      <section class="step" data-step="familiar">
-        <h2>Companions &amp; Familiars</h2>
+      <section class="step" data-step="familiar" role="group" aria-labelledby="step-title-familiar">
+        <h2 id="step-title-familiar">Companions &amp; Familiars</h2>
         <label>Companion name
           <input type="text" name="familiarName" placeholder="Nimbus" />
         </label>
@@ -281,15 +356,17 @@
             <option value="">Select a creature</option>
           </select>
         </label>
+        <div id="familiar-details" class="step-details" aria-live="polite"></div>
         <label>Notes
           <textarea name="familiarNotes" placeholder="Track hit points, special abilities, and personality"></textarea>
         </label>
       </section>
-      <section class="step" data-step="finalize" id="finalize">
-        <h2>Finalize &amp; Export</h2>
+      <section class="step" data-step="finalize" id="finalize" role="group" aria-labelledby="step-title-finalize">
+        <h2 id="step-title-finalize">Finalize &amp; Export</h2>
         <p style="margin:0 0 0.75rem;color:var(--muted);">Review your summary, generate a printable sheet, or export your data for VTT import.</p>
         <div class="grid">
           <button type="button" data-action="print" class="ghost" style="justify-self:flex-start;">Print builder sheet</button>
+          <button type="button" data-action="import" class="ghost" style="justify-self:flex-start;">Import JSON</button>
           <button type="button" data-action="export" class="ghost" style="justify-self:flex-start;">Export JSON</button>
         </div>
         <small style="color:var(--muted);">Your progress is saved automatically.</small>
@@ -306,6 +383,7 @@
     <h3>Adventure summary</h3>
     <ul id="summary-list"></ul>
   </aside>
+  <input type="file" id="builder-import" accept="application/json" hidden />
   <nav class="sticky-nav" aria-label="Wizard navigation">
     <button type="button" class="secondary" id="prev-step">Back</button>
     <button type="button" class="ghost" id="toggle-summary">Summary</button>
