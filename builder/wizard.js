@@ -1,4 +1,5 @@
 const STORAGE_KEY = 'dndBuilderState';
+const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
 
 const abilityFields = [
   { id: 'str', label: 'Strength' },
@@ -15,6 +16,7 @@ const indicator = document.getElementById('step-indicator');
 const prevBtn = document.getElementById('prev-step');
 const nextBtn = document.getElementById('next-step');
 const summaryToggle = document.getElementById('toggle-summary');
+const coachmarkOverlay = document.getElementById('coachmark-overlay');
 
 let currentStep = 0;
 let state = {
@@ -312,6 +314,239 @@ function setupSummaryToggle() {
   });
 }
 
+function setupAboutModal() {
+  const modal = document.getElementById('about-legal-modal');
+  if (!modal) return;
+  const dialog = modal.querySelector('.modal-panel');
+  const legalBlock = modal.querySelector('#legal-notice-text');
+  const backdrop = modal.querySelector('.modal-backdrop');
+  const openers = Array.from(document.querySelectorAll('[data-open-about]'));
+  const closeButtons = Array.from(modal.querySelectorAll('[data-close-modal]'));
+  let loaded = false;
+  let lastFocus = null;
+
+  async function loadLegalNotice() {
+    if (!legalBlock || loaded) return;
+    try {
+      const response = await fetch('/LEGAL/NOTICE.txt', { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Failed to fetch legal notice: ${response.status}`);
+      const text = await response.text();
+      legalBlock.textContent = text;
+      loaded = true;
+    } catch (error) {
+      legalBlock.textContent = 'Unable to load the legal notice. You can open the text directly via the link above.';
+    }
+  }
+
+  function closeModal() {
+    modal.classList.remove('visible');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    document.removeEventListener('keydown', handleKeydown, true);
+    if (lastFocus && typeof lastFocus.focus === 'function') {
+      lastFocus.focus();
+    }
+  }
+
+  function handleKeydown(event) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeModal();
+    }
+  }
+
+  function openModal(trigger) {
+    lastFocus = trigger || document.activeElement;
+    modal.classList.add('visible');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+    document.addEventListener('keydown', handleKeydown, true);
+    loadLegalNotice();
+    requestAnimationFrame(() => {
+      if (dialog) {
+        dialog.focus();
+      }
+    });
+  }
+
+  openers.forEach((button) => {
+    if (!button) return;
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      openModal(button);
+    });
+  });
+
+  closeButtons.forEach((button) => {
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      closeModal();
+    });
+  });
+
+  [modal, backdrop].forEach((element) => {
+    if (!element) return;
+    element.addEventListener('click', (event) => {
+      if (event.target === element) {
+        closeModal();
+      }
+    });
+  });
+}
+
+function setupCoachMarks() {
+  if (!coachmarkOverlay) return;
+  let seen = false;
+  try {
+    seen = localStorage.getItem(COACHMARK_KEY) === '1';
+  } catch (error) {
+    seen = false;
+  }
+  if (seen) return;
+
+  const stepsConfig = [
+    {
+      target: '#step-indicator',
+      title: 'Guided builder',
+      message: 'Follow the breadcrumb and use the Next and Back buttons to move through each section of the builder.'
+    },
+    {
+      target: '#builder-pack-meta',
+      title: 'Content packs',
+      message: 'This line lists every SRD 5.1 or custom data pack that is currently loaded so you always know the source of each option.'
+    },
+    {
+      target: '.sticky-nav',
+      title: 'Offline friendly',
+      message: 'Quest Kit saves to your device. Install it as a PWA or revisit anytime—even offline—and your latest progress will be waiting.'
+    }
+  ];
+
+  let currentIndex = 0;
+  let activeTarget = null;
+
+  coachmarkOverlay.innerHTML = '';
+  const backdrop = document.createElement('div');
+  backdrop.className = 'coachmark-backdrop';
+  const card = document.createElement('section');
+  card.className = 'coachmark-card';
+  card.setAttribute('role', 'dialog');
+  card.setAttribute('aria-live', 'polite');
+  card.tabIndex = -1;
+
+  const title = document.createElement('h3');
+  const message = document.createElement('p');
+  const actions = document.createElement('div');
+  actions.className = 'coachmark-actions';
+
+  const skipButton = document.createElement('button');
+  skipButton.type = 'button';
+  skipButton.className = 'secondary';
+  skipButton.textContent = 'Skip';
+
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'primary';
+  nextButton.textContent = 'Next';
+
+  actions.append(skipButton, nextButton);
+  card.append(title, message, actions);
+  coachmarkOverlay.append(backdrop, card);
+
+  function storeSeen() {
+    try {
+      localStorage.setItem(COACHMARK_KEY, '1');
+    } catch (error) {
+      // ignore storage issues
+    }
+  }
+
+  function clearHighlight() {
+    if (activeTarget) {
+      activeTarget.classList.remove('coachmark-highlight');
+    }
+    activeTarget = null;
+  }
+
+  function finish() {
+    clearHighlight();
+    coachmarkOverlay.classList.remove('active');
+    coachmarkOverlay.setAttribute('aria-hidden', 'true');
+    coachmarkOverlay.innerHTML = '';
+    window.removeEventListener('resize', reposition, true);
+    window.removeEventListener('scroll', reposition, true);
+  }
+
+  function complete() {
+    storeSeen();
+    finish();
+  }
+
+  function reposition() {
+    if (!activeTarget || !card.isConnected) return;
+    const rect = activeTarget.getBoundingClientRect();
+    const cardRect = card.getBoundingClientRect();
+    const spacing = 12;
+    let top = rect.bottom + spacing;
+    if (top + cardRect.height > window.innerHeight - spacing) {
+      top = Math.max(spacing, rect.top - cardRect.height - spacing);
+    }
+    let left = rect.left + rect.width / 2 - cardRect.width / 2;
+    left = Math.min(Math.max(left, spacing), window.innerWidth - cardRect.width - spacing);
+    card.style.top = `${Math.round(top)}px`;
+    card.style.left = `${Math.round(left)}px`;
+  }
+
+  function showStep(index) {
+    const config = stepsConfig[index];
+    if (!config) {
+      complete();
+      return;
+    }
+    const target = document.querySelector(config.target);
+    if (!target) {
+      showStep(index + 1);
+      return;
+    }
+    clearHighlight();
+    activeTarget = target;
+    activeTarget.classList.add('coachmark-highlight');
+    title.textContent = config.title;
+    message.textContent = config.message;
+    nextButton.textContent = index === stepsConfig.length - 1 ? 'Got it' : 'Next';
+    requestAnimationFrame(() => {
+      reposition();
+      if (card.isConnected) {
+        card.focus();
+      }
+    });
+  }
+
+  skipButton.addEventListener('click', () => {
+    complete();
+  });
+
+  nextButton.addEventListener('click', () => {
+    if (currentIndex >= stepsConfig.length - 1) {
+      complete();
+    } else {
+      currentIndex += 1;
+      showStep(currentIndex);
+    }
+  });
+
+  backdrop.addEventListener('click', () => {
+    complete();
+  });
+
+  coachmarkOverlay.classList.add('active');
+  coachmarkOverlay.setAttribute('aria-hidden', 'false');
+  window.addEventListener('resize', reposition, true);
+  window.addEventListener('scroll', reposition, true);
+
+  showStep(currentIndex);
+}
+
 async function init() {
   ensureAbilityInputs();
   if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
@@ -332,6 +567,8 @@ async function init() {
   nextBtn.addEventListener('click', nextStep);
   setupFinalizeActions();
   setupSummaryToggle();
+  setupAboutModal();
+  window.setTimeout(setupCoachMarks, 400);
   window.addEventListener('beforeunload', persistState);
 }
 

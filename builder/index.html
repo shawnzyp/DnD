@@ -31,13 +31,41 @@
       background: linear-gradient(180deg, rgba(13,17,23,0.95) 0%, rgba(13,17,23,0.5) 100%);
       backdrop-filter: blur(20px);
       z-index: 3;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .header-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
     }
     h1 {
       margin: 0;
       font-size: 1.35rem;
     }
+    .header-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+    #open-about-modal {
+      padding: 0.45rem 0.85rem;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    #open-about-modal:hover,
+    #open-about-modal:focus {
+      background: rgba(91, 214, 160, 0.18);
+      border-color: rgba(91, 214, 160, 0.4);
+      outline: none;
+    }
     #step-indicator {
-      margin: 0.35rem 0 0;
+      margin: 0;
       font-size: 0.82rem;
       color: var(--muted);
     }
@@ -180,14 +208,169 @@
       color: var(--muted);
       text-align: center;
     }
+    .legal-link button,
     .legal-link a {
+      font: inherit;
       color: inherit;
+      background: none;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+    }
+    .legal-link button:hover,
+    .legal-link button:focus {
+      text-decoration: underline;
+      outline: none;
+    }
+    #about-legal-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 10;
+    }
+    #about-legal-modal.visible {
+      display: block;
+    }
+    .modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 11, 17, 0.75);
+      backdrop-filter: blur(12px);
+    }
+    .modal-panel {
+      position: absolute;
+      inset: auto 1rem 1.5rem;
+      background: rgba(13,17,23,0.97);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1rem;
+      padding: 1.25rem 1.35rem;
+      max-height: min(80vh, 640px);
+      overflow-y: auto;
+      box-shadow: 0 1.5rem 3.5rem -1.25rem rgba(0,0,0,0.65);
+      display: grid;
+      gap: 1rem;
+    }
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .modal-close {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: var(--fg);
+      border-radius: 999px;
+      width: 2rem;
+      height: 2rem;
+      font-size: 1.1rem;
+      line-height: 1;
+      cursor: pointer;
+    }
+    .modal-close:hover,
+    .modal-close:focus {
+      background: rgba(91, 214, 160, 0.2);
+      border-color: rgba(91, 214, 160, 0.4);
+      outline: none;
+    }
+    .modal-panel section {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .modal-panel h3 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    #legal-notice-text {
+      background: rgba(255,255,255,0.04);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      white-space: pre-wrap;
+      font-size: 0.72rem;
+      line-height: 1.45;
+    }
+    #about-legal-modal a {
+      color: var(--accent);
+    }
+    body.modal-open {
+      overflow: hidden;
+    }
+    .coachmark-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9;
+      display: none;
+    }
+    .coachmark-overlay.active {
+      display: block;
+    }
+    .coachmark-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(7, 11, 17, 0.65);
+      backdrop-filter: blur(4px);
+    }
+    .coachmark-card {
+      position: absolute;
+      max-width: 320px;
+      background: rgba(13,17,23,0.95);
+      border-radius: 0.9rem;
+      border: 1px solid rgba(91, 214, 160, 0.35);
+      padding: 1rem 1.1rem;
+      display: grid;
+      gap: 0.6rem;
+      box-shadow: 0 1.25rem 3rem -1.5rem rgba(0,0,0,0.65);
+    }
+    .coachmark-card h3 {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+    .coachmark-card p {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .coachmark-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+    .coachmark-actions button {
+      border: none;
+      border-radius: 999px;
+      padding: 0.45rem 0.85rem;
+      font-size: 0.75rem;
+      cursor: pointer;
+    }
+    .coachmark-actions button.primary {
+      background: var(--accent);
+      color: #042417;
+      font-weight: 600;
+    }
+    .coachmark-actions button.secondary {
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+    }
+    .coachmark-highlight {
+      position: relative;
+      box-shadow: 0 0 0 2px rgba(91, 214, 160, 0.8), 0 0 0 8px rgba(91, 214, 160, 0.2);
+      border-radius: 0.9rem;
+      transition: box-shadow 160ms ease;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>Character Builder</h1>
+    <div class="header-row">
+      <h1>Character Builder</h1>
+      <div class="header-actions">
+        <button type="button" id="open-about-modal" data-open-about aria-haspopup="dialog" aria-controls="about-legal-modal">About &amp; Legal</button>
+      </div>
+    </div>
     <p id="step-indicator">Step 1 of 7 · Identity</p>
     <p id="builder-pack-meta" class="pack-meta" aria-live="polite">Loading System Reference Document…</p>
   </header>
@@ -300,7 +483,9 @@
   <datalist id="feat-options"></datalist>
   <datalist id="item-options"></datalist>
   <p class="legal-link">
-    <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">SRD 5.1 licensing notice</a>
+    <button type="button" data-open-about aria-haspopup="dialog" aria-controls="about-legal-modal">About &amp; Legal</button>
+    ·
+    <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">Open SRD 5.1 notice</a>
   </p>
   <aside id="summary-panel" aria-live="polite">
     <h3>Adventure summary</h3>
@@ -311,6 +496,33 @@
     <button type="button" class="ghost" id="toggle-summary">Summary</button>
     <button type="button" class="primary" id="next-step">Next</button>
   </nav>
+  <div id="about-legal-modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal></div>
+    <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="about-legal-title" tabindex="-1">
+      <div class="modal-header">
+        <h2 id="about-legal-title">About Quest Kit</h2>
+        <button type="button" class="modal-close" data-close-modal aria-label="Close about and legal modal">×</button>
+      </div>
+      <section>
+        <h3>Builder flow</h3>
+        <p>Move step by step through the identity, class, abilities, equipment, and familiar sections. Your selections are saved automatically every time you type or change a field.</p>
+      </section>
+      <section>
+        <h3>Data packs</h3>
+        <p>Quest Kit merges SRD 5.1 data with any custom packs you have imported. You can manage packs from the home screen, and their sources are listed in the builder header for quick reference.</p>
+      </section>
+      <section>
+        <h3>Offline &amp; PWA tips</h3>
+        <p>The builder caches your progress locally using IndexedDB so you can pick up where you left off offline. Add Quest Kit to your home screen to use it as an installable PWA with background sync when you reconnect.</p>
+      </section>
+      <section>
+        <h3>SRD 5.1 legal notice</h3>
+        <p>Quest Kit uses material from the official System Reference Document. Review the summary below or <a href="/LEGAL/NOTICE.txt" target="_blank" rel="noopener noreferrer">open the full notice</a>.</p>
+        <pre id="legal-notice-text">Loading legal notice…</pre>
+      </section>
+    </section>
+  </div>
+  <div class="coachmark-overlay" id="coachmark-overlay" aria-hidden="true"></div>
   <script src="/builder/wizard.js" type="module" defer></script>
   <script src="/builder/summary.js" type="module" defer></script>
 </body>
