@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'dndBuilderState';
 const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
+const HISTORY_LIMIT = 50;
 
 const abilityFields = [
   { id: 'str', label: 'Strength' },
@@ -10,21 +11,85 @@ const abilityFields = [
   { id: 'cha', label: 'Charisma' }
 ];
 
+const abilityNameIndex = abilityFields.reduce((map, field) => {
+  map[field.label.toLowerCase()] = field.id;
+  map[field.id] = field.id;
+  map[field.label.slice(0, 3).toLowerCase()] = field.id;
+  return map;
+}, {});
+
 const steps = Array.from(document.querySelectorAll('section.step'));
 const form = document.getElementById('builder-form');
 const indicator = document.getElementById('step-indicator');
+const progressNav = document.getElementById('step-progress');
+const progressItems = progressNav ? Array.from(progressNav.querySelectorAll('[data-step-item]')) : [];
+const progressBar = document.getElementById('step-progressbar');
 const prevBtn = document.getElementById('prev-step');
 const nextBtn = document.getElementById('next-step');
 const summaryToggle = document.getElementById('toggle-summary');
 const coachmarkOverlay = document.getElementById('coachmark-overlay');
+const undoBtn = document.getElementById('builder-undo');
+const redoBtn = document.getElementById('builder-redo');
+const exportStateBtn = document.getElementById('builder-export-state');
+const importStateBtn = document.getElementById('builder-import-state');
+const stateFileInput = document.getElementById('builder-state-file');
+const packStatusNode = document.getElementById('builder-pack-status');
 
 let currentStep = 0;
-let state = {
-  data: {},
-  completedSteps: [],
-  saveCount: 1,
-  updatedAt: Date.now()
+
+function createBaseState() {
+  return {
+    data: {},
+    completedSteps: [],
+    saveCount: 1,
+    updatedAt: Date.now(),
+    derived: { abilities: {} },
+    currentStepIndex: 0,
+    currentStep: steps[0] ? steps[0].dataset.step : null
+  };
+}
+
+let state = createBaseState();
+
+const history = {
+  entries: [],
+  index: -1,
+  push(snapshot) {
+    this.entries = this.entries.slice(0, this.index + 1);
+    this.entries.push(cloneState(snapshot));
+    if (this.entries.length > HISTORY_LIMIT) {
+      const overflow = this.entries.length - HISTORY_LIMIT;
+      this.entries = this.entries.slice(overflow);
+    }
+    this.index = this.entries.length - 1;
+  },
+  reset(snapshot) {
+    this.entries = snapshot ? [cloneState(snapshot)] : [];
+    this.index = this.entries.length - 1;
+  },
+  canUndo() {
+    return this.index > 0;
+  },
+  canRedo() {
+    return this.index >= 0 && this.index < this.entries.length - 1;
+  },
+  undo() {
+    if (!this.canUndo()) return null;
+    this.index -= 1;
+    return cloneState(this.entries[this.index]);
+  },
+  redo() {
+    if (!this.canRedo()) return null;
+    this.index += 1;
+    return cloneState(this.entries[this.index]);
+  },
+  current() {
+    if (this.index < 0) return null;
+    return cloneState(this.entries[this.index]);
+  }
 };
+
+const stepModules = new Map();
 
 let packData = {
   packs: [],
@@ -35,6 +100,40 @@ let packData = {
   items: [],
   companions: []
 };
+
+function cloneState(value) {
+  if (typeof structuredClone === 'function') {
+    try {
+      return structuredClone(value);
+    } catch (error) {
+      // fall back to JSON method below
+    }
+  }
+  return JSON.parse(JSON.stringify(value));
+}
+
+function sanitizeForHistory(value) {
+  return {
+    data: value.data,
+    completedSteps: value.completedSteps,
+    currentStepIndex: value.currentStepIndex,
+    currentStep: value.currentStep,
+    derived: value.derived
+  };
+}
+
+function statesEqual(a, b) {
+  return JSON.stringify(sanitizeForHistory(a)) === JSON.stringify(sanitizeForHistory(b));
+}
+
+function notifyModules(hook, ...args) {
+  stepModules.forEach((module) => {
+    const handler = module && module[hook];
+    if (typeof handler === 'function') {
+      handler(...args);
+    }
+  });
+}
 
 function setPackData(data) {
   packData = {
@@ -54,9 +153,191 @@ function getPackData() {
 }
 
 function setPackStatus(message) {
-  const status = document.getElementById('builder-pack-status');
-  if (!status) return;
-  status.textContent = message || '';
+  if (!packStatusNode) return;
+  packStatusNode.textContent = message || '';
+}
+
+function abilityNameToId(name) {
+  if (!name) return null;
+  const key = String(name).toLowerCase();
+  return abilityNameIndex[key] || null;
+}
+
+function findEntry(list, value) {
+  if (!Array.isArray(list) || !value) return null;
+  const target = String(value).toLowerCase();
+  return list.find((entry) => {
+    const slug = entry.slug ? String(entry.slug).toLowerCase() : null;
+    const id = entry.id ? String(entry.id).toLowerCase() : null;
+    const name = entry.name ? String(entry.name).toLowerCase() : null;
+    return slug === target || id === target || name === target || entry.name === value;
+  }) || null;
+}
+
+function formatModifier(score) {
+  if (!Number.isFinite(score)) return '+0';
+  const mod = Math.floor((score - 10) / 2);
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function computeAbilityBonuses(formData) {
+  const bonuses = {};
+  abilityFields.forEach((field) => {
+    bonuses[field.id] = { total: 0, sources: [] };
+  });
+  const raceValue = formData?.race;
+  const raceEntry = findEntry(packData.races || [], raceValue);
+  if (raceEntry && raceEntry.ability_score_increase) {
+    Object.entries(raceEntry.ability_score_increase).forEach(([abilityName, amount]) => {
+      const id = abilityNameToId(abilityName);
+      const value = Number(amount) || 0;
+      if (!id || !value) return;
+      bonuses[id].total += value;
+      bonuses[id].sources.push({ label: raceEntry.name || 'Race', value });
+    });
+  }
+  return bonuses;
+}
+
+function computeDerivedState(formData) {
+  const derived = { abilities: {} };
+  const bonuses = computeAbilityBonuses(formData);
+  abilityFields.forEach((field) => {
+    const baseValue = Number.parseInt(formData?.[field.id], 10);
+    const base = Number.isFinite(baseValue) ? baseValue : 10;
+    const bonus = bonuses[field.id]?.total || 0;
+    const sources = bonuses[field.id]?.sources || [];
+    const total = base + bonus;
+    derived.abilities[field.id] = {
+      base,
+      bonus,
+      total,
+      sources: sources.map((entry) => ({
+        label: entry.label || 'Bonus',
+        value: entry.value
+      }))
+    };
+  });
+  return derived;
+}
+function updateProgressIndicator() {
+  if (!progressItems.length) return;
+  progressItems.forEach((item, index) => {
+    const stepId = item.dataset.step;
+    const isActive = index === currentStep;
+    item.setAttribute('aria-current', isActive ? 'step' : 'false');
+    item.classList.toggle('complete', state.completedSteps.includes(stepId));
+  });
+  if (progressBar) {
+    progressBar.setAttribute('aria-valuenow', String(currentStep + 1));
+    const title = steps[currentStep]?.querySelector('h2')?.textContent || '';
+    progressBar.setAttribute('aria-valuetext', title);
+  }
+}
+
+function updateHistoryControls() {
+  if (undoBtn) {
+    undoBtn.disabled = !history.canUndo();
+  }
+  if (redoBtn) {
+    redoBtn.disabled = !history.canRedo();
+  }
+}
+
+function pushHistorySnapshot(value) {
+  const snapshot = cloneState(value);
+  const current = history.current();
+  if (current && statesEqual(current, snapshot)) {
+    updateHistoryControls();
+    return;
+  }
+  history.push(snapshot);
+  updateHistoryControls();
+}
+
+function resetHistory(snapshot) {
+  history.reset(snapshot ? cloneState(snapshot) : null);
+  updateHistoryControls();
+}
+
+function applySnapshot(snapshot) {
+  if (!snapshot) return;
+  hydrateForm(snapshot);
+  persistState({ skipSerialization: true, skipHistory: true });
+  updateHistoryControls();
+}
+
+function populateSelectOptions(select, entries, placeholderText) {
+  if (!select) return;
+  const previousValue = select.value;
+  select.innerHTML = '';
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = placeholderText;
+  select.appendChild(placeholder);
+  entries.forEach((entry) => {
+    const option = document.createElement('option');
+    option.value = entry.slug || entry.id || entry.name;
+    option.textContent = entry.name || entry.title || option.value;
+    if (entry.source && entry.source.name) {
+      option.dataset.source = entry.source.name;
+    }
+    select.appendChild(option);
+  });
+  if (previousValue && entries.some((entry) => (entry.slug || entry.id || entry.name) === previousValue || entry.name === previousValue)) {
+    select.value = previousValue;
+  }
+}
+
+function populateDatalist(id, entries, formatter) {
+  const list = document.getElementById(id);
+  if (!list) return;
+  list.innerHTML = '';
+  entries.forEach((entry) => {
+    const option = document.createElement('option');
+    const label = formatter ? formatter(entry) : (entry.name || entry.title || entry.slug);
+    option.value = entry.name || entry.title || entry.slug;
+    if (label && label !== option.value) {
+      option.label = label;
+    }
+    list.appendChild(option);
+  });
+}
+
+function updatePackMeta() {
+  const target = document.getElementById('builder-pack-meta');
+  if (!target) return;
+  const { packs = [] } = getPackData();
+  if (!packs.length) {
+    target.textContent = 'No licensed content packs loaded.';
+    return;
+  }
+  const summary = packs.map((pack) => {
+    const edition = pack.edition ? ` · ${pack.edition}` : '';
+    const license = pack.license ? ` • ${pack.license}` : '';
+    return `${pack.name}${edition}${license}`;
+  }).join(' | ');
+  target.textContent = `Loaded packs: ${summary}`;
+}
+
+function populateDynamicOptions() {
+  const data = getPackData();
+  if (form && form.elements) {
+    const classField = form.elements.namedItem('class');
+    populateSelectOptions(classField, data.classes || [], 'Choose a class');
+    const raceField = form.elements.namedItem('race');
+    populateSelectOptions(raceField, data.races || [], 'Choose a race');
+    const familiarField = form.elements.namedItem('familiarType');
+    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
+  }
+  populateDatalist('background-options', data.backgrounds || []);
+  populateDatalist('feat-options', data.feats || []);
+  populateDatalist('item-options', data.items || [], (entry) => {
+    const category = entry.category ? ` (${entry.category})` : '';
+    return `${entry.name}${category}`;
+  });
+  updatePackMeta();
+  notifyModules('onPackData', data);
 }
 
 async function hydratePackData() {
@@ -161,110 +442,6 @@ function wirePackControls() {
   }
 }
 
-function ensureAbilityInputs() {
-  const container = document.getElementById('abilities-grid');
-  if (!container) return;
-  if (container.children.length > 0) return;
-  abilityFields.forEach(field => {
-    const wrapper = document.createElement('label');
-    wrapper.className = 'ability';
-    wrapper.innerHTML = `<strong>${field.label}</strong><span>Score</span>`;
-    const input = document.createElement('input');
-    input.type = 'number';
-    input.min = '3';
-    input.max = '20';
-    input.name = field.id;
-    input.value = '10';
-    wrapper.appendChild(input);
-    container.appendChild(wrapper);
-  });
-}
-
-function populateSelectOptions(select, entries, placeholderText) {
-  if (!select) return;
-  const previousValue = select.value;
-  select.innerHTML = '';
-  const placeholder = document.createElement('option');
-  placeholder.value = '';
-  placeholder.textContent = placeholderText;
-  select.appendChild(placeholder);
-  entries.forEach(entry => {
-    const option = document.createElement('option');
-    option.value = entry.slug || entry.id || entry.name;
-    option.textContent = entry.name || entry.title || option.value;
-    if (entry.source && entry.source.name) {
-      option.dataset.source = entry.source.name;
-    }
-    select.appendChild(option);
-  });
-  if (previousValue && entries.some(entry => (entry.slug || entry.id || entry.name) === previousValue)) {
-    select.value = previousValue;
-  }
-}
-
-function populateDatalist(id, entries, formatter) {
-  const list = document.getElementById(id);
-  if (!list) return;
-  list.innerHTML = '';
-  entries.forEach(entry => {
-    const option = document.createElement('option');
-    const label = formatter ? formatter(entry) : (entry.name || entry.title || entry.slug);
-    option.value = entry.name || entry.title || entry.slug;
-    if (label && label !== option.value) {
-      option.label = label;
-    }
-    list.appendChild(option);
-  });
-}
-
-function updatePackMeta() {
-  const target = document.getElementById('builder-pack-meta');
-  if (!target) return;
-  const { packs = [] } = getPackData();
-  if (!packs.length) {
-    target.textContent = 'No licensed content packs loaded.';
-    return;
-  }
-  const summary = packs.map(pack => {
-    const edition = pack.edition ? ` · ${pack.edition}` : '';
-    const license = pack.license ? ` • ${pack.license}` : '';
-    return `${pack.name}${edition}${license}`;
-  }).join(' | ');
-  target.textContent = `Loaded packs: ${summary}`;
-}
-
-function populateDynamicOptions() {
-  const data = getPackData();
-  if (form && form.elements) {
-    const classField = form.elements.namedItem('class');
-    populateSelectOptions(classField, data.classes || [], 'Choose a class');
-    const familiarField = form.elements.namedItem('familiarType');
-    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
-  }
-  populateDatalist('background-options', data.backgrounds || []);
-  populateDatalist('feat-options', data.feats || []);
-  populateDatalist('item-options', data.items || [], (entry) => {
-    const category = entry.category ? ` (${entry.category})` : '';
-    return `${entry.name}${category}`;
-  });
-  updatePackMeta();
-}
-
-function renderStep(index) {
-  steps.forEach((step, i) => {
-    step.classList.toggle('active', i === index);
-  });
-  indicator.textContent = `Step ${index + 1} of ${steps.length} · ${steps[index].querySelector('h2').textContent}`;
-  prevBtn.disabled = index === 0;
-  nextBtn.textContent = index === steps.length - 1 ? 'Finish' : 'Next';
-}
-
-function markStepCompleted(stepId) {
-  if (!state.completedSteps.includes(stepId)) {
-    state.completedSteps.push(stepId);
-  }
-}
-
 function serializeForm() {
   const formData = new FormData(form);
   const data = {};
@@ -326,36 +503,87 @@ function writeLocal(key, value) {
   }
 }
 
-async function persistState() {
-  state.data = serializeForm();
-  state.updatedAt = Date.now();
-  markStepCompleted(steps[currentStep].dataset.step);
+function markStepCompleted(stepId) {
+  if (!stepId) return;
+  if (!state.completedSteps.includes(stepId)) {
+    state.completedSteps.push(stepId);
+  }
+}
+
+async function persistState(options = {}) {
+  const {
+    skipSerialization = false,
+    skipHistory = false,
+    skipDispatch = false,
+    markCompleted = true,
+    preserveTimestamp = false
+  } = options;
+
+  if (!skipSerialization) {
+    state.data = serializeForm();
+  }
+
+  const stepId = steps[currentStep]?.dataset.step || null;
+  if (markCompleted && stepId) {
+    markStepCompleted(stepId);
+  }
+
+  state.currentStepIndex = currentStep;
+  state.currentStep = stepId;
+  state.derived = computeDerivedState(state.data);
+  if (!preserveTimestamp) {
+    state.updatedAt = Date.now();
+  }
+
   writeLocal(STORAGE_KEY, state);
   await writeIndexedDB(STORAGE_KEY, state);
-  window.dndBuilderState = state;
-  window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
-  window.dispatchEvent(new CustomEvent('dnd-state-changed'));
+
+  if (!skipHistory) {
+    pushHistorySnapshot(state);
+  } else {
+    updateHistoryControls();
+  }
+
+  if (!skipDispatch) {
+    window.dndBuilderState = state;
+    window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
+    window.dispatchEvent(new CustomEvent('dnd-state-changed'));
+  }
+
+  updateProgressIndicator();
+  notifyModules('onStatePersisted', state);
 }
 
 function hydrateForm(data) {
   if (!data) return;
-  state = { ...state, ...data };
-  state.data = data.data || state.data;
-  state.completedSteps = Array.isArray(data.completedSteps) ? data.completedSteps : [];
-  state.saveCount = data.saveCount || state.saveCount;
-  state.updatedAt = data.updatedAt || state.updatedAt;
+  const merged = createBaseState();
+  const incoming = cloneState(data);
+  merged.data = { ...merged.data, ...(incoming.data || incoming) };
+  merged.completedSteps = Array.isArray(incoming.completedSteps) ? [...incoming.completedSteps] : [];
+  merged.saveCount = Number.isFinite(incoming.saveCount) ? incoming.saveCount : merged.saveCount;
+  merged.updatedAt = incoming.updatedAt || merged.updatedAt;
+  if (Number.isFinite(incoming.currentStepIndex)) {
+    merged.currentStepIndex = Math.min(Math.max(0, incoming.currentStepIndex), steps.length - 1);
+  }
+  merged.currentStep = incoming.currentStep || (steps[merged.currentStepIndex] ? steps[merged.currentStepIndex].dataset.step : merged.currentStep);
+  merged.derived = incoming.derived ? cloneState(incoming.derived) : computeDerivedState(merged.data);
+  state = merged;
 
   Object.entries(state.data).forEach(([key, value]) => {
     const field = form.elements.namedItem(key);
     if (!field) return;
     if (field instanceof RadioNodeList) {
-      Array.from(field).forEach(radio => {
+      Array.from(field).forEach((radio) => {
         radio.checked = radio.value === value;
       });
     } else {
       field.value = value;
     }
   });
+
+  currentStep = state.currentStepIndex || 0;
+  notifyModules('onStateHydrated', state);
+  updateProgressIndicator();
 }
 
 async function loadState() {
@@ -371,24 +599,66 @@ async function loadState() {
   }
   if (stored) {
     hydrateForm(stored);
+  } else {
+    state = createBaseState();
+    state.data = serializeForm();
+    state.derived = computeDerivedState(state.data);
   }
   window.dndBuilderState = state;
   window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
+  resetHistory(state);
 }
 
-function goToStep(index) {
+function renderStep(index) {
+  steps.forEach((step, i) => {
+    step.classList.toggle('active', i === index);
+  });
+  const stepElement = steps[index];
+  const title = stepElement?.querySelector('h2')?.textContent || `Step ${index + 1}`;
+  if (indicator) {
+    indicator.textContent = `Step ${index + 1} of ${steps.length} · ${title}`;
+  }
+  if (progressBar) {
+    progressBar.setAttribute('aria-valuenow', String(index + 1));
+    progressBar.setAttribute('aria-valuetext', title);
+  }
+  prevBtn.disabled = index === 0;
+  nextBtn.textContent = index === steps.length - 1 ? 'Finish' : 'Next';
+  updateProgressIndicator();
+  notifyModules('onStepChange', {
+    index,
+    id: stepElement?.dataset.step || '',
+    element: stepElement,
+    title
+  });
+}
+
+function goToStep(index, { skipPersist = false } = {}) {
   if (index < 0 || index >= steps.length) return;
   currentStep = index;
+  state.currentStepIndex = index;
+  state.currentStep = steps[index]?.dataset.step || null;
   renderStep(index);
+  if (!skipPersist) {
+    persistState({
+      skipSerialization: true,
+      skipHistory: true,
+      markCompleted: false,
+      preserveTimestamp: true,
+      skipDispatch: true
+    });
+  }
 }
 
-function nextStep() {
-  persistState();
+async function nextStep() {
+  await persistState();
   if (currentStep < steps.length - 1) {
     goToStep(currentStep + 1);
   } else {
     const finalizeStep = document.querySelector('[data-step="finalize"]');
-    finalizeStep.scrollIntoView({ behavior: 'smooth' });
+    if (finalizeStep) {
+      finalizeStep.scrollIntoView({ behavior: 'smooth' });
+    }
     nextBtn.disabled = true;
     nextBtn.textContent = 'Saved';
     setTimeout(() => {
@@ -404,9 +674,394 @@ function prevStep() {
 }
 
 function handleInput() {
+  state.saveCount += 1;
   persistState();
 }
 
+function exportBuilderState() {
+  persistState().then(() => {
+    const payload = cloneState(state);
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const name = state.data.name || 'character';
+    link.href = url;
+    link.download = `${name.replace(/\s+/g, '-').toLowerCase()}-builder.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  });
+}
+
+function triggerBuilderImport() {
+  if (stateFileInput) {
+    stateFileInput.click();
+  }
+}
+
+function handleUndo() {
+  const snapshot = history.undo();
+  if (!snapshot) return;
+  applySnapshot(snapshot);
+}
+
+function handleRedo() {
+  const snapshot = history.redo();
+  if (!snapshot) return;
+  applySnapshot(snapshot);
+}
+
+if (stateFileInput) {
+  stateFileInput.addEventListener('change', async (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (!parsed || typeof parsed !== 'object') {
+        throw new Error('Invalid builder export file.');
+      }
+      hydrateForm(parsed);
+      resetHistory(state);
+      await persistState({ skipSerialization: true, skipHistory: true });
+    } catch (error) {
+      console.error('Failed to import builder state', error);
+      window.alert('Import failed. Please verify the JSON file and try again.');
+    } finally {
+      stateFileInput.value = '';
+    }
+  });
+}
+const identityModule = (() => {
+  let summaryNode = null;
+  let raceSelect = null;
+
+  function render(data) {
+    if (!summaryNode) return;
+    const raceValue = data?.race || (raceSelect ? raceSelect.value : '');
+    if (!raceValue) {
+      summaryNode.textContent = 'Choose a race to see ability score bonuses.';
+      summaryNode.dataset.state = '';
+      return;
+    }
+    const raceEntry = findEntry(getPackData().races || [], raceValue);
+    const derived = computeDerivedState(data);
+    const parts = abilityFields.map((field) => {
+      const bonus = derived.abilities[field.id]?.bonus || 0;
+      if (!bonus) return null;
+      return `${field.label} ${bonus >= 0 ? '+' : ''}${bonus}`;
+    }).filter(Boolean);
+    if (!raceEntry) {
+      summaryNode.textContent = parts.length ? `Bonuses: ${parts.join(', ')}` : 'No ability bonuses applied.';
+      summaryNode.dataset.state = 'warn';
+      return;
+    }
+    summaryNode.textContent = parts.length ? `${raceEntry.name}: ${parts.join(', ')}` : `${raceEntry.name}: No ability bonuses`;
+    summaryNode.dataset.state = parts.length ? 'ok' : '';
+  }
+
+  return {
+    setup(section) {
+      summaryNode = section.querySelector('[data-race-summary]');
+      raceSelect = section.querySelector('select[name="race"]');
+      render(state.data);
+    },
+    onPackData() {
+      render(state.data);
+    },
+    onStateHydrated(currentState) {
+      render(currentState?.data || state.data);
+    },
+    onFormChange(event) {
+      if (event.target && event.target.name === 'race') {
+        render(serializeForm());
+      }
+    }
+  };
+})();
+
+const classModule = (() => {
+  let summaryNode = null;
+  let classSelect = null;
+
+  function render(data) {
+    if (!summaryNode) return;
+    const classValue = data?.class || (classSelect ? classSelect.value : '');
+    if (!classValue) {
+      summaryNode.textContent = 'Pick a class to view hit die and proficiencies.';
+      summaryNode.dataset.state = '';
+      return;
+    }
+    const entry = findEntry(getPackData().classes || [], classValue);
+    if (!entry) {
+      summaryNode.textContent = 'Custom class selected. Review proficiencies manually.';
+      summaryNode.dataset.state = 'warn';
+      return;
+    }
+    const hitDie = entry.hit_die ? `Hit die ${entry.hit_die}` : 'Hit die —';
+    const saves = Array.isArray(entry.saving_throws) && entry.saving_throws.length ? entry.saving_throws.join(', ') : 'None';
+    const weapons = Array.isArray(entry.weapon_proficiencies) && entry.weapon_proficiencies.length ? entry.weapon_proficiencies.join(', ') : 'None';
+    summaryNode.textContent = `${hitDie} · Saves: ${saves} · Weapons: ${weapons}`;
+    summaryNode.dataset.state = 'ok';
+  }
+
+  return {
+    setup(section) {
+      summaryNode = section.querySelector('[data-class-summary]');
+      classSelect = section.querySelector('select[name="class"]');
+      render(state.data);
+    },
+    onPackData() {
+      render(state.data);
+    },
+    onStateHydrated(currentState) {
+      render(currentState?.data || state.data);
+    },
+    onFormChange(event) {
+      if (event.target && event.target.name === 'class') {
+        render(serializeForm());
+      }
+    }
+  };
+})();
+
+const abilityModule = (() => {
+  const abilityMap = new Map();
+
+  function initialize(section) {
+    const container = section.querySelector('[data-ability-grid]');
+    if (!container) return;
+    container.innerHTML = '';
+    abilityFields.forEach((field) => {
+      const wrapper = document.createElement('label');
+      wrapper.className = 'ability';
+      wrapper.dataset.ability = field.id;
+
+      const header = document.createElement('div');
+      header.className = 'ability-header';
+      const title = document.createElement('strong');
+      title.textContent = field.label;
+      const total = document.createElement('span');
+      total.className = 'ability-total';
+      total.dataset.role = 'ability-total';
+      total.textContent = 'Total 10';
+      header.append(title, total);
+
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.min = '3';
+      input.max = '20';
+      input.name = field.id;
+      input.value = '10';
+
+      const helper = document.createElement('span');
+      helper.className = 'ability-helper';
+      helper.dataset.role = 'ability-bonus';
+      helper.textContent = 'No bonuses applied.';
+
+      const mod = document.createElement('span');
+      mod.className = 'ability-mod';
+      mod.dataset.role = 'ability-mod';
+      mod.textContent = 'Modifier +0';
+
+      wrapper.append(header, input, helper, mod);
+      container.appendChild(wrapper);
+
+      abilityMap.set(field.id, { input, total, helper, mod });
+    });
+    updateDisplay();
+  }
+
+  function updateDisplay({ useFormValues = false } = {}) {
+    if (!abilityMap.size) return;
+    const snapshot = useFormValues ? serializeForm() : state.data;
+    const derived = computeDerivedState(snapshot);
+    abilityFields.forEach((field) => {
+      const refs = abilityMap.get(field.id);
+      if (!refs) return;
+      const info = derived.abilities[field.id];
+      const base = info?.base ?? 10;
+      const total = info?.total ?? base;
+      const bonus = info?.bonus ?? 0;
+      refs.input.value = base;
+      refs.total.textContent = `Total ${total}`;
+      if (info?.sources && info.sources.length) {
+        const parts = info.sources.map((source) => `${source.value >= 0 ? '+' : ''}${source.value} ${source.label}`);
+        refs.helper.innerHTML = `<strong>${bonus >= 0 ? '+' : ''}${bonus}</strong> from ${parts.join(', ')}`;
+      } else {
+        refs.helper.textContent = 'No bonuses applied.';
+      }
+      refs.mod.textContent = `Modifier ${formatModifier(total)}`;
+    });
+  }
+
+  return {
+    setup(section) {
+      initialize(section);
+    },
+    onPackData() {
+      updateDisplay({ useFormValues: true });
+    },
+    onStateHydrated() {
+      updateDisplay();
+    },
+    onFormInput(event) {
+      if (event.target && abilityMap.has(event.target.name)) {
+        updateDisplay({ useFormValues: true });
+      }
+    },
+    onFormChange(event) {
+      if (!event.target) return;
+      if (abilityMap.has(event.target.name) || event.target.name === 'race') {
+        updateDisplay({ useFormValues: true });
+      }
+    },
+    onStatePersisted() {
+      updateDisplay();
+    }
+  };
+})();
+
+const featsModule = (() => {
+  let summaryNode = null;
+  let featInput = null;
+  const SPELLCASTING_CLASSES = new Set(['bard', 'cleric', 'druid', 'sorcerer', 'warlock', 'wizard', 'paladin', 'ranger']);
+
+  function getClassMeta(data) {
+    const classValue = data?.class;
+    return findEntry(getPackData().classes || [], classValue);
+  }
+
+  function hasMartial(meta) {
+    if (!meta) return false;
+    return Array.isArray(meta.weapon_proficiencies) && meta.weapon_proficiencies.some((entry) => /martial/i.test(entry));
+  }
+
+  function canCast(meta, data) {
+    if (meta && SPELLCASTING_CLASSES.has((meta.slug || meta.id || '').toLowerCase())) return true;
+    const classValue = data?.class;
+    return classValue ? SPELLCASTING_CLASSES.has(String(classValue).toLowerCase()) : false;
+  }
+
+  function render(data) {
+    if (!summaryNode) return;
+    const featValue = data?.signatureFeat || (featInput ? featInput.value : '');
+    if (!featValue) {
+      summaryNode.textContent = 'Select a feat to check prerequisites.';
+      summaryNode.dataset.state = '';
+      return;
+    }
+    const featEntry = findEntry(getPackData().feats || [], featValue);
+    if (!featEntry) {
+      summaryNode.textContent = 'Custom feat selected. Verify prerequisites manually.';
+      summaryNode.dataset.state = 'warn';
+      return;
+    }
+    const prereqs = Array.isArray(featEntry.prerequisites) ? featEntry.prerequisites : [];
+    if (!prereqs.length) {
+      summaryNode.textContent = 'No prerequisites.';
+      summaryNode.dataset.state = 'ok';
+      return;
+    }
+    const meta = getClassMeta(data);
+    const checks = prereqs.map((prereq) => {
+      const normalized = prereq.toLowerCase();
+      let satisfied = false;
+      if (normalized.includes('martial weapons')) {
+        satisfied = hasMartial(meta);
+      } else if (normalized.includes('cast at least one spell')) {
+        satisfied = canCast(meta, data);
+      }
+      return { label: prereq, satisfied };
+    });
+    const allMet = checks.every((entry) => entry.satisfied);
+    summaryNode.dataset.state = allMet ? 'ok' : 'warn';
+    summaryNode.innerHTML = checks.map((entry) => `${entry.satisfied ? '✅' : '⚠️'} ${entry.label}`).join(' · ');
+  }
+
+  return {
+    setup(section) {
+      summaryNode = section.querySelector('#feat-prereqs');
+      featInput = section.querySelector('input[name="signatureFeat"]');
+      render(state.data);
+    },
+    onPackData() {
+      render(state.data);
+    },
+    onStateHydrated(currentState) {
+      render(currentState?.data || state.data);
+    },
+    onFormChange(event) {
+      if (!event.target) return;
+      if (event.target.name === 'signatureFeat' || event.target.name === 'class') {
+        render(serializeForm());
+      }
+    }
+  };
+})();
+
+const equipmentModule = (() => {
+  let section = null;
+  function render() {
+    if (!section) return;
+    section.dataset.itemCount = String((getPackData().items || []).length);
+  }
+  return {
+    setup(node) {
+      section = node;
+      render();
+    },
+    onPackData() {
+      render();
+    }
+  };
+})();
+
+const familiarModule = (() => {
+  let section = null;
+  function render() {
+    if (!section) return;
+    section.dataset.companionCount = String((getPackData().companions || []).length);
+  }
+  return {
+    setup(node) {
+      section = node;
+      render();
+    },
+    onPackData() {
+      render();
+    }
+  };
+})();
+
+const finalizeModule = (() => ({
+  setup() {},
+  onStateHydrated() {},
+  onPackData() {}
+}))();
+
+const moduleDefinitions = {
+  identity: identityModule,
+  classLevel: classModule,
+  abilities: abilityModule,
+  feats: featsModule,
+  equipment: equipmentModule,
+  familiar: familiarModule,
+  finalize: finalizeModule
+};
+
+function setupStepModules() {
+  steps.forEach((section) => {
+    const module = moduleDefinitions[section.dataset.step];
+    if (module) {
+      if (typeof module.setup === 'function') {
+        module.setup(section);
+      }
+      stepModules.set(section.dataset.step, module);
+    }
+  });
+}
 function setupFinalizeActions() {
   form.addEventListener('click', (event) => {
     const target = event.target;
@@ -414,30 +1069,29 @@ function setupFinalizeActions() {
     const action = target.dataset.action;
     if (!action) return;
     if (action === 'print') {
-      persistState();
-      if (typeof window.persistBuilderState === 'function') {
-        window.persistBuilderState();
-      }
-      window.open('/builder/sheet.html', '_blank', 'noopener');
+      persistState().then(() => {
+        if (typeof window.persistBuilderState === 'function') {
+          window.persistBuilderState();
+        }
+        window.open('/builder/sheet.html', '_blank', 'noopener');
+      });
     }
     if (action === 'export') {
-      persistState();
-      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${state.data.name || 'character'}-builder.json`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+      exportBuilderState();
+    }
+    if (action === 'import') {
+      triggerBuilderImport();
     }
   });
 }
 
 function setupSummaryToggle() {
+  if (!summaryToggle) return;
   summaryToggle.addEventListener('click', () => {
-    document.getElementById('summary-panel').classList.toggle('visible');
+    const panel = document.getElementById('summary-panel');
+    if (panel) {
+      panel.classList.toggle('visible');
+    }
   });
 }
 
@@ -675,25 +1329,62 @@ function setupCoachMarks() {
 }
 
 async function init() {
-  ensureAbilityInputs();
+  setupStepModules();
   wirePackControls();
   subscribeToPackChanges();
   await hydratePackData();
   await loadState();
+  currentStep = state.currentStepIndex || 0;
   renderStep(currentStep);
-  form.addEventListener('input', () => {
-    state.saveCount += 1;
+  updateProgressIndicator();
+  updateHistoryControls();
+
+  form.addEventListener('input', (event) => {
+    notifyModules('onFormInput', event);
     handleInput();
   });
-  prevBtn.addEventListener('click', prevStep);
-  nextBtn.addEventListener('click', nextStep);
+
+  form.addEventListener('change', (event) => {
+    notifyModules('onFormChange', event);
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.matches('select, input[type="checkbox"], input[type="radio"], input[type="range"]')) {
+      handleInput();
+    }
+  });
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', prevStep);
+  }
+  if (nextBtn) {
+    nextBtn.addEventListener('click', nextStep);
+  }
+  if (undoBtn) {
+    undoBtn.addEventListener('click', handleUndo);
+  }
+  if (redoBtn) {
+    redoBtn.addEventListener('click', handleRedo);
+  }
+  if (exportStateBtn) {
+    exportStateBtn.addEventListener('click', exportBuilderState);
+  }
+  if (importStateBtn) {
+    importStateBtn.addEventListener('click', triggerBuilderImport);
+  }
+
   setupFinalizeActions();
   setupSummaryToggle();
   setupAboutModal();
   window.setTimeout(setupCoachMarks, 400);
-  window.addEventListener('beforeunload', persistState);
+  window.addEventListener('beforeunload', () => {
+    persistState({ skipHistory: true, preserveTimestamp: true });
+  });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    init();
+  });
+} else {
   init();
-});
+}

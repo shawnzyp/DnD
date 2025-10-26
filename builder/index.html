@@ -585,6 +585,172 @@
       border-radius: 0.9rem;
       transition: box-shadow 160ms ease;
     }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+    .step-progress-wrapper {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .step-progress {
+      display: flex;
+      align-items: center;
+      overflow-x: auto;
+      padding-bottom: 0.25rem;
+      scrollbar-width: thin;
+      mask-image: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,1) 12%, rgba(0,0,0,1) 88%, rgba(0,0,0,0.65) 100%);
+    }
+    .step-progress::-webkit-scrollbar {
+      height: 6px;
+    }
+    .step-progress::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,0.12);
+      border-radius: 999px;
+    }
+    .step-progress ol {
+      display: flex;
+      gap: 0.5rem;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      min-width: 100%;
+    }
+    .step-progress li {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 0.35rem 0.85rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
+      transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+    }
+    .step-progress li.complete {
+      border-color: rgba(91, 214, 160, 0.45);
+      background: rgba(91, 214, 160, 0.12);
+      color: var(--accent);
+    }
+    .step-progress li[aria-current="step"] {
+      border-color: rgba(91, 214, 160, 0.75);
+      background: rgba(91, 214, 160, 0.2);
+      color: var(--fg);
+      font-weight: 600;
+    }
+    .step-progress .step-index {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.5rem;
+      height: 1.5rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .step-progress li.complete .step-index {
+      background: var(--accent);
+      color: #042417;
+    }
+    .step-progress li[aria-current="step"] .step-index {
+      background: var(--fg);
+      color: #042417;
+    }
+    .step-progress .step-label {
+      letter-spacing: 0.02em;
+    }
+    .step-hint {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .step-hint[data-state="warn"] {
+      color: #f0a870;
+    }
+    .step-hint[data-state="ok"] {
+      color: var(--accent);
+    }
+    .ability {
+      gap: 0.55rem;
+      padding: 0.85rem;
+      border-radius: 0.9rem;
+      background: rgba(91, 214, 160, 0.08);
+      border: 1px solid rgba(91, 214, 160, 0.25);
+    }
+    .ability .ability-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .ability .ability-header strong {
+      font-size: 0.95rem;
+    }
+    .ability .ability-total {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+    }
+    .ability input {
+      width: 100%;
+      font-size: 1rem;
+      font-weight: 600;
+      text-align: center;
+    }
+    .ability .ability-helper {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .ability .ability-helper strong {
+      color: var(--accent);
+    }
+    .ability .ability-mod {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .sticky-nav {
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .sticky-nav .nav-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .sticky-nav .nav-group.utility {
+      flex: 1 1 260px;
+    }
+    .sticky-nav .nav-group.primary {
+      flex: 1 1 260px;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+    .sticky-nav button {
+      min-width: 120px;
+    }
+    .sticky-nav .nav-group.utility button {
+      flex: 0 0 auto;
+      min-width: 0;
+      padding: 0.65rem 0.85rem;
+      font-size: 0.8rem;
+    }
+    .sticky-nav button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -595,7 +761,21 @@
         <button type="button" id="open-about-modal" data-open-about aria-haspopup="dialog" aria-controls="about-legal-modal">About &amp; Legal</button>
       </div>
     </div>
-    <p id="step-indicator">Step 1 of 7 · Identity</p>
+    <div class="step-progress-wrapper">
+      <p id="step-indicator" role="status" aria-live="polite">Step 1 of 7 · Identity</p>
+      <div id="step-progressbar" class="sr-only" role="progressbar" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1" aria-valuetext="Identity"></div>
+      <nav id="step-progress" class="step-progress" aria-label="Builder steps">
+        <ol>
+          <li data-step-item data-step="identity" aria-current="step"><span class="step-index">1</span><span class="step-label">Identity</span></li>
+          <li data-step-item data-step="classLevel"><span class="step-index">2</span><span class="step-label">Class &amp; Level</span></li>
+          <li data-step-item data-step="abilities"><span class="step-index">3</span><span class="step-label">Ability Scores</span></li>
+          <li data-step-item data-step="feats"><span class="step-index">4</span><span class="step-label">Feats</span></li>
+          <li data-step-item data-step="equipment"><span class="step-index">5</span><span class="step-label">Equipment</span></li>
+          <li data-step-item data-step="familiar"><span class="step-index">6</span><span class="step-label">Companions</span></li>
+          <li data-step-item data-step="finalize"><span class="step-index">7</span><span class="step-label">Finalize</span></li>
+        </ol>
+      </nav>
+    </div>
     <p id="builder-pack-meta" class="pack-meta" aria-live="polite">Loading System Reference Document…</p>
     <div class="pack-controls">
       <div class="pack-buttons">
@@ -614,6 +794,12 @@
         <label>Character name
           <input type="text" name="name" placeholder="Ailith Stormbreath" required />
         </label>
+        <label>Race or ancestry
+          <select name="race">
+            <option value="">Choose a race</option>
+          </select>
+        </label>
+        <p class="step-hint" data-race-summary aria-live="polite">Choose a race to see ability score bonuses.</p>
         <label>Background
           <input type="text" name="background" placeholder="Wanderer" list="background-options" />
         </label>
@@ -647,6 +833,7 @@
         <label>Subclass focus
           <input type="text" name="subclass" placeholder="Circle of Stars" />
         </label>
+        <p class="step-hint" data-class-summary aria-live="polite">Pick a class to view hit die and proficiencies.</p>
       </section>
       <section class="step" data-step="abilities">
         <h2>Ability Scores</h2>
@@ -662,7 +849,7 @@
             <input type="number" name="scorePool" value="27" />
           </label>
         </div>
-        <div class="grid two" id="abilities-grid">
+        <div class="grid two" id="abilities-grid" data-ability-grid>
           <!-- ability inputs inserted by wizard.js -->
         </div>
       </section>
@@ -671,6 +858,7 @@
         <label>Signature feat
           <input type="text" name="signatureFeat" placeholder="Alert" list="feat-options" />
         </label>
+        <p class="step-hint" id="feat-prereqs" aria-live="polite">Select a feat to check prerequisites.</p>
         <label>Bonus feats
           <textarea name="bonusFeats" placeholder="Great Weapon Master, Mage Slayer"></textarea>
         </label>
@@ -707,6 +895,7 @@
         <div class="grid">
           <button type="button" data-action="print" class="ghost" style="justify-self:flex-start;">Print builder sheet</button>
           <button type="button" data-action="export" class="ghost" style="justify-self:flex-start;">Export JSON</button>
+          <button type="button" data-action="import" class="ghost" style="justify-self:flex-start;">Import JSON</button>
         </div>
         <small style="color:var(--muted);">Your progress is saved automatically.</small>
       </section>
@@ -724,10 +913,19 @@
     <div id="summary-root" class="summary-empty">Start filling out the wizard to see your live sheet.</div>
   </aside>
   <nav class="sticky-nav" aria-label="Wizard navigation">
-    <button type="button" class="secondary" id="prev-step">Back</button>
-    <button type="button" class="ghost" id="toggle-summary">Summary</button>
-    <button type="button" class="primary" id="next-step">Next</button>
+    <div class="nav-group utility">
+      <button type="button" class="ghost" id="builder-undo" aria-label="Undo last change" disabled>Undo</button>
+      <button type="button" class="ghost" id="builder-redo" aria-label="Redo change" disabled>Redo</button>
+      <button type="button" class="ghost" id="builder-export-state">Export</button>
+      <button type="button" class="ghost" id="builder-import-state">Import</button>
+    </div>
+    <div class="nav-group primary">
+      <button type="button" class="secondary" id="prev-step">Back</button>
+      <button type="button" class="ghost" id="toggle-summary">Summary</button>
+      <button type="button" class="primary" id="next-step">Next</button>
+    </div>
   </nav>
+  <input type="file" id="builder-state-file" accept="application/json" hidden />
   <div id="about-legal-modal" aria-hidden="true">
     <div class="modal-backdrop" data-close-modal></div>
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="about-legal-title" tabindex="-1">
