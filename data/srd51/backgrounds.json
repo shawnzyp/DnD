@@ -1,44 +1,111 @@
 [
   {
+    "id": "srd51.background.acolyte",
     "slug": "acolyte",
+    "type": "background",
     "name": "Acolyte",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["Insight", "Religion"],
+    "languages": 2,
     "feature": "Shelter of the Faithful",
-    "description": "Raised in service to a temple, you can draw on the aid of fellow worshipers."
+    "summary": "Temple service grants you aid and shelter among worshipers.",
+    "description": "You were raised in service to a temple dedicated to a god of good standing. Fellow worshipers will provide you with free healing and care, and you can rely on the support of those who share your faith.",
+    "equipment": "A holy symbol, a prayer book or prayer wheel, 5 sticks of incense, vestments, common clothes, and a belt pouch containing 15 gp"
   },
   {
+    "id": "srd51.background.criminal",
     "slug": "criminal",
+    "type": "background",
     "name": "Criminal",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["Deception", "Stealth"],
+    "tools": ["One type of gaming set", "Thieves' tools"],
     "feature": "Criminal Contact",
-    "description": "Experienced in illicit dealings, you have a reliable underworld contact."
+    "summary": "Underworld ties let you send and receive illicit messages.",
+    "description": "You are experienced in illicit dealings and have a reliable and trustworthy contact who acts as your liaison to a network of other criminals.",
+    "equipment": "A crowbar, a set of dark common clothes with a hood, and a belt pouch containing 15 gp"
   },
   {
+    "id": "srd51.background.folk-hero",
     "slug": "folk-hero",
+    "type": "background",
     "name": "Folk Hero",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["Animal Handling", "Survival"],
+    "tools": ["One type of artisan's tools", "Vehicles (land)"],
     "feature": "Rustic Hospitality",
-    "description": "Common folk respect your humble origins and will hide or shelter you."
+    "summary": "Common folk shelter you thanks to heroic deeds in your past.",
+    "description": "You come from the ranks of the common folk, yet your heroic deeds have made you a hero of the people. You can always find a place to hide, rest, or recuperate among commoners.",
+    "equipment": "A set of artisan's tools, a shovel, an iron pot, a set of common clothes, and a belt pouch containing 10 gp"
   },
   {
+    "id": "srd51.background.noble",
     "slug": "noble",
+    "type": "background",
     "name": "Noble",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["History", "Persuasion"],
+    "tools": ["One type of gaming set"],
+    "languages": 1,
     "feature": "Position of Privilege",
-    "description": "You were born to wealth and wield the manners and influence of the upper class."
+    "summary": "Born to wealth, you command respect among the upper class.",
+    "description": "You understand wealth, power, and privilege. People are inclined to think the best of you, and you can secure audiences with local nobility.",
+    "equipment": "A set of fine clothes, a signet ring, a scroll of pedigree, and a purse containing 25 gp"
   },
   {
+    "id": "srd51.background.sage",
     "slug": "sage",
+    "type": "background",
     "name": "Sage",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["Arcana", "History"],
+    "languages": 2,
     "feature": "Researcher",
-    "description": "Years of study grant you knowledge of where to find lore on obscure topics."
+    "summary": "Years of study tell you where to find esoteric lore.",
+    "description": "You spent years learning the lore of the multiverse. When you attempt to learn or recall a piece of lore, you know where and from whom you can obtain it.",
+    "equipment": "A bottle of ink, a quill, a small knife, a letter from a dead colleague posing a question you have not yet been able to answer, a set of common clothes, and a belt pouch containing 10 gp"
   },
   {
+    "id": "srd51.background.soldier",
     "slug": "soldier",
+    "type": "background",
     "name": "Soldier",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "skills": ["Athletics", "Intimidation"],
+    "tools": ["One type of gaming set", "Vehicles (land)"],
     "feature": "Military Rank",
-    "description": "You served in a standing army and can leverage your former rank among veterans."
+    "summary": "Former rank earns respect from soldiers and veterans.",
+    "description": "War has been your life for as long as you care to remember. You have a military rank from your career that you can leverage with other soldiers.",
+    "equipment": "An insignia of rank, a trophy taken from a fallen enemy, a set of bone dice or deck of cards, a set of common clothes, and a pouch containing 10 gp"
   }
 ]

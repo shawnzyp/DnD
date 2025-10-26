@@ -1,20 +1,47 @@
 [
   {
+    "id": "srd51.rule.ability-checks",
     "slug": "ability-checks",
+    "type": "rule",
     "name": "Ability Checks",
-    "category": "Core Rule",
-    "description": "To make an ability check, roll a d20 and add the relevant ability modifier plus proficiency if appropriate."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "section": "Core Rules",
+    "summary": "Roll a d20 plus ability modifier to determine success on tasks.",
+    "text": "An ability check tests a character's or monster's innate talent and training in an effort to overcome a challenge. To make an ability check, roll a d20 and add the relevant ability modifier and proficiency bonus if applicable."
   },
   {
+    "id": "srd51.rule.saving-throws",
     "slug": "saving-throws",
+    "type": "rule",
     "name": "Saving Throws",
-    "category": "Core Rule",
-    "description": "Saving throws represent a heroic effort to resist a spell, trap, or other hazard; roll a d20 plus the relevant modifier."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "section": "Core Rules",
+    "summary": "Defensive checks made to resist spells, traps, poison, and other hazards.",
+    "text": "A saving throw represents an effort to resist a spell, a trap, a poison, a disease, or a similar threat. To make a saving throw, roll a d20 and add the relevant ability modifier. A saving throw can also include a proficiency bonus if a creature has proficiency in that type of save."
   },
   {
+    "id": "srd51.rule.advantage-disadvantage",
     "slug": "advantage-disadvantage",
+    "type": "rule",
     "name": "Advantage and Disadvantage",
-    "category": "Core Rule",
-    "description": "When a situation grants advantage, roll two d20 and use the higher result; disadvantage uses the lower result."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "section": "Core Rules",
+    "summary": "Roll two d20s and use the higher or lower result depending on circumstances.",
+    "text": "Sometimes a special ability or spell tells you that you have advantage or disadvantage on an ability check, a saving throw, or an attack roll. When that happens, you roll a second d20. Use the higher roll if you have advantage, and use the lower roll if you have disadvantage."
   }
 ]

@@ -1,50 +1,112 @@
 [
   {
+    "id": "srd51.item.longsword",
     "slug": "longsword",
+    "type": "item",
     "name": "Longsword",
-    "category": "Weapon",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Martial Melee Weapon",
     "cost": "15 gp",
-    "weight": "3 lb.",
-    "description": "Versatile martial weapon that deals 1d8 slashing damage (1d10 when wielded with two hands)."
+    "weight": 3,
+    "damage": "1d8 slashing",
+    "properties": ["Versatile (1d10)"],
+    "summary": "A versatile blade favored by knights and warriors.",
+    "description": "The longsword is a straight-bladed weapon designed for sweeping strikes and precise thrusts. Its versatile property lets you wield it one- or two-handed."
   },
   {
+    "id": "srd51.item.longbow",
     "slug": "longbow",
+    "type": "item",
     "name": "Longbow",
-    "category": "Weapon",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Martial Ranged Weapon",
     "cost": "50 gp",
-    "weight": "2 lb.",
-    "description": "Two-handed ranged weapon that fires arrows for 1d8 piercing damage with long range."
+    "weight": 2,
+    "damage": "1d8 piercing",
+    "properties": ["Ammunition (150/600 ft.)", "Heavy", "Two-Handed"],
+    "summary": "A powerful bow capable of striking distant foes.",
+    "description": "The longbow is made from laminated wood and requires both hands to use. It fires long arrows to deadly effect over great distances."
   },
   {
+    "id": "srd51.item.chain-mail",
     "slug": "chain-mail",
+    "type": "item",
     "name": "Chain Mail",
-    "category": "Armor",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Heavy Armor",
     "cost": "75 gp",
-    "weight": "55 lb.",
-    "description": "Heavy armor providing AC 16 but imposing disadvantage on Stealth checks."
+    "weight": 55,
+    "armor_class": "16",
+    "strength_requirement": 13,
+    "stealth_disadvantage": true,
+    "summary": "Interlocking metal rings provide exceptional protection.",
+    "description": "Chain mail consists of interlocking metal rings, backed by quilted fabric to prevent chafing. It offers excellent defense but is cumbersome without sufficient strength."
   },
   {
+    "id": "srd51.item.shield",
     "slug": "shield",
+    "type": "item",
     "name": "Shield",
-    "category": "Armor",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Shield",
     "cost": "10 gp",
-    "weight": "6 lb.",
-    "description": "Sturdy shield that increases your Armor Class by 2 while equipped."
+    "weight": 6,
+    "armor_class": "+2",
+    "summary": "A sturdy barrier that increases your Armor Class by 2.",
+    "description": "Shields come in many shapes but all strap to the arm, allowing combatants to deflect blows and projectiles."
   },
   {
+    "id": "srd51.item.explorers-pack",
     "slug": "explorers-pack",
+    "type": "item",
     "name": "Explorer's Pack",
-    "category": "Gear",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Adventuring Gear",
     "cost": "10 gp",
-    "weight": "-",
-    "description": "Includes a backpack, bedroll, mess kit, tinderbox, torches, rations, and waterskin."
+    "weight": 59,
+    "summary": "Essential tools for wilderness expeditions bundled together.",
+    "description": "The explorer's pack includes a backpack, bedroll, mess kit, tinderbox, torches, rations, waterskin, and 50 feet of hempen rope."
   },
   {
+    "id": "srd51.item.healers-kit",
     "slug": "healers-kit",
+    "type": "item",
     "name": "Healer's Kit",
-    "category": "Gear",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "category": "Adventuring Gear",
     "cost": "5 gp",
-    "weight": "3 lb.",
-    "description": "Contains bandages and salves; expend one use to stabilize a creature without a Medicine check."
+    "weight": 3,
+    "summary": "A leather pouch of bandages and salves used to stabilize the dying.",
+    "description": "The kit contains bandages, salves, and splints. It has ten uses. As an action you can expend one use to stabilize a creature without needing to make a Wisdom (Medicine) check."
   }
 ]

@@ -40,6 +40,49 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
+    .pack-controls {
+      margin: 0.75rem 0 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .pack-controls .pack-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pill-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .pill-button:hover {
+      background: rgba(76, 194, 255, 0.2);
+      border-color: rgba(76, 194, 255, 0.35);
+      transform: translateY(-1px);
+    }
+    .pill-button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .pack-status {
+      margin: 0;
+      flex: 1;
+      min-width: 160px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
     .search-shell {
       display: grid;
       gap: 0.5rem;
@@ -203,6 +246,15 @@
   <header>
     <h1>Compendium</h1>
     <p id="compendium-pack-meta" class="pack-meta" aria-live="polite">Loading SRD entries…</p>
+    <div class="pack-controls">
+      <div class="pack-buttons">
+        <button type="button" id="compendium-import-file" class="pill-button">Import JSON</button>
+        <button type="button" id="compendium-import-url" class="pill-button">Add from URL</button>
+        <button type="button" id="compendium-reload-packs" class="pill-button">Reload Packs</button>
+      </div>
+      <p id="compendium-pack-status" class="pack-status" aria-live="polite"></p>
+    </div>
+    <input type="file" id="compendium-pack-file" accept="application/json" hidden />
     <div class="search-shell">
       <input type="search" id="search-input" placeholder="Search spells, feats, and rules" />
       <div class="chips" role="group" aria-label="Filters">
@@ -246,9 +298,136 @@
     let startIndex = 0;
     let endIndex = 0;
     let favorites = loadFavorites();
+    let packData = {
+      packs: [],
+      spells: [],
+      feats: [],
+      items: [],
+      rules: []
+    };
+
+    function setPackData(value) {
+      packData = {
+        packs: Array.isArray(value?.packs) ? value.packs : [],
+        spells: Array.isArray(value?.spells) ? value.spells : [],
+        feats: Array.isArray(value?.feats) ? value.feats : [],
+        items: Array.isArray(value?.items) ? value.items : [],
+        rules: Array.isArray(value?.rules) ? value.rules : []
+      };
+      window.dndCompendiumData = packData;
+    }
 
     function getPackData() {
-      return window.dndData || { spells: [], feats: [], items: [], rules: [], packs: [] };
+      return packData;
+    }
+
+    function setPackStatus(message) {
+      const status = document.getElementById('compendium-pack-status');
+      if (status) {
+        status.textContent = message || '';
+      }
+    }
+
+    async function hydratePackData() {
+      if (window.dnd && typeof window.dnd.getCompendiumData === 'function') {
+        try {
+          const dataset = await window.dnd.getCompendiumData();
+          setPackData(dataset);
+        } catch (error) {
+          console.warn('Failed to load compendium packs', error);
+          const fallback = window.dndCompendiumData || window.dndData || packData;
+          setPackData(fallback);
+        }
+      } else if (window.dndData) {
+        setPackData(window.dndData);
+      }
+      rebuildFromData();
+    }
+
+    function subscribeToPackChanges() {
+      if (window.dnd && typeof window.dnd.onChange === 'function') {
+        window.dnd.onChange((detail) => {
+          if (detail && detail.compendium) {
+            setPackData(detail.compendium);
+            rebuildFromData();
+          }
+        });
+      } else {
+        window.addEventListener('dnd-data-changed', () => {
+          const fallback = window.dndCompendiumData || window.dndData || packData;
+          setPackData(fallback);
+          rebuildFromData();
+        });
+      }
+    }
+
+    function wirePackControls() {
+      const fileInput = document.getElementById('compendium-pack-file');
+      const importFileButton = document.getElementById('compendium-import-file');
+      const importUrlButton = document.getElementById('compendium-import-url');
+      const reloadButton = document.getElementById('compendium-reload-packs');
+
+      if (importFileButton && fileInput) {
+        importFileButton.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (event) => {
+          const [file] = event.target.files || [];
+          if (!file || !window.dnd || typeof window.dnd.importPackFile !== 'function') {
+            setPackStatus('Pack loader unavailable.');
+            return;
+          }
+          setPackStatus(`Importing ${file.name}…`);
+          try {
+            await window.dnd.importPackFile(file);
+            setPackStatus(`Imported ${file.name}`);
+          } catch (error) {
+            console.error('Failed to import pack', error);
+            setPackStatus('Import failed. Check console for details.');
+          } finally {
+            fileInput.value = '';
+            setTimeout(() => setPackStatus(''), 4000);
+          }
+        });
+      }
+
+      if (importUrlButton) {
+        importUrlButton.addEventListener('click', async () => {
+          if (!window.dnd || typeof window.dnd.importPackFromUrl !== 'function') {
+            setPackStatus('Pack loader unavailable.');
+            return;
+          }
+          const url = window.prompt('Enter the URL of a pack manifest JSON file:');
+          if (!url) return;
+          setPackStatus('Fetching pack…');
+          try {
+            await window.dnd.importPackFromUrl(url);
+            setPackStatus('Pack added from URL.');
+          } catch (error) {
+            console.error('Failed to import pack from URL', error);
+            setPackStatus('Import failed. Check console for details.');
+          } finally {
+            setTimeout(() => setPackStatus(''), 4000);
+          }
+        });
+      }
+
+      if (reloadButton) {
+        reloadButton.addEventListener('click', async () => {
+          if (!window.dnd || typeof window.dnd.reload !== 'function') {
+            setPackStatus('Pack loader unavailable.');
+            return;
+          }
+          setPackStatus('Reloading packs…');
+          try {
+            await window.dnd.reload();
+            setPackStatus('Packs reloaded.');
+          } catch (error) {
+            console.error('Failed to reload packs', error);
+            setPackStatus('Reload failed.');
+          } finally {
+            setTimeout(() => setPackStatus(''), 3000);
+          }
+        });
+      }
     }
 
     function loadFavorites() {
@@ -552,24 +731,14 @@
 
     async function init() {
       favorites = loadFavorites();
-      if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
-        try {
-          await window.dndDataReady;
-        } catch (error) {
-          console.warn('Unable to hydrate compendium packs', error);
-        }
-      }
-      rebuildFromData();
+      wirePackControls();
+      subscribeToPackChanges();
+      await hydratePackData();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       list.style.height = '0px';
       init();
-    });
-
-    window.addEventListener('dnd-data-ready', () => {
-      if (document.readyState === 'loading') return;
-      rebuildFromData();
     });
   </script>
 </body>

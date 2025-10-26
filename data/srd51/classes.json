@@ -1,98 +1,230 @@
 [
   {
+    "id": "srd51.class.barbarian",
     "slug": "barbarian",
+    "type": "class",
     "name": "Barbarian",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d12",
     "primary_abilities": ["Strength"],
     "saving_throws": ["Strength", "Constitution"],
-    "description": "A fierce warrior whose fury fuels relentless assaults."
+    "armor_proficiencies": ["Light armor", "Medium armor", "Shields"],
+    "weapon_proficiencies": ["Simple weapons", "Martial weapons"],
+    "summary": "A fierce warrior whose fury fuels relentless assaults.",
+    "description": "Barbarians are warriors who can enter a battle rage, pushing themselves beyond their normal limitations to deliver crushing blows and shrug off damage."
   },
   {
+    "id": "srd51.class.bard",
     "slug": "bard",
+    "type": "class",
     "name": "Bard",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Charisma"],
     "saving_throws": ["Dexterity", "Charisma"],
-    "description": "A performer and storyteller who can weave magic through music and lore."
+    "armor_proficiencies": ["Light armor"],
+    "weapon_proficiencies": ["Simple weapons", "Hand crossbows", "Longswords", "Rapiers", "Shortswords"],
+    "summary": "A performer who weaves music and lore into potent magic.",
+    "description": "Bards travel the world telling stories, recording history, and casting spells inspired by music and lore. Their talents bolster allies and befuddle foes."
   },
   {
+    "id": "srd51.class.cleric",
     "slug": "cleric",
+    "type": "class",
     "name": "Cleric",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Wisdom"],
     "saving_throws": ["Wisdom", "Charisma"],
-    "description": "A champion of the gods who channels divine magic to heal and smite."
+    "armor_proficiencies": ["Light armor", "Medium armor", "Shields"],
+    "weapon_proficiencies": ["Simple weapons"],
+    "summary": "A divine spellcaster who channels the power of the gods.",
+    "description": "Clerics are intermediaries between the mortal world and the distant planes of the gods. They wield divine magic to heal, protect, and smite."
   },
   {
+    "id": "srd51.class.druid",
     "slug": "druid",
+    "type": "class",
     "name": "Druid",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Wisdom"],
     "saving_throws": ["Intelligence", "Wisdom"],
-    "description": "A guardian of the wilds whose spellcraft and shapechanging draw upon nature."
+    "armor_proficiencies": ["Light armor", "Medium armor", "Shields (nonmetal)"],
+    "weapon_proficiencies": ["Clubs", "Daggers", "Darts", "Javelins", "Maces", "Quarterstaffs", "Scimitars", "Sickles", "Slings", "Spears"],
+    "summary": "A guardian of nature wielding primal spells and wild shapes.",
+    "description": "Druids call upon the spirits of nature and can assume animal forms. They defend the natural order through primal magic and kinship with beasts."
   },
   {
+    "id": "srd51.class.fighter",
     "slug": "fighter",
+    "type": "class",
     "name": "Fighter",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d10",
     "primary_abilities": ["Strength", "Dexterity"],
     "saving_throws": ["Strength", "Constitution"],
-    "description": "A master of arms adept with weapons, armor, and battlefield tactics."
+    "armor_proficiencies": ["All armor", "Shields"],
+    "weapon_proficiencies": ["Simple weapons", "Martial weapons"],
+    "summary": "A master of martial combat skilled with a variety of weapons.",
+    "description": "Fighters focus on weapon mastery and battlefield tactics. Their combat training provides versatility and resilience in any skirmish."
   },
   {
+    "id": "srd51.class.monk",
     "slug": "monk",
+    "type": "class",
     "name": "Monk",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Dexterity", "Wisdom"],
     "saving_throws": ["Strength", "Dexterity"],
-    "description": "A disciplined artist of martial combat who channels inner energy into precise strikes."
+    "armor_proficiencies": ["None"],
+    "weapon_proficiencies": ["Simple weapons", "Shortswords"],
+    "summary": "A disciplined martial artist who channels inner ki energy.",
+    "description": "Monks are ascetic warriors whose rigorous training harnesses the magic of ki. They excel at mobility, precise strikes, and deflecting blows."
   },
   {
+    "id": "srd51.class.paladin",
     "slug": "paladin",
+    "type": "class",
     "name": "Paladin",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d10",
     "primary_abilities": ["Strength", "Charisma"],
     "saving_throws": ["Wisdom", "Charisma"],
-    "description": "A sworn knight bound by oath who combines martial prowess with divine blessings."
+    "armor_proficiencies": ["All armor", "Shields"],
+    "weapon_proficiencies": ["Simple weapons", "Martial weapons"],
+    "summary": "A holy champion bound by oath who blends combat and divine power.",
+    "description": "Paladins swear sacred oaths to uphold justice and righteousness. Their devotion grants them divine magic, protective auras, and healing hands."
   },
   {
+    "id": "srd51.class.ranger",
     "slug": "ranger",
+    "type": "class",
     "name": "Ranger",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d10",
     "primary_abilities": ["Dexterity", "Wisdom"],
     "saving_throws": ["Strength", "Dexterity"],
-    "description": "A hunter and wanderer who excels at tracking foes and surviving the wilderness."
+    "armor_proficiencies": ["Light armor", "Medium armor", "Shields"],
+    "weapon_proficiencies": ["Simple weapons", "Martial weapons"],
+    "summary": "A skilled hunter and tracker adept at surviving the wilds.",
+    "description": "Rangers are warriors of the wilderness. They master survival techniques, favored enemies, and spells tied to nature and exploration."
   },
   {
+    "id": "srd51.class.rogue",
     "slug": "rogue",
+    "type": "class",
     "name": "Rogue",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Dexterity"],
     "saving_throws": ["Dexterity", "Intelligence"],
-    "description": "A deft infiltrator who relies on agility, subtlety, and precision strikes."
+    "armor_proficiencies": ["Light armor"],
+    "weapon_proficiencies": ["Simple weapons", "Hand crossbows", "Longswords", "Rapiers", "Shortswords"],
+    "summary": "A deft infiltrator relying on agility, stealth, and precision.",
+    "description": "Rogues are quick, skillful, and cunning. They excel at infiltration, trap disarming, and devastating sneak attacks."
   },
   {
+    "id": "srd51.class.sorcerer",
     "slug": "sorcerer",
+    "type": "class",
     "name": "Sorcerer",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d6",
     "primary_abilities": ["Charisma"],
     "saving_throws": ["Constitution", "Charisma"],
-    "description": "An innate spellcaster whose magic arises from a powerful lineage or force."
+    "armor_proficiencies": ["None"],
+    "weapon_proficiencies": ["Daggers", "Darts", "Slings", "Quarterstaffs", "Light crossbows"],
+    "summary": "An innate spellcaster whose magic comes from a powerful origin.",
+    "description": "Sorcerers command raw arcane power that flows from a bloodline or otherworldly influence. Their spellcasting is intuitive and flexible."
   },
   {
+    "id": "srd51.class.warlock",
     "slug": "warlock",
+    "type": "class",
     "name": "Warlock",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d8",
     "primary_abilities": ["Charisma"],
     "saving_throws": ["Wisdom", "Charisma"],
-    "description": "A wielder of eldritch powers who forges a pact with a mysterious patron."
+    "armor_proficiencies": ["Light armor"],
+    "weapon_proficiencies": ["Simple weapons"],
+    "summary": "A wielder of eldritch power bound to a mysterious patron.",
+    "description": "Warlocks forge pacts with patrons—beings of fey, fiendish, or cosmic power. They learn invocations and pact magic fueled by those bargains."
   },
   {
+    "id": "srd51.class.wizard",
     "slug": "wizard",
+    "type": "class",
     "name": "Wizard",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
     "hit_die": "d6",
     "primary_abilities": ["Intelligence"],
     "saving_throws": ["Intelligence", "Wisdom"],
-    "description": "A learned spellcaster who records arcane discoveries in a spellbook."
+    "armor_proficiencies": ["None"],
+    "weapon_proficiencies": ["Daggers", "Darts", "Slings", "Quarterstaffs", "Light crossbows"],
+    "summary": "A learned arcane scholar wielding spells recorded in a spellbook.",
+    "description": "Wizards study the structure of magic through rigorous research. Their spellbooks contain the formulae that allow them to bend reality."
   }
 ]

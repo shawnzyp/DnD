@@ -1,37 +1,106 @@
 [
   {
+    "id": "srd51.companion.bat",
     "slug": "bat",
+    "type": "creature",
     "name": "Bat",
-    "type": "Beast",
-    "role": "Keen-eared scout",
-    "description": "Tiny flying mammal with blindsight that excels at navigating darkness."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Tiny",
+    "alignment": "Unaligned",
+    "armor_class": 12,
+    "hit_points": 1,
+    "speed": "5 ft., fly 30 ft.",
+    "senses": "blindsight 60 ft.",
+    "skills": ["Perception +2"],
+    "traits": ["Keen Hearing. The bat has advantage on Wisdom (Perception) checks that rely on hearing."],
+    "summary": "A nocturnal familiar that excels at scouting in the dark."
   },
   {
+    "id": "srd51.companion.cat",
     "slug": "cat",
+    "type": "creature",
     "name": "Cat",
-    "type": "Beast",
-    "role": "Stealthy observer",
-    "description": "Graceful familiar with keen smell and balance ideal for urban scouting."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Tiny",
+    "alignment": "Unaligned",
+    "armor_class": 12,
+    "hit_points": 2,
+    "speed": "40 ft., climb 30 ft.",
+    "skills": ["Perception +3", "Stealth +4"],
+    "traits": ["Keen Smell. The cat has advantage on Wisdom (Perception) checks that rely on smell."],
+    "summary": "A nimble prowler suited to stealthy reconnaissance."
   },
   {
+    "id": "srd51.companion.hawk",
     "slug": "hawk",
+    "type": "creature",
     "name": "Hawk",
-    "type": "Beast",
-    "role": "Aerial lookout",
-    "description": "Swift bird of prey that provides sharp eyesight and mobility."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Tiny",
+    "alignment": "Unaligned",
+    "armor_class": 13,
+    "hit_points": 1,
+    "speed": "10 ft., fly 60 ft.",
+    "skills": ["Perception +4"],
+    "traits": ["Keen Sight. The hawk has advantage on Wisdom (Perception) checks that rely on sight."],
+    "summary": "A sharp-eyed bird used to scout vast areas from above."
   },
   {
+    "id": "srd51.companion.owl",
     "slug": "owl",
+    "type": "creature",
     "name": "Owl",
-    "type": "Beast",
-    "role": "Silent night scout",
-    "description": "Nocturnal raptor with advantage on sight checks in dim light."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Tiny",
+    "alignment": "Unaligned",
+    "armor_class": 11,
+    "hit_points": 1,
+    "speed": "5 ft., fly 60 ft.",
+    "skills": ["Perception +3", "Stealth +3"],
+    "traits": [
+      "Flyby. The owl doesn't provoke opportunity attacks when it flies out of an enemy's reach.",
+      "Keen Hearing and Sight. The owl has advantage on Wisdom (Perception) checks that rely on hearing or sight."
+    ],
+    "summary": "A silent hunter that avoids retaliation with swift flybys."
   },
   {
+    "id": "srd51.companion.weasel",
     "slug": "weasel",
+    "type": "creature",
     "name": "Weasel",
-    "type": "Beast",
-    "role": "Burrowing infiltrator",
-    "description": "Sinuous creature able to wriggle through tight passages unseen."
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Tiny",
+    "alignment": "Unaligned",
+    "armor_class": 13,
+    "hit_points": 1,
+    "speed": "30 ft.",
+    "skills": ["Perception +3", "Stealth +3"],
+    "traits": ["Keen Hearing and Smell. The weasel has advantage on Wisdom (Perception) checks that rely on hearing or smell."],
+    "summary": "A slinking infiltrator adept at squeezing through tight spaces."
   }
 ]

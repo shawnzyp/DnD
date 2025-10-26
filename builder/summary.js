@@ -1,5 +1,5 @@
 function getPackData() {
-  return window.dndData || { classes: [], backgrounds: [], feats: [], items: [], companions: [] };
+  return window.dndBuilderData || window.dndData || { classes: [], backgrounds: [], feats: [], items: [], companions: [] };
 }
 
 function resolveByValue(list, value) {

@@ -46,6 +46,49 @@
       font-size: 0.75rem;
       color: var(--muted);
     }
+    .pack-controls {
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .pack-controls .pack-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .pill-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .pill-button:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.28);
+      transform: translateY(-1px);
+    }
+    .pill-button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    .pack-status {
+      margin: 0;
+      flex: 1;
+      min-width: 160px;
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
     main {
       flex: 1;
       padding: 1rem 1.5rem 7rem;
@@ -190,6 +233,15 @@
     <h1>Character Builder</h1>
     <p id="step-indicator">Step 1 of 7 · Identity</p>
     <p id="builder-pack-meta" class="pack-meta" aria-live="polite">Loading System Reference Document…</p>
+    <div class="pack-controls">
+      <div class="pack-buttons">
+        <button type="button" id="builder-import-file" class="pill-button">Import JSON</button>
+        <button type="button" id="builder-import-url" class="pill-button">Add from URL</button>
+        <button type="button" id="builder-reload-packs" class="pill-button">Reload Packs</button>
+      </div>
+      <p id="builder-pack-status" class="pack-status" aria-live="polite"></p>
+    </div>
+    <input type="file" id="builder-pack-file" accept="application/json" hidden />
   </header>
   <main>
     <form id="builder-form" class="grid" novalidate>
