@@ -12,9 +12,14 @@
       font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       --bg: #0d1117;
       --fg: #f4f6fb;
-      --muted: rgba(244, 246, 251, 0.7);
-      --surface: rgba(244, 246, 251, 0.05);
-      --accent: #5bd6a0;
+      --muted: #c6cee8;
+      --muted-strong: #e6ebff;
+      --surface: rgba(20, 27, 43, 0.92);
+      --surface-border: rgba(244, 246, 251, 0.18);
+      --accent: #4fd8a0;
+      --accent-strong: #2fb985;
+      --accent-contrast: #031a12;
+      --focus-ring: #93f2cc;
     }
     body {
       margin: 0;
@@ -23,6 +28,31 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      line-height: 1.6;
+    }
+    .skip-link {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -150%);
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      background: rgba(17, 24, 40, 0.96);
+      color: var(--fg);
+      border: 2px solid var(--accent);
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 10;
+      transition: transform 160ms ease, opacity 160ms ease;
+      opacity: 0;
+    }
+    .skip-link:focus-visible {
+      transform: translate(-50%, 0.75rem);
+      opacity: 1;
+    }
+    :focus-visible {
+      outline: 3px solid var(--focus-ring);
+      outline-offset: 3px;
     }
     header {
       padding: 1rem 1.5rem 0.5rem;
@@ -51,18 +81,19 @@
     #open-about-modal {
       padding: 0.45rem 0.85rem;
       border-radius: 0.75rem;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      border: 1px solid var(--surface-border);
       background: rgba(255, 255, 255, 0.08);
       color: var(--fg);
       font-size: 0.75rem;
       font-weight: 600;
       cursor: pointer;
+      transition: background-color 160ms ease, border-color 160ms ease, transform 160ms ease;
     }
     #open-about-modal:hover,
-    #open-about-modal:focus {
-      background: rgba(91, 214, 160, 0.18);
-      border-color: rgba(91, 214, 160, 0.4);
-      outline: none;
+    #open-about-modal:focus-visible {
+      background: color-mix(in srgb, var(--accent) 30%, transparent 70%);
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--surface-border) 45%);
+      transform: translateY(-1px);
     }
     #step-indicator {
       margin: 0;
@@ -92,7 +123,7 @@
       justify-content: center;
       border-radius: 999px;
       padding: 0.45rem 0.9rem;
-      border: 1px solid rgba(255, 255, 255, 0.18);
+      border: 1px solid var(--surface-border);
       background: rgba(255, 255, 255, 0.08);
       color: var(--fg);
       font-size: 0.72rem;
@@ -102,13 +133,12 @@
       transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
     }
     .pill-button:hover {
-      background: rgba(255, 255, 255, 0.14);
-      border-color: rgba(255, 255, 255, 0.28);
+      background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.1) 78%);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-border) 55%);
       transform: translateY(-1px);
     }
     .pill-button:focus-visible {
-      outline: 2px solid var(--accent);
-      outline-offset: 2px;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 40%, transparent 60%);
     }
     .pack-status {
       margin: 0;
@@ -144,10 +174,16 @@
     input, select, textarea {
       padding: 0.75rem 0.8rem;
       border-radius: 0.8rem;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(20, 27, 43, 0.75);
       color: var(--fg);
       font-size: 0.95rem;
+    }
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 60%, white 40%);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent 70%);
     }
     textarea {
       min-height: 120px;
@@ -185,6 +221,23 @@
       backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255, 255, 255, 0.08);
       z-index: 5;
+    }
+    @media (prefers-reduced-transparency: reduce) {
+      header,
+      .sticky-nav,
+      .modal-backdrop,
+      .coachmark-backdrop {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+      }
+      header,
+      .sticky-nav {
+        background: rgba(13, 17, 23, 0.95);
+      }
+      .modal-backdrop,
+      .coachmark-backdrop {
+        background: rgba(7, 11, 17, 0.9);
+      }
     }
     .sticky-nav button {
       flex: 1;
@@ -442,9 +495,8 @@
       cursor: pointer;
     }
     .legal-link button:hover,
-    .legal-link button:focus {
+    .legal-link button:focus-visible {
       text-decoration: underline;
-      outline: none;
     }
     #about-legal-modal {
       position: fixed;
@@ -464,13 +516,13 @@
     .modal-panel {
       position: absolute;
       inset: auto 1rem 1.5rem;
-      background: rgba(13,17,23,0.97);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: var(--surface);
+      border: 1px solid var(--surface-border);
       border-radius: 1rem;
       padding: 1.25rem 1.35rem;
       max-height: min(80vh, 640px);
       overflow-y: auto;
-      box-shadow: 0 1.5rem 3.5rem -1.25rem rgba(0,0,0,0.65);
+      box-shadow: 0 1.5rem 3.5rem -1.25rem rgba(0,0,0,0.6);
       display: grid;
       gap: 1rem;
     }
@@ -486,7 +538,7 @@
     }
     .modal-close {
       background: rgba(255, 255, 255, 0.08);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid var(--surface-border);
       color: var(--fg);
       border-radius: 999px;
       width: 2rem;
@@ -496,10 +548,9 @@
       cursor: pointer;
     }
     .modal-close:hover,
-    .modal-close:focus {
-      background: rgba(91, 214, 160, 0.2);
-      border-color: rgba(91, 214, 160, 0.4);
-      outline: none;
+    .modal-close:focus-visible {
+      background: color-mix(in srgb, var(--accent) 30%, transparent 70%);
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--surface-border) 45%);
     }
     .modal-panel section {
       display: grid;
@@ -751,9 +802,28 @@
       opacity: 0.5;
       cursor: not-allowed;
     }
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+      .skip-link,
+      #open-about-modal,
+      .pill-button,
+      .sticky-nav button,
+      .summary-banner button,
+      .counter-controls button,
+      .coachmark-highlight {
+        transition: none !important;
+      }
+    }
   </style>
 </head>
 <body>
+  <a class="skip-link" href="#builder-main">Skip to builder content</a>
   <header>
     <div class="header-row">
       <h1>Character Builder</h1>
@@ -787,7 +857,7 @@
     </div>
     <input type="file" id="builder-pack-file" accept="application/json" hidden />
   </header>
-  <main>
+  <main id="builder-main" tabindex="-1">
     <form id="builder-form" class="grid" novalidate>
       <section class="step active" data-step="identity">
         <h2>Identity</h2>

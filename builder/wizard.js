@@ -1105,6 +1105,102 @@ function setupAboutModal() {
   const closeButtons = Array.from(modal.querySelectorAll('[data-close-modal]'));
   let loaded = false;
   let lastFocus = null;
+  const focusTrap = createFocusTrap(dialog, { returnFocus: false });
+
+  function createFocusTrap(container, { returnFocus = true } = {}) {
+    if (!container) {
+      return {
+        activate() {},
+        deactivate() {}
+      };
+    }
+
+    const focusableSelector =
+      'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    let active = false;
+    let previousFocus = null;
+
+    function isVisible(element) {
+      return !(
+        element.offsetParent === null &&
+        element !== document.activeElement &&
+        element.getClientRects().length === 0
+      );
+    }
+
+    function getFocusableElements() {
+      return Array.from(container.querySelectorAll(focusableSelector)).filter((element) => {
+        if (element.hasAttribute('disabled')) return false;
+        if (element.getAttribute('aria-hidden') === 'true') return false;
+        const tabIndex = element.getAttribute('tabindex');
+        if (tabIndex && Number(tabIndex) < 0) return false;
+        return isVisible(element);
+      });
+    }
+
+    function focusFirst() {
+      const [first] = getFocusableElements();
+      const target = first || container;
+      if (target && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+      }
+      return target;
+    }
+
+    function handleKeydown(event) {
+      if (!active || event.key !== 'Tab') return;
+      const focusable = getFocusableElements();
+      if (!focusable.length) {
+        event.preventDefault();
+        focusFirst();
+        return;
+      }
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const current = document.activeElement;
+      if (event.shiftKey) {
+        if (current === first || !container.contains(current)) {
+          event.preventDefault();
+          last.focus({ preventScroll: true });
+        }
+      } else if (current === last) {
+        event.preventDefault();
+        first.focus({ preventScroll: true });
+      }
+    }
+
+    function handleFocusIn(event) {
+      if (!active) return;
+      if (!container.contains(event.target)) {
+        focusFirst();
+      }
+    }
+
+    return {
+      activate(initialFocus) {
+        if (active) return;
+        active = true;
+        previousFocus = document.activeElement;
+        document.addEventListener('focusin', handleFocusIn, true);
+        document.addEventListener('keydown', handleKeydown, true);
+        const target = initialFocus || focusFirst();
+        if (target && typeof target.focus === 'function') {
+          target.focus({ preventScroll: true });
+        }
+      },
+      deactivate() {
+        if (!active) return;
+        document.removeEventListener('focusin', handleFocusIn, true);
+        document.removeEventListener('keydown', handleKeydown, true);
+        active = false;
+        const returnTarget = returnFocus ? previousFocus : null;
+        if (returnTarget && typeof returnTarget.focus === 'function') {
+          returnTarget.focus({ preventScroll: true });
+        }
+        previousFocus = null;
+      }
+    };
+  }
 
   async function loadLegalNotice() {
     if (!legalBlock || loaded) return;
@@ -1123,13 +1219,15 @@ function setupAboutModal() {
     modal.classList.remove('visible');
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('modal-open');
-    document.removeEventListener('keydown', handleKeydown, true);
+    document.removeEventListener('keydown', handleEscapeKey, true);
+    focusTrap.deactivate();
     if (lastFocus && typeof lastFocus.focus === 'function') {
-      lastFocus.focus();
+      lastFocus.focus({ preventScroll: true });
     }
+    lastFocus = null;
   }
 
-  function handleKeydown(event) {
+  function handleEscapeKey(event) {
     if (event.key === 'Escape') {
       event.preventDefault();
       closeModal();
@@ -1141,12 +1239,10 @@ function setupAboutModal() {
     modal.classList.add('visible');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('modal-open');
-    document.addEventListener('keydown', handleKeydown, true);
+    document.addEventListener('keydown', handleEscapeKey, true);
     loadLegalNotice();
     requestAnimationFrame(() => {
-      if (dialog) {
-        dialog.focus();
-      }
+      focusTrap.activate(dialog);
     });
   }
 
