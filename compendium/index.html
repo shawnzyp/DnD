@@ -3,9 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1014" />
   <title>Compendium</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
   <script src="/js/loader.js" defer></script>
-  <script type="module" src="/js/compendium.js" defer></script>
+  <script type="module" src="/js/app.js" defer></script>
   <style>
     :root {
       color-scheme: dark light;
@@ -203,6 +205,7 @@
       right: 0;
       padding: 0.65rem 0.35rem;
       box-sizing: border-box;
+      contain: layout style paint;
     }
 
     .entry {
@@ -213,6 +216,9 @@
       display: grid;
       gap: 0.35rem;
       transition: transform 150ms ease, border-color 150ms ease;
+      content-visibility: auto;
+      contain-intrinsic-size: 240px 200px;
+      contain: layout style paint;
     }
 
     .entry:hover {
@@ -367,6 +373,85 @@
       margin: 0 0 0.95rem;
     }
 
+    .spell-panel-host {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0 0 1rem;
+    }
+
+    .spell-panel {
+      display: grid;
+      gap: 0.6rem;
+      padding: 0.9rem 1rem;
+      border-radius: 0.9rem;
+      background: rgba(76, 194, 255, 0.12);
+      border: 1px solid rgba(76, 194, 255, 0.28);
+      color: var(--fg);
+      content-visibility: auto;
+      contain: layout style paint;
+      contain-intrinsic-size: 280px 320px;
+    }
+
+    .spell-panel__chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .spell-panel__chip {
+      border-radius: 999px;
+      padding: 0.25rem 0.65rem;
+      border: 1px solid rgba(76, 194, 255, 0.45);
+      background: rgba(76, 194, 255, 0.22);
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .spell-panel__stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.45rem 0.6rem;
+      margin: 0;
+    }
+
+    .spell-panel__stats dt {
+      margin: 0;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(245, 248, 253, 0.68);
+    }
+
+    .spell-panel__stats dd {
+      margin: 0;
+      font-size: 0.88rem;
+      color: var(--fg);
+    }
+
+    .spell-panel__classes {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .spell-panel__classes li {
+      border-radius: 999px;
+      padding: 0.3rem 0.7rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.72rem;
+    }
+
+    .spell-panel__note {
+      margin: 0;
+      font-size: 0.78rem;
+      color: rgba(245, 248, 253, 0.72);
+    }
+
     .drawer-actions {
       display: flex;
       gap: 0.75rem;
@@ -455,7 +540,7 @@
     }
   </style>
 </head>
-<body>
+<body data-modules="compendium">
   <header>
     <h1>Compendium</h1>
     <p id="compendium-pack-meta" class="pack-meta" aria-live="polite">Loading SRD entries…</p>
@@ -497,6 +582,7 @@
     </header>
     <ul id="detail-tags" class="tag-list"></ul>
     <dl id="detail-stats" class="stat-grid"></dl>
+    <div id="spell-panel" class="spell-panel-host" hidden></div>
     <div id="detail-body"></div>
     <div class="drawer-actions">
       <button type="button" id="builder-add">Add to Builder</button>

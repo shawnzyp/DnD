@@ -20,6 +20,7 @@ const detailStatus = document.getElementById('detail-status');
 const drawerScrim = document.getElementById('drawer-scrim');
 const favoriteToggle = document.getElementById('favorite-toggle');
 const builderAddButton = document.getElementById('builder-add');
+const spellPanelHost = document.getElementById('spell-panel');
 
 const worker = new Worker('/js/compendium-worker.js', { type: 'module' });
 
@@ -36,6 +37,7 @@ let statusTimer = null;
 let renderedStart = 0;
 let renderedEnd = 0;
 let currentEntry = null;
+let spellPanelModulePromise = null;
 
 function loadFavorites() {
   try {
@@ -294,6 +296,7 @@ function openDetail(entry) {
   renderTags(entry.tags || []);
   renderStats(entry.stats || []);
   renderBody(entry.body || '');
+  applySpellPanel(entry);
   detailStatus.textContent = '';
   favoriteToggle.dataset.id = entry.id;
   builderAddButton.dataset.id = entry.id;
@@ -320,6 +323,7 @@ function closeDetail() {
     }, 200);
   }
   currentEntry = null;
+  resetSpellPanel();
 }
 
 function renderTags(tags) {
@@ -359,6 +363,51 @@ function renderBody(bodyText) {
     paragraph.textContent = 'Full details unavailable for this entry.';
     detailBody.appendChild(paragraph);
   }
+}
+
+function resetSpellPanel() {
+  if (!spellPanelHost) return;
+  spellPanelHost.hidden = true;
+  spellPanelHost.innerHTML = '';
+}
+
+function loadSpellPanelModule() {
+  if (!spellPanelModulePromise) {
+    spellPanelModulePromise = import('./spell-panel.js');
+  }
+  return spellPanelModulePromise;
+}
+
+function applySpellPanel(entry) {
+  if (!spellPanelHost) return;
+  if (!entry || entry.type !== 'spell') {
+    if (spellPanelModulePromise) {
+      spellPanelModulePromise
+        .then((mod) => {
+          if (typeof mod.clearSpellPanel === 'function') {
+            mod.clearSpellPanel(spellPanelHost);
+          } else {
+            resetSpellPanel();
+          }
+        })
+        .catch(() => {
+          resetSpellPanel();
+        });
+    } else {
+      resetSpellPanel();
+    }
+    return;
+  }
+  loadSpellPanelModule()
+    .then((mod) => {
+      if (typeof mod.renderSpellPanel === 'function') {
+        mod.renderSpellPanel(entry, spellPanelHost);
+      }
+    })
+    .catch((error) => {
+      console.warn('Failed to render spell detail', error);
+      resetSpellPanel();
+    });
 }
 
 function toggleFavorite(id) {
@@ -609,7 +658,10 @@ function initEventHandlers() {
 }
 
 async function init() {
-  list.style.height = '0px';
+  if (list) {
+    list.style.height = '0px';
+  }
+  resetSpellPanel();
   worker.addEventListener('message', handleWorkerMessage);
   initEventHandlers();
   wirePackControls();

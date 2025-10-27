@@ -217,7 +217,7 @@ function render(data) {
   updatePackMeter(data || {});
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+function bootstrap() {
   markActiveNavigation();
   initBottomSheets();
   if (window.dndDataReady && typeof window.dndDataReady.then === 'function') {
@@ -232,4 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
   } else {
     render({});
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', bootstrap);
+} else {
+  bootstrap();
+}
