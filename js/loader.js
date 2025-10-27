@@ -1,7 +1,13 @@
 (function () {
   'use strict';
 
-  const MANIFEST_URL = '/packs/manifest.json';
+  const BASE_URL = new URL('./', window.location.href);
+  try {
+    window.dndBaseUrl = BASE_URL;
+  } catch (error) {
+    // Ignore assignment failures (e.g. readonly window).
+  }
+  const MANIFEST_URL = new URL('packs/manifest.json', BASE_URL).toString();
   const DEFAULT_FILES = [
     'classes',
     'races',
@@ -34,7 +40,10 @@
   const SETTINGS_STORE = 'settings';
   const PACK_SETTINGS_ID = 'pack-state';
   const PACK_STATE_STORAGE_KEY = 'quest-kit:pack-state';
-  const SERVICE_WORKER_URL = '/sw.js';
+  const SERVICE_WORKER_URL = new URL('sw.js', BASE_URL).toString();
+  const SERVICE_WORKER_SCOPE = BASE_URL.pathname.endsWith('/')
+    ? BASE_URL.pathname
+    : `${BASE_URL.pathname || '/'}/`;
 
   function createEmptyData() {
     return {
@@ -445,16 +454,18 @@
       if (!pack || typeof pack !== 'object') return;
       const path = typeof pack.path === 'string' ? pack.path.trim() : '';
       if (!path) return;
-      let base = path.endsWith('/') ? path.slice(0, -1) : path;
-      if (!/^https?:/i.test(base) && !base.startsWith('/')) {
-        base = `/${base}`;
+      let base;
+      try {
+        const withTrailingSlash = path.endsWith('/') ? path : `${path}/`;
+        base = new URL(withTrailingSlash, BASE_URL);
+      } catch (error) {
+        return;
       }
-      if (!base) return;
       const files = Array.isArray(pack.files) ? pack.files : [];
       files.forEach((file) => {
         const clean = typeof file === 'string' ? file.replace(/\.json$/i, '').trim() : '';
         if (!clean) return;
-        const url = `${base}/${clean}.json`;
+        const url = new URL(`${clean}.json`, base).toString();
         const revisionParts = [];
         if (typeof pack.version === 'string' && pack.version.trim()) {
           revisionParts.push(pack.version.trim());
@@ -491,7 +502,7 @@
     }
     serviceWorkerRegistrationStarted = true;
     navigator.serviceWorker
-      .register(SERVICE_WORKER_URL)
+      .register(SERVICE_WORKER_URL, { scope: SERVICE_WORKER_SCOPE })
       .then(() => {
         flushPackCacheUpdate();
       })

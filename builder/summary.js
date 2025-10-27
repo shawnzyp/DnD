@@ -9,6 +9,7 @@ const abilityFields = [
 ];
 
 const ATTUNEMENT_LIMIT = 3;
+const SHEET_URL = new URL('./sheet.html', import.meta.url).toString();
 
 const skillDefinitions = [
   { id: 'acrobatics', label: 'Acrobatics', ability: 'dex' },
@@ -1800,7 +1801,7 @@ class SummaryUI {
       if (typeof window.persistBuilderState === 'function') {
         window.persistBuilderState();
       }
-      window.open('/builder/sheet.html', '_blank', 'noopener');
+      window.open(SHEET_URL, '_blank', 'noopener');
     }
     if (action === 'add-counter') {
       this.promptNewCounter();

@@ -1,22 +1,26 @@
 const APP_CACHE = 'quest-kit-shell-v1';
 const PACK_CACHE = 'quest-kit-packs-v1';
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/css/theme.css',
-  '/js/app.js',
-  '/js/loader.js',
-  '/js/home.js',
-  '/js/pack-validation.js',
-  '/js/compendium.js',
-  '/js/compendium-worker.js',
-  '/builder/wizard.js',
-  '/builder/summary.js',
-  '/builder/index.html',
-  '/compendium/index.html',
-  '/manifest.webmanifest',
-  '/packs/manifest.json'
+const BASE_URL = new URL('./', self.location.href);
+const BASE_PATH = BASE_URL.pathname.endsWith('/') ? BASE_URL.pathname : `${BASE_URL.pathname}/`;
+const APP_SHELL_PATHS = [
+  './',
+  'index.html',
+  'css/theme.css',
+  'js/app.js',
+  'js/loader.js',
+  'js/home.js',
+  'js/pack-validation.js',
+  'js/compendium.js',
+  'js/compendium-worker.js',
+  'builder/wizard.js',
+  'builder/summary.js',
+  'builder/index.html',
+  'compendium/index.html',
+  'manifest.webmanifest',
+  'packs/manifest.json'
 ];
+const APP_SHELL_URLS = APP_SHELL_PATHS.map((path) => new URL(path, BASE_URL).toString());
+const APP_SHELL_URL_SET = new Set(APP_SHELL_URLS);
 
 let packRevisions = new Map();
 
@@ -24,7 +28,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(APP_CACHE);
-      await cache.addAll(APP_SHELL);
+      await cache.addAll(APP_SHELL_URLS);
       await self.skipWaiting();
     })()
   );
@@ -64,7 +68,7 @@ async function cacheFirst(request, cacheName) {
   } catch (error) {
     console.warn('SW: cacheFirst network error', error);
   }
-  return caches.match('/index.html');
+  return caches.match(new URL('index.html', BASE_URL).toString());
 }
 
 async function staleWhileRevalidate(request, cacheName) {
@@ -92,12 +96,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/data/')) {
+  if (url.pathname.startsWith(`${BASE_PATH}data/`)) {
     event.respondWith(staleWhileRevalidate(request, PACK_CACHE));
     return;
   }
 
-  if (APP_SHELL.includes(url.pathname)) {
+  if (APP_SHELL_URL_SET.has(request.url)) {
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }
@@ -111,7 +115,7 @@ function normaliseEntry(entry = {}) {
     urls: urls
       .map((value) => {
         try {
-          return new URL(value, self.location.origin).toString();
+          return new URL(value, BASE_URL).toString();
         } catch (error) {
           return null;
         }

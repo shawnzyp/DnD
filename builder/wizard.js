@@ -6,6 +6,8 @@ const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
 const HISTORY_LIMIT = 50;
 const SHARE_QUERY_PARAM = 'share';
 const SHARE_VERSION = 1;
+const SHEET_URL = new URL('./sheet.html', import.meta.url).toString();
+const NOTICE_URL = new URL('../LEGAL/NOTICE.txt', import.meta.url).toString();
 
 const abilityFields = [
   { id: 'str', label: 'Strength' },
@@ -6175,7 +6177,7 @@ function setupFinalizeActions() {
         if (typeof window.persistBuilderState === 'function') {
           window.persistBuilderState();
         }
-        window.open('/builder/sheet.html', '_blank', 'noopener');
+        window.open(SHEET_URL, '_blank', 'noopener');
       });
     }
     if (action === 'export') {
@@ -6307,7 +6309,7 @@ function setupAboutModal() {
   async function loadLegalNotice() {
     if (!legalBlock || loaded) return;
     try {
-      const response = await fetch('/LEGAL/NOTICE.txt', { cache: 'no-store' });
+      const response = await fetch(NOTICE_URL, { cache: 'no-store' });
       if (!response.ok) throw new Error(`Failed to fetch legal notice: ${response.status}`);
       const text = await response.text();
       legalBlock.textContent = text;

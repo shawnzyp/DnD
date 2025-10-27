@@ -1,4 +1,7 @@
 import { getValidationBadge, getValidationForPack, summariseValidationIssues } from './pack-validation.js';
+import { getBaseUrl } from './url-helpers.js';
+
+const BASE_URL = getBaseUrl();
 
 const DEFAULT_FILES = [
   'classes',
@@ -41,19 +44,29 @@ let packManagerFocusReturn = null;
 let packManagerDragItem = null;
 
 function normalisePath(pathname) {
-  if (!pathname) return '/';
-  if (pathname !== '/' && pathname.endsWith('/')) {
-    return pathname;
+  try {
+    const resolved = pathname ? new URL(pathname, BASE_URL) : BASE_URL;
+    let { pathname: path } = resolved;
+    if (path.endsWith('index.html')) {
+      path = path.slice(0, -'index.html'.length);
+    }
+    if (!path.endsWith('/')) {
+      path = `${path}/`;
+    }
+    return path;
+  } catch (error) {
+    const fallback = BASE_URL.pathname || '/';
+    return fallback.endsWith('/') ? fallback : `${fallback}/`;
   }
-  return pathname.endsWith('/') ? pathname : `${pathname}/`;
 }
 
 function markActiveNavigation() {
   const navItems = document.querySelectorAll('[data-route]');
   if (!navItems.length) return;
-  const currentPath = normalisePath(window.location.pathname);
+  const currentPath = normalisePath(window.location.href);
   navItems.forEach((item) => {
-    const target = normalisePath(item.dataset.route || item.getAttribute('href') || '/');
+    const targetPath = item.dataset.route || item.getAttribute('href') || './';
+    const target = normalisePath(targetPath);
     const isActive = target === currentPath;
     item.classList.toggle('is-active', isActive);
     if (isActive) {
