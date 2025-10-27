@@ -198,6 +198,117 @@
     .grid.two {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
+    .equipment-grid {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .equipment-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.65rem;
+      padding: 0.85rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .equipment-group h3 {
+      margin: 0;
+      font-size: 0.92rem;
+    }
+    .equipment-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .equipment-controls input[type="search"] {
+      flex: 1;
+      min-width: 160px;
+    }
+    .equipment-controls input[type="number"] {
+      width: 80px;
+    }
+    .equipment-controls button,
+    .equipment-item-controls button {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+      font-weight: 600;
+      font-size: 0.78rem;
+      padding: 0.55rem 0.85rem;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .equipment-controls button:hover,
+    .equipment-item-controls button:hover,
+    .equipment-controls button:focus-visible,
+    .equipment-item-controls button:focus-visible {
+      background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.1) 78%);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-border) 55%);
+      transform: translateY(-1px);
+    }
+    .equipment-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.55rem;
+    }
+    .equipment-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 18, 30, 0.55);
+    }
+    .equipment-item[data-state="warn"] {
+      border-color: color-mix(in srgb, #ff9966 55%, rgba(255, 255, 255, 0.12) 45%);
+    }
+    .equipment-item-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+    .equipment-item-main strong {
+      font-size: 0.95rem;
+    }
+    .equipment-item-meta {
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .equipment-item-status {
+      font-size: 0.8rem;
+    }
+    .equipment-item-controls {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .equipment-item-controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin: 0;
+    }
+    .equipment-item-controls input[type="number"] {
+      padding: 0.4rem 0.55rem;
+      width: 72px;
+    }
+    .equipment-empty {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    [data-equipment-feedback][data-state="warn"] {
+      color: #ffd7c2;
+    }
     .ability {
       display: grid;
       gap: 0.35rem;
@@ -352,6 +463,65 @@
       display: grid;
       gap: 0.6rem;
       font-size: 0.82rem;
+    }
+    .summary-equipment-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .summary-equipment-status span {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted-strong);
+    }
+    .summary-equipment-status span[data-state="warn"] {
+      background: rgba(255, 153, 102, 0.22);
+      color: #ffd7c2;
+    }
+    .summary-equipment-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.45rem;
+    }
+    .summary-equipment-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: 0.7rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .summary-equipment-item[data-state="warn"] {
+      border-color: color-mix(in srgb, #ff9966 45%, rgba(255, 255, 255, 0.08) 55%);
+    }
+    .summary-equipment-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .summary-equipment-main strong {
+      font-size: 0.85rem;
+    }
+    .summary-equipment-main span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .summary-equipment-meta {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.2rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      white-space: nowrap;
     }
     .abilities-grid {
       display: grid;
@@ -940,15 +1110,59 @@
       </section>
       <section class="step" data-step="equipment">
         <h2>Equipment</h2>
-        <label>Weapon loadout
-          <textarea name="weapons" placeholder="Longsword, hand crossbow"></textarea>
-        </label>
-        <label>Armor &amp; defenses
-          <textarea name="armor" placeholder="Half-plate, cloak of protection"></textarea>
-        </label>
-        <label>Adventuring gear
-          <input type="text" name="gear" placeholder="Explorer's pack, sending stones" list="item-options" />
-        </label>
+        <p class="step-hint" data-equipment-summary aria-live="polite">
+          Build your loadout to track proficiency, attunement, and encumbrance.
+        </p>
+        <div class="equipment-grid" data-equipment-root>
+          <div class="equipment-group" data-equipment-group="weapons">
+            <h3>Weapons</h3>
+            <div class="equipment-controls">
+              <input type="search" data-equipment-input placeholder="Search weapons" list="weapon-options" autocomplete="off" />
+              <input type="number" min="1" value="1" data-equipment-quantity aria-label="Weapon quantity" />
+              <button type="button" data-equipment-action="add" data-equipment-category="weapons">Add</button>
+            </div>
+            <ul class="equipment-list" data-equipment-list>
+              <li class="equipment-empty">No weapons selected.</li>
+            </ul>
+          </div>
+          <div class="equipment-group" data-equipment-group="armor">
+            <h3>Armor &amp; Shields</h3>
+            <div class="equipment-controls">
+              <input type="search" data-equipment-input placeholder="Search armor" list="armor-options" autocomplete="off" />
+              <input type="number" min="1" value="1" data-equipment-quantity aria-label="Armor quantity" />
+              <button type="button" data-equipment-action="add" data-equipment-category="armor">Add</button>
+            </div>
+            <ul class="equipment-list" data-equipment-list>
+              <li class="equipment-empty">No armor selected.</li>
+            </ul>
+          </div>
+          <div class="equipment-group" data-equipment-group="gear">
+            <h3>Adventuring Gear</h3>
+            <div class="equipment-controls">
+              <input type="search" data-equipment-input placeholder="Search gear" list="gear-options" autocomplete="off" />
+              <input type="number" min="1" value="1" data-equipment-quantity aria-label="Gear quantity" />
+              <button type="button" data-equipment-action="add" data-equipment-category="gear">Add</button>
+            </div>
+            <ul class="equipment-list" data-equipment-list>
+              <li class="equipment-empty">No gear tracked yet.</li>
+            </ul>
+          </div>
+          <div class="equipment-group" data-equipment-group="attunements">
+            <h3>Attunements</h3>
+            <p class="equipment-empty" data-equipment-feedback>Choose up to three magic items requiring attunement.</p>
+            <div class="equipment-controls">
+              <input type="search" data-equipment-input placeholder="Track attuned item" list="attunement-options" autocomplete="off" />
+              <button type="button" data-equipment-action="add" data-equipment-category="attunements">Add</button>
+            </div>
+            <ul class="equipment-list" data-equipment-list>
+              <li class="equipment-empty">No attuned items.</li>
+            </ul>
+          </div>
+        </div>
+        <input type="hidden" name="equipmentWeapons" value="[]" data-equipment-field="weapons" />
+        <input type="hidden" name="equipmentArmor" value="[]" data-equipment-field="armor" />
+        <input type="hidden" name="equipmentGear" value="[]" data-equipment-field="gear" />
+        <input type="hidden" name="equipmentAttunements" value="[]" data-equipment-field="attunements" />
       </section>
       <section class="step" data-step="familiar">
         <h2>Companions &amp; Familiars</h2>
@@ -979,6 +1193,10 @@
   <datalist id="background-options"></datalist>
   <datalist id="feat-options"></datalist>
   <datalist id="item-options"></datalist>
+  <datalist id="weapon-options"></datalist>
+  <datalist id="armor-options"></datalist>
+  <datalist id="gear-options"></datalist>
+  <datalist id="attunement-options"></datalist>
   <p class="legal-link">
     <button type="button" data-open-about aria-haspopup="dialog" aria-controls="about-legal-modal">About &amp; Legal</button>
     ·

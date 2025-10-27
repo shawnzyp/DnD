@@ -8,6 +8,8 @@ const abilityFields = [
   { id: 'cha', label: 'Charisma', short: 'CHA' }
 ];
 
+const ATTUNEMENT_LIMIT = 3;
+
 function getPackData() {
   return window.dndBuilderData || window.dndData || { classes: [], backgrounds: [], feats: [], items: [], companions: [] };
 }
@@ -43,6 +45,12 @@ function formatModifier(score) {
   if (!Number.isFinite(score)) return '+0';
   const mod = Math.floor((score - 10) / 2);
   return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function formatWeight(value) {
+  if (!Number.isFinite(value)) return '0 lb';
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded.toFixed(0)} lb` : `${rounded.toFixed(1)} lb`;
 }
 
 function parseNumber(value, fallback = 0) {
@@ -416,6 +424,7 @@ class SummaryUI {
     }
     this.renderAbilities();
     this.renderResources();
+    this.renderEquipment();
     this.renderCounters();
     this.renderConcentration();
     this.renderRestLog();
@@ -445,6 +454,10 @@ class SummaryUI {
       <details open>
         <summary>Resources</summary>
         <div class="section-body" data-summary-section="resources"></div>
+      </details>
+      <details open>
+        <summary>Equipment</summary>
+        <div class="section-body" data-summary-section="equipment"></div>
       </details>
       <details>
         <summary>Class Trackers</summary>
@@ -552,6 +565,113 @@ class SummaryUI {
     }
 
     container.appendChild(resourceGrid);
+  }
+
+  renderEquipment() {
+    const container = this.root.querySelector('[data-summary-section="equipment"]');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const equipment = this.builderState?.derived?.equipment;
+    if (!equipment) {
+      container.appendChild(createElement('p', 'summary-empty', 'Track weapons, armor, and gear to monitor encumbrance.'));
+      return;
+    }
+
+    const hasEntries = Object.values(equipment.groups || {}).some((list) => Array.isArray(list) && list.length);
+    if (!hasEntries) {
+      const attune = equipment.attunement || { count: 0, limit: ATTUNEMENT_LIMIT };
+      const message = `No equipment recorded. (${attune.count}/${attune.limit} attunements used)`;
+      container.appendChild(createElement('p', 'summary-empty', message));
+      return;
+    }
+
+    const statuses = [];
+    const weaponMismatches = equipment.proficiency?.weaponMismatches || [];
+    const armorMismatches = equipment.proficiency?.armorMismatches || [];
+    const attunement = equipment.attunement || { count: 0, limit: ATTUNEMENT_LIMIT, exceeded: false };
+    const encumbrance = equipment.encumbrance || { totalWeight: 0, capacity: 0, nearLimit: false, overLimit: false };
+
+    statuses.push({
+      text: weaponMismatches.length ? `⚠️ ${weaponMismatches.length} weapon${weaponMismatches.length === 1 ? '' : 's'} without proficiency` : '✅ Weapon proficiency',
+      warn: weaponMismatches.length > 0
+    });
+    statuses.push({
+      text: armorMismatches.length ? `⚠️ ${armorMismatches.length} armor item${armorMismatches.length === 1 ? '' : 's'} without proficiency` : '✅ Armor proficiency',
+      warn: armorMismatches.length > 0
+    });
+    const attuneLabel = `${attunement.count}/${attunement.limit} attuned`;
+    statuses.push({
+      text: attunement.exceeded ? `⚠️ Attunement exceeded (${attuneLabel})` : `✅ Attunement ${attuneLabel}`,
+      warn: attunement.exceeded
+    });
+    if (encumbrance.capacity > 0) {
+      const weightText = formatWeight(encumbrance.totalWeight);
+      const capacityText = formatWeight(encumbrance.capacity);
+      if (encumbrance.overLimit) {
+        statuses.push({ text: `⚠️ Over capacity (${weightText} / ${capacityText})`, warn: true });
+      } else if (encumbrance.nearLimit) {
+        statuses.push({ text: `⚠️ Near capacity (${weightText} / ${capacityText})`, warn: true });
+      } else {
+        statuses.push({ text: `✅ Weight ${weightText} of ${capacityText}`, warn: false });
+      }
+    } else {
+      statuses.push({ text: `Equipment weight ${formatWeight(encumbrance.totalWeight)}`, warn: false });
+    }
+
+    const statusWrap = createElement('div', 'summary-equipment-status');
+    statuses.forEach((entry) => {
+      const badge = document.createElement('span');
+      if (entry.warn) {
+        badge.dataset.state = 'warn';
+      }
+      badge.textContent = entry.text;
+      statusWrap.appendChild(badge);
+    });
+    container.appendChild(statusWrap);
+
+    const order = [
+      { key: 'weapons', label: 'Weapons' },
+      { key: 'armor', label: 'Armor & Shields' },
+      { key: 'gear', label: 'Adventuring Gear' },
+      { key: 'attunements', label: 'Attunements' }
+    ];
+
+    order.forEach(({ key, label }) => {
+      const items = equipment.groups?.[key] || [];
+      if (!items.length) return;
+      container.appendChild(createElement('h4', null, label));
+      const list = createElement('ul', 'summary-equipment-list');
+      items.forEach((item) => {
+        const row = createElement('li', 'summary-equipment-item');
+        if ((key === 'weapons' || key === 'armor') && item.proficient === false) {
+          row.dataset.state = 'warn';
+        }
+        const main = createElement('div', 'summary-equipment-main');
+        main.appendChild(createElement('strong', null, item.name));
+        const metaParts = [];
+        if (item.category) metaParts.push(item.category);
+        if (item.weightEach) metaParts.push(`${formatWeight(item.weightEach)} each`);
+        if (item.source) metaParts.push(item.source);
+        if (metaParts.length) {
+          main.appendChild(createElement('span', null, metaParts.join(' · ')));
+        }
+        row.appendChild(main);
+
+        const meta = createElement('div', 'summary-equipment-meta');
+        if (key !== 'attunements') {
+          meta.appendChild(createElement('span', null, `Qty ${item.quantity}`));
+        } else {
+          meta.appendChild(createElement('span', null, 'Attuned'));
+        }
+        if (item.totalWeight) {
+          meta.appendChild(createElement('span', null, formatWeight(item.totalWeight)));
+        }
+        row.appendChild(meta);
+        list.appendChild(row);
+      });
+      container.appendChild(list);
+    });
   }
 
   renderCounters() {
