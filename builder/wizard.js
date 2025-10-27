@@ -1275,8 +1275,7 @@ const abilityModule = (() => {
     if (!nextBtn) return;
     if (activeStep) {
       nextBtn.disabled = nextLocked;
-    } else if (!activeStep && nextLocked) {
-      nextLocked = false;
+    } else {
       nextBtn.disabled = false;
     }
   }
