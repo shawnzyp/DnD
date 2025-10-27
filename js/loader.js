@@ -1,7 +1,9 @@
+import { withBasePath } from './base-path.js';
+
 (function () {
   'use strict';
 
-  const MANIFEST_URL = '/packs/manifest.json';
+  const MANIFEST_URL = withBasePath('/packs/manifest.json');
   const DEFAULT_FILES = [
     'classes',
     'races',
@@ -34,7 +36,7 @@
   const SETTINGS_STORE = 'settings';
   const PACK_SETTINGS_ID = 'pack-state';
   const PACK_STATE_STORAGE_KEY = 'quest-kit:pack-state';
-  const SERVICE_WORKER_URL = '/sw.js';
+  const SERVICE_WORKER_URL = withBasePath('/sw.js');
 
   function createEmptyData() {
     return {
@@ -446,8 +448,8 @@
       const path = typeof pack.path === 'string' ? pack.path.trim() : '';
       if (!path) return;
       let base = path.endsWith('/') ? path.slice(0, -1) : path;
-      if (!/^https?:/i.test(base) && !base.startsWith('/')) {
-        base = `/${base}`;
+      if (!/^https?:/i.test(base)) {
+        base = withBasePath(base);
       }
       if (!base) return;
       const files = Array.isArray(pack.files) ? pack.files : [];

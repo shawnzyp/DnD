@@ -1,4 +1,5 @@
 import { getValidationBadge, getValidationForPack, summariseValidationIssues } from './pack-validation.js';
+import { stripBasePath, withBasePath } from './base-path.js';
 
 const DEFAULT_FILES = [
   'classes',
@@ -40,12 +41,21 @@ let packManagerSaveTimer = null;
 let packManagerFocusReturn = null;
 let packManagerDragItem = null;
 
+const baseUrl = new URL(withBasePath('/'), window.location.origin);
+
 function normalisePath(pathname) {
-  if (!pathname) return '/';
-  if (pathname !== '/' && pathname.endsWith('/')) {
-    return pathname;
+  try {
+    const target = typeof pathname === 'string' && pathname.trim() ? pathname : '/';
+    const url = new URL(target, baseUrl);
+    let relative = stripBasePath(url.pathname);
+    if (!relative.startsWith('/')) {
+      relative = `/${relative}`;
+    }
+    return relative.endsWith('/') ? relative : `${relative}/`;
+  } catch (error) {
+    console.warn('Unable to normalise path', error);
+    return '/';
   }
-  return pathname.endsWith('/') ? pathname : `${pathname}/`;
 }
 
 function markActiveNavigation() {

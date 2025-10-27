@@ -1,3 +1,5 @@
+import { withBasePath } from '../js/base-path.js';
+
 const PLAY_STATE_KEY = 'dndPlayState';
 const abilityFields = [
   { id: 'str', label: 'Strength', short: 'STR' },
@@ -1800,7 +1802,7 @@ class SummaryUI {
       if (typeof window.persistBuilderState === 'function') {
         window.persistBuilderState();
       }
-      window.open('/builder/sheet.html', '_blank', 'noopener');
+      window.open(withBasePath('/builder/sheet.html'), '_blank', 'noopener');
     }
     if (action === 'add-counter') {
       this.promptNewCounter();

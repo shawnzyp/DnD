@@ -1,6 +1,68 @@
 const APP_CACHE = 'quest-kit-shell-v1';
 const PACK_CACHE = 'quest-kit-packs-v1';
-const APP_SHELL = [
+
+function detectBasePath() {
+  try {
+    const scope = self.registration?.scope;
+    if (!scope) {
+      return '';
+    }
+    const url = new URL(scope);
+    const pathname = url.pathname.replace(/\/$/, '');
+    if (!pathname || pathname === '/') {
+      return '';
+    }
+    return pathname;
+  } catch (error) {
+    console.warn('SW: unable to detect base path', error);
+    return '';
+  }
+}
+
+const BASE_PATH = detectBasePath();
+
+function withBase(path) {
+  if (typeof path !== 'string') {
+    return path;
+  }
+  if (/^(?:[a-z]+:)?\/\//i.test(path)) {
+    return path;
+  }
+  if (!BASE_PATH) {
+    return path.startsWith('/') ? path : `/${path}`;
+  }
+  if (path.startsWith(BASE_PATH + '/') || path === BASE_PATH) {
+    return path;
+  }
+  const trimmed = path.startsWith('/') ? path.slice(1) : path;
+  if (!trimmed) {
+    return `${BASE_PATH}/`;
+  }
+  return `${BASE_PATH}/${trimmed}`;
+}
+
+function stripBase(path) {
+  if (typeof path !== 'string') {
+    return '/';
+  }
+  const trimmed = path.trim();
+  if (!trimmed) {
+    return '/';
+  }
+  if (!BASE_PATH) {
+    return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+  }
+  if (trimmed === BASE_PATH || trimmed === `${BASE_PATH}/`) {
+    return '/';
+  }
+  if (trimmed.startsWith(`${BASE_PATH}/`)) {
+    const remainder = trimmed.slice(BASE_PATH.length);
+    return remainder.startsWith('/') ? remainder : `/${remainder}`;
+  }
+  return trimmed;
+}
+
+const APP_SHELL_PATHS = [
   '/',
   '/index.html',
   '/css/theme.css',
@@ -17,6 +79,7 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/packs/manifest.json'
 ];
+const APP_SHELL = APP_SHELL_PATHS.map(withBase);
 
 let packRevisions = new Map();
 
@@ -64,7 +127,7 @@ async function cacheFirst(request, cacheName) {
   } catch (error) {
     console.warn('SW: cacheFirst network error', error);
   }
-  return caches.match('/index.html');
+  return caches.match(withBase('/index.html'));
 }
 
 async function staleWhileRevalidate(request, cacheName) {
@@ -87,17 +150,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  if (BASE_PATH && !url.pathname.startsWith(BASE_PATH)) {
+    return;
+  }
+
+  const relativePath = stripBase(url.pathname);
+  const resourcePath = withBase(relativePath);
+
   if (request.mode === 'navigate') {
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }
 
-  if (url.pathname.startsWith('/data/')) {
+  if (relativePath.startsWith('/data/')) {
     event.respondWith(staleWhileRevalidate(request, PACK_CACHE));
     return;
   }
 
-  if (APP_SHELL.includes(url.pathname)) {
+  if (APP_SHELL.includes(resourcePath)) {
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }
