@@ -111,9 +111,59 @@ const conditionsCatalog = [
   { id: 'invisible', label: 'Invisible', note: 'Attacks against you have disadvantage; your attacks have advantage.' },
   { id: 'paralyzed', label: 'Paralyzed', note: 'Attacks against you have advantage; auto crit within 5 ft.' },
   { id: 'petrified', label: 'Petrified', note: 'Transformed to stone; attacks have advantage.' },
-  { id: 'poisoned', label: 'Poisoned', note: 'Disadvantage on attack rolls and ability checks.' },
-  { id: 'prone', label: 'Prone', note: 'Disadvantage on attacks; melee attacks vs you have advantage, ranged disadvantage.' },
-  { id: 'restrained', label: 'Restrained', note: 'Speed 0, attacks have disadvantage, attackers have advantage.' },
+  {
+    id: 'poisoned',
+    label: 'Poisoned',
+    note: 'Disadvantage on attack rolls and ability checks.',
+    effects: [
+      {
+        targets: ['ability:*', 'skill:*'],
+        annotation: 'Disadvantage on ability checks (including skills).'
+      },
+      {
+        targets: ['attack:self', 'dice:attack'],
+        annotation: 'Disadvantage on attack rolls.'
+      }
+    ]
+  },
+  {
+    id: 'prone',
+    label: 'Prone',
+    note: 'Disadvantage on attacks; melee attacks vs you have advantage, ranged disadvantage.',
+    effects: [
+      {
+        targets: ['attack:self', 'dice:attack'],
+        annotation: 'Your attack rolls have disadvantage while prone.'
+      },
+      {
+        targets: ['attack:incoming:melee'],
+        annotation: 'Melee attacks against you have advantage.'
+      },
+      {
+        targets: ['attack:incoming:ranged'],
+        annotation: 'Ranged attacks against you have disadvantage.'
+      }
+    ]
+  },
+  {
+    id: 'restrained',
+    label: 'Restrained',
+    note: 'Speed 0, attacks have disadvantage, attackers have advantage.',
+    effects: [
+      {
+        targets: ['attack:self', 'dice:attack'],
+        annotation: 'Your attack rolls have disadvantage.'
+      },
+      {
+        targets: ['attack:incoming'],
+        annotation: 'Attack rolls against you have advantage.'
+      },
+      {
+        targets: ['save:dex'],
+        annotation: 'Dexterity saving throws have disadvantage.'
+      }
+    ]
+  },
   { id: 'stunned', label: 'Stunned', note: 'Incapacitated, attacks against you have advantage.' },
   { id: 'unconscious', label: 'Unconscious', note: 'Prone, incapacitated, auto crit within 5 ft.' }
 ];
@@ -2177,6 +2227,7 @@ class SummaryUI {
     if (identity) {
       identity.innerHTML = this.getIdentityMarkup();
     }
+    this.conditionEffectMap = this.buildConditionEffectMap();
     this.renderAbilities();
     this.renderSkills();
     this.renderResources();
@@ -2188,6 +2239,112 @@ class SummaryUI {
     this.renderConditions();
     this.renderUtilities();
     this.renderRestLog();
+  }
+
+  buildConditionEffectMap() {
+    const map = new Map();
+    const active = Array.isArray(this.playState?.conditions) ? this.playState.conditions : [];
+    active.forEach((conditionId) => {
+      const info = conditionsCatalog.find((entry) => entry.id === conditionId);
+      if (!info || !Array.isArray(info.effects)) return;
+      info.effects.forEach((effect) => {
+        if (!effect || !Array.isArray(effect.targets)) return;
+        const annotation = effect.annotation || info.note || '';
+        effect.targets.forEach((rawTarget) => {
+          const target = typeof rawTarget === 'string' ? rawTarget.trim() : '';
+          if (!target) return;
+          if (!map.has(target)) {
+            map.set(target, []);
+          }
+          const existing = map.get(target);
+          const duplicate = existing.some((entry) => entry.id === info.id && entry.annotation === annotation);
+          if (!duplicate) {
+            existing.push({ id: info.id, label: info.label || info.id, annotation });
+          }
+        });
+      });
+    });
+    return map;
+  }
+
+  getConditionAnnotationEntries(...keys) {
+    if (!this.conditionEffectMap || !(this.conditionEffectMap instanceof Map)) return [];
+    const searchKeys = keys.flat().filter(Boolean);
+    if (!searchKeys.length) return [];
+    const matches = [];
+    const seen = new Set();
+    searchKeys.forEach((key) => {
+      if (typeof key !== 'string') return;
+      const variants = new Set();
+      const tokens = key.split(':').filter((token) => token.length);
+      if (!tokens.length) {
+        variants.add(key);
+      } else {
+        for (let i = tokens.length; i >= 1; i -= 1) {
+          const prefix = tokens.slice(0, i).join(':');
+          variants.add(prefix);
+          if (i > 1) {
+            const wildcardPrefix = tokens.slice(0, i - 1).join(':');
+            if (wildcardPrefix) {
+              variants.add(`${wildcardPrefix}:*`);
+            }
+          }
+        }
+      }
+      variants.add('*');
+      variants.forEach((variant) => {
+        const entries = this.conditionEffectMap.get(variant);
+        if (!Array.isArray(entries) || !entries.length) return;
+        entries.forEach((entry) => {
+          const dedupeKey = `${entry.id}|${entry.annotation}`;
+          if (seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
+          matches.push(entry);
+        });
+      });
+    });
+    return matches;
+  }
+
+  createConditionAnnotationBlock(entries, options = {}) {
+    if (!Array.isArray(entries) || !entries.length) return null;
+    const grouped = new Map();
+    entries.forEach((entry) => {
+      if (!entry || !entry.id) return;
+      if (!grouped.has(entry.id)) {
+        grouped.set(entry.id, { label: entry.label || entry.id, notes: new Set() });
+      }
+      const group = grouped.get(entry.id);
+      if (entry.annotation) {
+        group.notes.add(entry.annotation);
+      }
+    });
+    if (!grouped.size) return null;
+    const container = document.createElement('div');
+    container.className = 'condition-annotations';
+    if (options.variant) {
+      container.classList.add(`condition-annotations--${options.variant}`);
+    }
+    grouped.forEach((value) => {
+      const row = document.createElement('div');
+      row.className = 'condition-annotation';
+      const pill = document.createElement('span');
+      pill.className = 'condition-pill';
+      pill.textContent = value.label;
+      const notes = Array.from(value.notes);
+      if (notes.length) {
+        pill.title = notes.join(' ');
+      }
+      row.appendChild(pill);
+      if (notes.length) {
+        const note = document.createElement('small');
+        note.className = 'condition-note';
+        note.textContent = notes.join(' ');
+        row.appendChild(note);
+      }
+      container.appendChild(row);
+    });
+    return container.childElementCount ? container : null;
   }
 
   setupBaseLayout() {
@@ -2328,6 +2485,12 @@ class SummaryUI {
         <span class="modifier">Modifier: ${mod}</span>
         <span>Save: ${saveLabel}</span>
       `;
+      const annotations = this.getConditionAnnotationEntries([`ability:${field.id}`, `save:${field.id}`]);
+      const annotationBlock = this.createConditionAnnotationBlock(annotations, { variant: 'stacked' });
+      if (annotationBlock) {
+        card.classList.add('has-condition-annotation');
+        card.appendChild(annotationBlock);
+      }
       grid.appendChild(card);
     });
     container.appendChild(grid);
@@ -2366,6 +2529,17 @@ class SummaryUI {
           <input type="checkbox" data-type="checkbox" data-skill-id="${skill.id}" data-skill-toggle="expertise" ${state.expertise ? 'checked' : ''}>
         </label>
       `;
+      const skillAnnotations = this.getConditionAnnotationEntries([`skill:${skill.id}`, `ability:${skill.ability}`]);
+      const skillBlock = this.createConditionAnnotationBlock(skillAnnotations, { variant: 'inline' });
+      if (skillBlock) {
+        row.classList.add('has-condition-annotation');
+        const nameEl = row.querySelector('.skill-name');
+        if (nameEl) {
+          nameEl.appendChild(skillBlock);
+        } else {
+          row.appendChild(skillBlock);
+        }
+      }
       table.appendChild(row);
     });
     container.appendChild(table);
@@ -3251,6 +3425,16 @@ class SummaryUI {
     wrapper.appendChild(meta);
     const actions = document.createElement('div');
     actions.className = 'dice-preset-actions';
+    const presetAnnotations = this.getConditionAnnotationEntries([
+      preset.type ? `dice:${preset.type}` : null,
+      'dice:attack',
+      'attack:self'
+    ]);
+    const presetBlock = this.createConditionAnnotationBlock(presetAnnotations, { variant: 'inline' });
+    if (presetBlock) {
+      wrapper.classList.add('has-condition-annotation');
+      wrapper.appendChild(presetBlock);
+    }
     preset.buttons.forEach((button) => {
       if (!button || !button.expression) return;
       const btn = document.createElement('button');
@@ -3435,6 +3619,17 @@ class SummaryUI {
       </div>
       <p class="attack-result">${helper.result || 'Enter values to evaluate hit or miss.'}</p>
     `;
+    const attackAnnotations = this.getConditionAnnotationEntries(['attack:incoming', 'attack:incoming:melee', 'attack:incoming:ranged']);
+    const attackBlock = this.createConditionAnnotationBlock(attackAnnotations, { variant: 'stacked' });
+    if (attackBlock) {
+      attackCard.classList.add('has-condition-annotation');
+      const buttonGroup = attackCard.querySelector('.attack-buttons');
+      if (buttonGroup) {
+        attackCard.insertBefore(attackBlock, buttonGroup);
+      } else {
+        attackCard.appendChild(attackBlock);
+      }
+    }
     utilitiesGrid.appendChild(attackCard);
 
     container.appendChild(utilitiesGrid);

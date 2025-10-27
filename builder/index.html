@@ -1261,6 +1261,49 @@
       font-size: 0.9rem;
       font-weight: 600;
     }
+    .condition-annotations {
+      margin-top: 0.4rem;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .condition-annotations--stacked {
+      margin-top: 0.5rem;
+    }
+    .condition-annotations--inline {
+      margin-top: 0.25rem;
+    }
+    .condition-annotation {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.4rem;
+      font-size: 0.72rem;
+    }
+    .condition-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--warning) 45%, rgba(255,255,255,0.08) 55%);
+      background: color-mix(in srgb, var(--warning) 28%, transparent 72%);
+      color: color-mix(in srgb, var(--warning) 80%, var(--fg) 20%);
+      font-size: 0.68rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .condition-note {
+      font-size: 0.7rem;
+      line-height: 1.5;
+      color: color-mix(in srgb, var(--warning) 65%, var(--muted) 35%);
+      flex: 1 1 160px;
+    }
+    .ability-card .condition-note,
+    .dice-preset .condition-note,
+    .attack-card .condition-note {
+      color: color-mix(in srgb, var(--warning) 60%, var(--muted-strong) 40%);
+    }
     .resource-grid {
       display: grid;
       gap: 0.65rem;
