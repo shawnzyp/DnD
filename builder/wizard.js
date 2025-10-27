@@ -1,6 +1,8 @@
 const STORAGE_KEY = 'dndBuilderState';
 const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
 const HISTORY_LIMIT = 50;
+const SHARE_QUERY_PARAM = 'share';
+const SHARE_VERSION = 1;
 
 const abilityFields = [
   { id: 'str', label: 'Strength' },
@@ -258,6 +260,271 @@ function cloneState(value) {
     }
   }
   return JSON.parse(JSON.stringify(value));
+}
+
+function utf8EncodeString(input) {
+  if (typeof TextEncoder !== 'undefined') {
+    return new TextEncoder().encode(input);
+  }
+  const escaped = unescape(encodeURIComponent(input));
+  const result = new Uint8Array(escaped.length);
+  for (let i = 0; i < escaped.length; i += 1) {
+    result[i] = escaped.charCodeAt(i);
+  }
+  return result;
+}
+
+function base64UrlEncode(bytes) {
+  if (!(bytes instanceof Uint8Array)) {
+    throw new TypeError('Expected Uint8Array for base64 encoding.');
+  }
+  const chunkSize = 0x8000;
+  let binary = '';
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+  const base64 = window.btoa(binary);
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function base64UrlDecode(encoded) {
+  if (typeof encoded !== 'string') {
+    throw new TypeError('Expected string for base64 decoding.');
+  }
+  const sanitized = encoded.replace(/[^A-Za-z0-9\-_]/g, '');
+  const padding = (4 - (sanitized.length % 4)) % 4;
+  const base64 = sanitized.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat(padding);
+  const binary = window.atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+}
+
+function lzwCompress(input) {
+  const dictionary = new Map();
+  for (let i = 0; i < 256; i += 1) {
+    dictionary.set(String.fromCharCode(i), i);
+  }
+  let dictSize = 256;
+  let w = '';
+  const result = [];
+  for (let i = 0; i < input.length; i += 1) {
+    const c = input[i];
+    const wc = w + c;
+    if (dictionary.has(wc)) {
+      w = wc;
+    } else {
+      result.push(dictionary.get(w));
+      if (dictSize < 65535) {
+        dictionary.set(wc, dictSize);
+        dictSize += 1;
+      }
+      w = c;
+    }
+  }
+  if (w) {
+    result.push(dictionary.get(w));
+  }
+  return result;
+}
+
+function lzwDecompress(codes) {
+  if (!codes.length) return '';
+  const dictionary = new Map();
+  for (let i = 0; i < 256; i += 1) {
+    dictionary.set(i, String.fromCharCode(i));
+  }
+  let dictSize = 256;
+  let w = dictionary.get(codes[0]);
+  if (typeof w !== 'string') {
+    throw new Error('Invalid LZW data.');
+  }
+  let result = w;
+  for (let i = 1; i < codes.length; i += 1) {
+    const k = codes[i];
+    let entry;
+    if (dictionary.has(k)) {
+      entry = dictionary.get(k);
+    } else if (k === dictSize) {
+      entry = w + w[0];
+    } else {
+      throw new Error('Corrupt LZW sequence.');
+    }
+    result += entry;
+    if (dictSize < 65535) {
+      dictionary.set(dictSize, w + entry[0]);
+      dictSize += 1;
+    }
+    w = entry;
+  }
+  return result;
+}
+
+function packCodesToBytes(codes) {
+  const bytes = new Uint8Array(codes.length * 2);
+  for (let i = 0; i < codes.length; i += 1) {
+    const value = codes[i];
+    bytes[i * 2] = (value >> 8) & 0xff;
+    bytes[i * 2 + 1] = value & 0xff;
+  }
+  return bytes;
+}
+
+function unpackBytesToCodes(bytes) {
+  if (bytes.length % 2 !== 0) {
+    throw new Error('Invalid packed LZW payload.');
+  }
+  const codes = new Array(bytes.length / 2);
+  for (let i = 0; i < codes.length; i += 1) {
+    codes[i] = (bytes[i * 2] << 8) | bytes[i * 2 + 1];
+  }
+  return codes;
+}
+
+function formatByteSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 B';
+  }
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  const precision = unitIndex === 0 ? 0 : size >= 10 ? 1 : 2;
+  return `${size.toFixed(precision)} ${units[unitIndex]}`;
+}
+
+function createShareSnapshot(currentState = state) {
+  const baseState = currentState || state || createBaseState();
+  const snapshotData = baseState.data ? cloneState(baseState.data) : serializeForm();
+  const completedSteps = Array.isArray(baseState.completedSteps)
+    ? baseState.completedSteps.filter((step) => typeof step === 'string')
+    : [];
+  const currentIndex = Number.isFinite(baseState.currentStepIndex)
+    ? Math.max(0, Math.min(baseState.currentStepIndex, steps.length - 1))
+    : 0;
+  const currentId = typeof baseState.currentStep === 'string' && baseState.currentStep
+    ? baseState.currentStep
+    : steps[currentIndex]?.dataset.step || null;
+  const updatedAt = Number.isFinite(baseState.updatedAt) ? baseState.updatedAt : Date.now();
+  const saveCount = Number.isFinite(baseState.saveCount) ? baseState.saveCount : 1;
+  const name = snapshotData?.name ? String(snapshotData.name).trim() : '';
+  const className = snapshotData?.class ? String(snapshotData.class).trim() : '';
+  const level = snapshotData?.level ? String(snapshotData.level).trim() : '';
+  return {
+    v: SHARE_VERSION,
+    d: snapshotData,
+    s: completedSteps,
+    i: currentIndex,
+    c: currentId,
+    u: updatedAt,
+    n: saveCount,
+    m: {
+      name,
+      class: className,
+      level
+    }
+  };
+}
+
+function encodeShareSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') {
+    throw new Error('Invalid snapshot for sharing.');
+  }
+  const json = JSON.stringify(snapshot);
+  const rawBytes = utf8EncodeString(json).length;
+  const compressedCodes = lzwCompress(json);
+  const compressedBytes = packCodesToBytes(compressedCodes);
+  const encoded = base64UrlEncode(compressedBytes);
+  return {
+    encoded,
+    rawBytes,
+    compressedBytes: compressedBytes.length
+  };
+}
+
+function decodeShareSnapshot(encoded) {
+  const bytes = base64UrlDecode(encoded);
+  const codes = unpackBytesToCodes(bytes);
+  const json = lzwDecompress(codes);
+  const parsed = JSON.parse(json);
+  if (!parsed || typeof parsed !== 'object' || parsed.v !== SHARE_VERSION) {
+    throw new Error('Unsupported share payload.');
+  }
+  if (!parsed.d || typeof parsed.d !== 'object') {
+    throw new Error('Shared payload is missing character data.');
+  }
+  const completedSteps = Array.isArray(parsed.s)
+    ? parsed.s.filter((step) => typeof step === 'string')
+    : [];
+  const currentStepIndex = Number.isFinite(parsed.i)
+    ? Math.max(0, Math.min(parsed.i, steps.length - 1))
+    : 0;
+  const currentStepId = typeof parsed.c === 'string' ? parsed.c : null;
+  const updatedAt = Number.isFinite(parsed.u) ? parsed.u : Date.now();
+  const saveCount = Number.isFinite(parsed.n) ? parsed.n : 1;
+  return {
+    state: {
+      data: parsed.d,
+      completedSteps,
+      currentStepIndex,
+      currentStep: currentStepId,
+      updatedAt,
+      saveCount
+    },
+    meta: parsed.m && typeof parsed.m === 'object' ? parsed.m : {}
+  };
+}
+
+function computeShareInfo(currentState = state) {
+  const snapshot = createShareSnapshot(currentState);
+  const { encoded, rawBytes, compressedBytes } = encodeShareSnapshot(snapshot);
+  return {
+    snapshot,
+    encoded,
+    rawBytes,
+    compressedBytes,
+    meta: snapshot.m || {}
+  };
+}
+
+function buildShareUrl(encoded) {
+  const url = new URL(window.location.href);
+  url.searchParams.set(SHARE_QUERY_PARAM, encoded);
+  return url.toString();
+}
+
+async function copyTextToClipboard(text) {
+  if (!text) return false;
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch (error) {
+      console.warn('navigator.clipboard.writeText failed', error);
+    }
+  }
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  let success = false;
+  try {
+    success = document.execCommand('copy');
+  } catch (error) {
+    console.warn('document.execCommand copy failed', error);
+  }
+  document.body.removeChild(textarea);
+  return success;
 }
 
 function sanitizeForHistory(value) {
@@ -1467,12 +1734,58 @@ async function loadState() {
   if (!stored) {
     stored = await readIndexedDB(STORAGE_KEY);
   }
-  if (stored) {
-    hydrateForm(stored);
-  } else {
-    state = createBaseState();
-    state.data = serializeForm();
-    state.derived = computeDerivedState(state.data);
+  let hydrated = false;
+  let url;
+  try {
+    url = new URL(window.location.href);
+  } catch (error) {
+    url = null;
+  }
+  const shareParam = url ? url.searchParams.get(SHARE_QUERY_PARAM) : null;
+  if (shareParam) {
+    try {
+      const decoded = decodeShareSnapshot(shareParam);
+      if (decoded && decoded.state) {
+        const meta = decoded.meta || {};
+        const hasExisting = Boolean(stored);
+        const subjectParts = [];
+        if (meta.name) subjectParts.push(`"${meta.name}"`);
+        if (meta.class) {
+          const levelDisplay = meta.level ? `Level ${meta.level}` : '';
+          const classDisplay = levelDisplay ? `${levelDisplay} ${meta.class}` : meta.class;
+          subjectParts.push(classDisplay.trim());
+        }
+        const subject = subjectParts.length ? subjectParts.join(' · ') : 'the shared character';
+        const consentMessage = hasExisting
+          ? `Load ${subject} from this link and replace your current progress?`
+          : `Load ${subject} from this link?`;
+        const approved = window.confirm(consentMessage);
+        if (approved) {
+          hydrateForm(decoded.state);
+          hydrated = true;
+          stored = decoded.state;
+          writeLocal(STORAGE_KEY, state);
+          await writeIndexedDB(STORAGE_KEY, state);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load shared builder state', error);
+      window.alert('Sorry, this share link is invalid or has been corrupted.');
+    }
+    if (url) {
+      url.searchParams.delete(SHARE_QUERY_PARAM);
+      const clean = `${url.pathname}${url.search}${url.hash}`;
+      window.history.replaceState(null, '', clean);
+    }
+  }
+  if (!hydrated) {
+    if (stored) {
+      hydrateForm(stored);
+    } else {
+      state = createBaseState();
+      state.data = serializeForm();
+      state.derived = computeDerivedState(state.data);
+    }
   }
   window.dndBuilderState = state;
   window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
@@ -4577,11 +4890,111 @@ const familiarModule = (() => {
   };
 })();
 
-const finalizeModule = (() => ({
-  setup() {},
-  onStateHydrated() {},
-  onPackData() {}
-}))();
+const finalizeModule = (() => {
+  let shareButton = null;
+  let shareDetailsNode = null;
+  let shareStatusNode = null;
+  let currentShareInfo = null;
+  let sharing = false;
+  let clearStatusTimer = null;
+
+  function setStatus(message, { isError = false, autoClear = true } = {}) {
+    if (!shareStatusNode) return;
+    window.clearTimeout(clearStatusTimer);
+    if (!message) {
+      shareStatusNode.hidden = true;
+      shareStatusNode.textContent = '';
+      shareStatusNode.dataset.state = '';
+      return;
+    }
+    shareStatusNode.hidden = false;
+    shareStatusNode.textContent = message;
+    shareStatusNode.dataset.state = isError ? 'warn' : 'ok';
+    if (autoClear) {
+      clearStatusTimer = window.setTimeout(() => {
+        shareStatusNode.hidden = true;
+        shareStatusNode.textContent = '';
+        shareStatusNode.dataset.state = '';
+      }, 4000);
+    }
+  }
+
+  function updateShareDetails(currentState, info = null) {
+    if (!shareDetailsNode) return;
+    try {
+      const sourceState = currentState || state;
+      currentShareInfo = info || computeShareInfo(sourceState);
+      const encodedLength = currentShareInfo?.encoded ? currentShareInfo.encoded.length : 0;
+      const sizeLabel = formatByteSize(encodedLength);
+      const meta = currentShareInfo?.meta || {};
+      const subject = meta.name ? meta.name : 'this character';
+      shareDetailsNode.textContent = `Share link copies the builder choices for ${subject} (~${sizeLabel} in the URL) without including custom packs or files.`;
+      if (shareButton) {
+        shareButton.disabled = false;
+      }
+    } catch (error) {
+      console.error('Unable to prepare share payload', error);
+      shareDetailsNode.textContent = 'Share link is currently unavailable. Try again after updating your character.';
+      if (shareButton) {
+        shareButton.disabled = true;
+      }
+      currentShareInfo = null;
+    }
+  }
+
+  async function handleShareClick() {
+    if (sharing) return;
+    if (shareButton) {
+      shareButton.disabled = true;
+    }
+    sharing = true;
+    setStatus('Preparing share link…', { isError: false, autoClear: false });
+    try {
+      await persistState({ skipHistory: true, preserveTimestamp: true });
+      const info = computeShareInfo(state);
+      updateShareDetails(state, info);
+      if (!info || !info.encoded) {
+        throw new Error('Share info missing.');
+      }
+      const shareUrl = buildShareUrl(info.encoded);
+      const copied = await copyTextToClipboard(shareUrl);
+      if (copied) {
+        setStatus('Share link copied to clipboard.');
+      } else {
+        setStatus('Copy this share link manually from your browser address bar.', { isError: true, autoClear: false });
+      }
+    } catch (error) {
+      console.error('Failed to generate share link', error);
+      setStatus('Unable to create a share link right now. Please try again.', { isError: true, autoClear: false });
+    } finally {
+      sharing = false;
+      if (shareButton) {
+        shareButton.disabled = false;
+      }
+    }
+  }
+
+  return {
+    setup(section) {
+      shareButton = section.querySelector('[data-action="share"]');
+      shareDetailsNode = section.querySelector('[data-share-details]');
+      shareStatusNode = section.querySelector('[data-share-status]');
+      if (shareButton) {
+        shareButton.addEventListener('click', handleShareClick);
+      }
+      updateShareDetails(state);
+    },
+    onStateHydrated(currentState) {
+      updateShareDetails(currentState);
+    },
+    onStatePersisted(currentState) {
+      updateShareDetails(currentState);
+    },
+    onPackData() {
+      updateShareDetails(state);
+    }
+  };
+})();
 
 const moduleDefinitions = {
   identity: identityModule,
