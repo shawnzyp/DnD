@@ -1,8 +1,9 @@
-const APP_CACHE = 'quest-kit-shell-v1';
+const APP_CACHE = 'quest-kit-shell-v2';
 const PACK_CACHE = 'quest-kit-packs-v1';
 const APP_SHELL = [
   '/',
   '/index.html',
+  '/builder/',
   '/css/theme.css',
   '/js/app.js',
   '/js/loader.js',
@@ -13,10 +14,37 @@ const APP_SHELL = [
   '/builder/wizard.js',
   '/builder/summary.js',
   '/builder/index.html',
+  '/compendium/',
   '/compendium/index.html',
   '/manifest.webmanifest',
   '/packs/manifest.json'
 ];
+
+const ROUTE_ENTRIES = [
+  { base: '/builder', entry: '/builder/index.html' },
+  { base: '/compendium', entry: '/compendium/index.html' }
+];
+
+function normaliseRequest(input) {
+  return input instanceof Request ? input : new Request(input);
+}
+
+function hasFileExtension(pathname = '') {
+  const lastSegment = pathname.split('/').pop();
+  return Boolean(lastSegment && lastSegment.includes('.'));
+}
+
+function resolveNavigationEntry(pathname = '') {
+  for (const { base, entry } of ROUTE_ENTRIES) {
+    if (pathname === base || pathname === `${base}/`) {
+      return entry;
+    }
+    if (pathname.startsWith(`${base}/`) && !hasFileExtension(pathname)) {
+      return entry;
+    }
+  }
+  return null;
+}
 
 let packRevisions = new Map();
 
@@ -41,7 +69,8 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-async function fetchAndCache(request, cacheName, { refresh = false } = {}) {
+async function fetchAndCache(requestInput, cacheName, { refresh = false } = {}) {
+  const request = normaliseRequest(requestInput);
   const cache = await caches.open(cacheName);
   const response = await fetch(request, refresh ? { cache: 'reload' } : undefined);
   if (response && response.ok) {
@@ -50,7 +79,8 @@ async function fetchAndCache(request, cacheName, { refresh = false } = {}) {
   return response;
 }
 
-async function cacheFirst(request, cacheName) {
+async function cacheFirst(requestInput, cacheName) {
+  const request = normaliseRequest(requestInput);
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   if (cached) {
@@ -88,6 +118,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
+    const entry = resolveNavigationEntry(url.pathname);
+    if (entry) {
+      event.respondWith(cacheFirst(entry, APP_CACHE));
+      return;
+    }
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }
