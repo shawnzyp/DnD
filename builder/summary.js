@@ -70,7 +70,8 @@ const CLASS_RESOURCE_PATHS = [
 ];
 
 const CLASS_RESOURCE_DEFAULTS = {
-  arcaneRecovery: { slotLevelCap: 5 }
+  arcaneRecovery: { slotLevelCap: 5 },
+  wildShape: { activeFormId: '', beastHp: { current: 0, max: 0 }, storedForms: {} }
 };
 
 const REST_REFRESH_LABELS = {
@@ -336,6 +337,67 @@ function findCompanion(identifier) {
     }
   }
   return null;
+}
+
+function normalizeWildShapeSnapshot(meta, fallbackId = '') {
+  if (!meta || typeof meta !== 'object') return null;
+  const id = meta.id || fallbackId;
+  const acValue = parseNumber(meta.ac ?? meta.armor_class ?? meta.armorClass, null);
+  const hpValue = parseNumber(meta.hp ?? meta.hit_points ?? meta.hitPoints, null);
+  const speed = formatCompanionSpeed(
+    meta.speed ?? meta.speeds ?? meta.movement ?? meta.movementModes ?? meta.speedText ?? meta.speedLabel
+  );
+  return {
+    id: id ? String(id) : fallbackId,
+    name: meta.name ? String(meta.name) : fallbackId,
+    summary: meta.summary ? String(meta.summary) : '',
+    ac: Number.isFinite(acValue) ? acValue : null,
+    hp: Number.isFinite(hpValue) ? hpValue : null,
+    speed,
+    cr: meta.cr ?? meta.crLabel ?? meta.challenge_rating ?? meta.challengeRating ?? '',
+    size: meta.size || '',
+    type: meta.type || meta.creature_type || meta.category || '',
+    source: meta.source || '',
+    traits: Array.isArray(meta.traits) ? meta.traits.slice() : [],
+    features: Array.isArray(meta.features) ? meta.features.slice() : []
+  };
+}
+
+function sanitizeWildShapeForms(value) {
+  const source = Array.isArray(value?.forms)
+    ? value.forms
+    : (Array.isArray(value) ? value : []);
+  const seen = new Set();
+  const forms = [];
+  source.forEach((entry) => {
+    if (!entry || typeof entry !== 'object') return;
+    const rawId = entry.id || entry.slug || entry.key || entry.name;
+    const id = rawId ? String(rawId).trim() : '';
+    if (!id) return;
+    const key = id.toLowerCase();
+    if (seen.has(key)) return;
+    seen.add(key);
+    const overrides = {};
+    if (entry.overrides && typeof entry.overrides === 'object') {
+      if (Number.isFinite(entry.overrides.ac)) {
+        overrides.ac = Number(entry.overrides.ac);
+      }
+      if (Number.isFinite(entry.overrides.hp)) {
+        overrides.hp = Number(entry.overrides.hp);
+      }
+      if (typeof entry.overrides.speed === 'string' && entry.overrides.speed.trim()) {
+        overrides.speed = entry.overrides.speed.trim();
+      }
+    }
+    const snapshot = normalizeWildShapeSnapshot(entry.meta || {}, id);
+    forms.push({
+      id,
+      name: entry.name ? String(entry.name) : (snapshot?.name || id),
+      overrides,
+      meta: snapshot
+    });
+  });
+  return forms;
 }
 
 function loadPlayState() {
@@ -614,6 +676,7 @@ class SummaryUI {
     this.builderState = null;
     this.playState = loadPlayState() || this.defaultPlayState();
     this.toastTimer = null;
+    this.pendingWildShapeId = '';
     this.setupBaseLayout();
     this.attachListeners();
     this.render();
@@ -624,7 +687,7 @@ class SummaryUI {
       hp: { current: 10, max: 10, temp: 0 },
       hitDice: { total: 1, available: 1, die: 'd8' },
       classCounters: [],
-      wildShape: { max: 0, remaining: 0 },
+      wildShape: { max: 0, remaining: 0, activeFormId: '', beastHp: { current: 0, max: 0 }, storedForms: {} },
       arcaneRecovery: { max: 0, remaining: 0, slotLevelCap: 5 },
       channelDivinity: {
         cleric: { max: 0, remaining: 0 },
@@ -687,6 +750,11 @@ class SummaryUI {
       }
       if (target.dataset.skillToggle) {
         this.updateSkillToggle(target.dataset.skillId, target.dataset.skillToggle, target.checked);
+        return;
+      }
+      if (target.dataset.wildshapeSelect === 'active') {
+        this.pendingWildShapeId = target.value || '';
+        this.render();
         return;
       }
       if (target.dataset.attackField) {
@@ -1029,7 +1097,11 @@ class SummaryUI {
     }
     Object.entries(defaults).forEach(([key, value]) => {
       if (resource[key] === undefined) {
-        resource[key] = value;
+        if (value && typeof value === 'object') {
+          resource[key] = Array.isArray(value) ? value.slice() : { ...value };
+        } else {
+          resource[key] = value;
+        }
       }
     });
     return resource;
@@ -1272,6 +1344,22 @@ class SummaryUI {
         });
       }
     });
+
+    const wildShapeState = this.ensureResourceObject('wildShape', CLASS_RESOURCE_DEFAULTS.wildShape);
+    if (wildShapeState) {
+      if (!wildShapeState.beastHp || typeof wildShapeState.beastHp !== 'object') {
+        wildShapeState.beastHp = { current: 0, max: 0 };
+      }
+      const beastMax = Math.max(0, parseNumber(wildShapeState.beastHp.max, 0));
+      wildShapeState.beastHp.max = beastMax;
+      wildShapeState.beastHp.current = clamp(parseNumber(wildShapeState.beastHp.current, 0), 0, beastMax);
+      if (!wildShapeState.storedForms || typeof wildShapeState.storedForms !== 'object') {
+        wildShapeState.storedForms = {};
+      }
+      if (typeof wildShapeState.activeFormId !== 'string') {
+        wildShapeState.activeFormId = '';
+      }
+    }
   }
 
   updatePlayState(path, value) {
@@ -1307,6 +1395,17 @@ class SummaryUI {
     if (path.startsWith('wildShape.')) {
       this.playState.wildShape.max = Math.max(0, this.playState.wildShape.max);
       this.playState.wildShape.remaining = Math.max(0, Math.min(this.playState.wildShape.max, this.playState.wildShape.remaining));
+      const beast = this.playState.wildShape.beastHp || { current: 0, max: 0 };
+      beast.max = Math.max(0, parseNumber(beast.max, 0));
+      beast.current = clamp(parseNumber(beast.current, 0), 0, beast.max);
+      this.playState.wildShape.beastHp = beast;
+      if (this.playState.wildShape.activeFormId) {
+        this.playState.wildShape.storedForms = this.playState.wildShape.storedForms || {};
+        this.playState.wildShape.storedForms[this.playState.wildShape.activeFormId] = {
+          max: beast.max,
+          current: beast.current
+        };
+      }
     }
     if (path.startsWith('arcaneRecovery.')) {
       this.playState.arcaneRecovery.max = Math.max(0, this.playState.arcaneRecovery.max);
@@ -1385,6 +1484,133 @@ class SummaryUI {
         meta: meta ? { slug: meta.slug || null, id: meta.id || null } : null
       };
     });
+  }
+
+  getWildShapeForms() {
+    if (!this.builderState) return [];
+    const forms = sanitizeWildShapeForms(this.builderState.data?.wildShapeForms);
+    forms.sort((a, b) => {
+      const nameA = (a.name || a.id || '').toLowerCase();
+      const nameB = (b.name || b.id || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+    return forms.map((form) => {
+      const packMeta = findCompanion(form.id);
+      const normalized = packMeta ? normalizeCompanionEntry(packMeta) : null;
+      const snapshot = form.meta ? normalizeWildShapeSnapshot(form.meta, form.id) : null;
+      const meta = normalized || snapshot;
+      const overrides = form.overrides || {};
+      const baseAc = meta && Number.isFinite(meta.ac) ? meta.ac : (snapshot && Number.isFinite(snapshot.ac) ? snapshot.ac : null);
+      const baseHp = meta && Number.isFinite(meta.hp) ? meta.hp : (snapshot && Number.isFinite(snapshot.hp) ? snapshot.hp : null);
+      const baseSpeed = meta?.speed || snapshot?.speed || '';
+      const resolvedSpeed = overrides.speed || baseSpeed;
+      return {
+        id: form.id,
+        name: form.name || meta?.name || form.id,
+        cr: meta?.cr || '',
+        summary: meta?.summary || '',
+        size: meta?.size || '',
+        type: meta?.type || '',
+        source: meta?.source || '',
+        baseAc,
+        baseHp,
+        baseSpeed,
+        ac: Number.isFinite(overrides.ac) ? overrides.ac : baseAc,
+        hp: Number.isFinite(overrides.hp) ? overrides.hp : baseHp,
+        speed: resolvedSpeed,
+        traits: Array.isArray(meta?.traits) ? meta.traits : (snapshot?.traits || []),
+        features: Array.isArray(meta?.features) ? meta.features : (snapshot?.features || [])
+      };
+    });
+  }
+
+  resumeWildShape() {
+    const forms = this.getWildShapeForms();
+    const targetId = this.pendingWildShapeId || (forms[0]?.id || '');
+    if (!targetId) {
+      this.toast('Select a wild shape form to resume.');
+      return;
+    }
+    const form = forms.find((entry) => entry.id === targetId);
+    if (!form) {
+      this.toast('Selected form is no longer available.');
+      this.pendingWildShapeId = '';
+      this.render();
+      return;
+    }
+    this.playState.wildShape.activeFormId = form.id;
+    this.playState.wildShape.storedForms = this.playState.wildShape.storedForms || {};
+    const stored = this.playState.wildShape.storedForms[form.id] || this.playState.wildShape.storedForms[form.id.toLowerCase()] || {};
+    const baseMax = Number.isFinite(form.hp) ? form.hp : (Number.isFinite(form.baseHp) ? form.baseHp : 0);
+    const storedMax = parseNumber(stored.max, NaN);
+    const storedCurrent = parseNumber(stored.current, NaN);
+    const max = Math.max(0, Number.isFinite(storedMax) ? storedMax : baseMax);
+    const current = clamp(Number.isFinite(storedCurrent) ? storedCurrent : max, 0, max);
+    this.playState.wildShape.beastHp = { max, current };
+    this.playState.wildShape.storedForms[form.id] = { max, current };
+    this.pendingWildShapeId = form.id;
+    savePlayState(this.playState);
+    this.render();
+    this.toast(`Wild shape active: ${form.name}.`);
+  }
+
+  revertWildShape() {
+    const activeId = this.playState.wildShape.activeFormId;
+    if (activeId) {
+      const hp = this.playState.wildShape.beastHp || { current: 0, max: 0 };
+      this.playState.wildShape.storedForms = this.playState.wildShape.storedForms || {};
+      this.playState.wildShape.storedForms[activeId] = {
+        max: Math.max(0, parseNumber(hp.max, 0)),
+        current: Math.max(0, parseNumber(hp.current, 0))
+      };
+    }
+    this.playState.wildShape.activeFormId = '';
+    this.playState.wildShape.beastHp = { current: 0, max: 0 };
+    this.pendingWildShapeId = '';
+    savePlayState(this.playState);
+    this.render();
+    this.toast('Reverted from wild shape.');
+  }
+
+  applyWildShapeDamage() {
+    const input = this.root.querySelector('[data-wildshape-damage]');
+    if (!input) return;
+    const amount = parseNumber(input.value, NaN);
+    input.value = '';
+    if (!Number.isFinite(amount) || amount <= 0) {
+      this.toast('Enter a positive amount of damage.');
+      return;
+    }
+    let remaining = amount;
+    const beastHp = this.playState.wildShape.beastHp || { current: 0, max: 0 };
+    if (Number.isFinite(beastHp.current) && beastHp.current > 0) {
+      const applied = Math.min(beastHp.current, remaining);
+      beastHp.current -= applied;
+      remaining -= applied;
+    }
+    if (remaining > 0 && this.playState.hp.temp > 0) {
+      const tempLoss = Math.min(this.playState.hp.temp, remaining);
+      this.playState.hp.temp -= tempLoss;
+      remaining -= tempLoss;
+    }
+    if (remaining > 0) {
+      this.playState.hp.current = Math.max(0, this.playState.hp.current - remaining);
+      remaining = 0;
+    }
+    beastHp.current = Math.max(0, beastHp.current);
+    beastHp.max = Math.max(0, parseNumber(beastHp.max, 0));
+    this.playState.wildShape.beastHp = beastHp;
+    const activeId = this.playState.wildShape.activeFormId;
+    if (activeId) {
+      this.playState.wildShape.storedForms = this.playState.wildShape.storedForms || {};
+      this.playState.wildShape.storedForms[activeId] = {
+        max: beastHp.max,
+        current: beastHp.current
+      };
+    }
+    savePlayState(this.playState);
+    this.render();
+    this.toast(`Applied ${amount} damage.${activeId ? ' Remaining beast HP updated.' : ''}`);
   }
 
   hasClassSlug(slug) {
@@ -1698,6 +1924,18 @@ class SummaryUI {
         window.persistBuilderState();
       }
       window.open('/builder/sheet.html', '_blank', 'noopener');
+    }
+    if (action === 'wildshape-resume') {
+      this.resumeWildShape();
+      return;
+    }
+    if (action === 'wildshape-revert') {
+      this.revertWildShape();
+      return;
+    }
+    if (action === 'wildshape-apply-damage') {
+      this.applyWildShapeDamage();
+      return;
     }
     if (action === 'add-counter') {
       this.promptNewCounter();
@@ -2132,6 +2370,7 @@ class SummaryUI {
       this.toast('Long rest complete. Fully restore hit points and resources.');
     }
     this.applyRestToClassResources(type, resourceDefs);
+    this.resetWildShapeAfterRest(type);
     this.playState.restLog.unshift(logEntry);
     this.playState.restLog = this.playState.restLog.slice(0, 10);
     savePlayState(this.playState);
@@ -2159,6 +2398,14 @@ class SummaryUI {
     });
   }
 
+  resetWildShapeAfterRest() {
+    if (!this.playState.wildShape || typeof this.playState.wildShape !== 'object') return;
+    this.playState.wildShape.activeFormId = '';
+    this.playState.wildShape.beastHp = { current: 0, max: 0 };
+    this.playState.wildShape.storedForms = {};
+    this.pendingWildShapeId = '';
+  }
+
   toast(message) {
     const node = this.root.querySelector('[data-summary-toast]');
     if (!node) return;
@@ -2180,6 +2427,7 @@ class SummaryUI {
     this.renderAbilities();
     this.renderSkills();
     this.renderResources();
+    this.renderWildShape();
     this.renderSpellcasting();
     this.renderEquipment();
     this.renderCompanion();
@@ -2218,6 +2466,10 @@ class SummaryUI {
       <details open>
         <summary>Resources</summary>
         <div class="section-body" data-summary-section="resources"></div>
+      </details>
+      <details open>
+        <summary>Wild Shape</summary>
+        <div class="section-body" data-summary-section="wild-shape"></div>
       </details>
       <details>
         <summary>Spellcasting</summary>
@@ -2509,6 +2761,202 @@ class SummaryUI {
     });
 
     container.appendChild(resourceGrid);
+  }
+
+  renderWildShape() {
+    const container = this.root.querySelector('[data-summary-section="wild-shape"]');
+    if (!container) return;
+    container.innerHTML = '';
+    this.ensureClassResourceDefaults();
+    const forms = this.getWildShapeForms();
+    let wild = this.playState.wildShape;
+    if (!wild || typeof wild !== 'object') {
+      wild = {};
+      this.playState.wildShape = wild;
+    }
+    const storedMap = wild.storedForms && typeof wild.storedForms === 'object' ? wild.storedForms : {};
+    if (wild.storedForms !== storedMap) {
+      wild.storedForms = storedMap;
+    }
+    const validIds = new Set(forms.map((form) => form.id.toLowerCase()));
+    Object.keys(storedMap).forEach((key) => {
+      if (!validIds.has(key.toLowerCase())) {
+        delete storedMap[key];
+      }
+    });
+    const activeId = (wild.activeFormId || '').toLowerCase();
+    let activeForm = forms.find((form) => form.id.toLowerCase() === activeId) || null;
+    if (!activeForm && wild.activeFormId) {
+      wild.activeFormId = '';
+    }
+    if (this.pendingWildShapeId && !forms.some((form) => form.id === this.pendingWildShapeId)) {
+      this.pendingWildShapeId = activeForm ? activeForm.id : '';
+    }
+    if (!forms.length) {
+      this.pendingWildShapeId = '';
+      container.appendChild(createElement('p', 'summary-empty', 'Add wild shape forms from the familiar step to prepare beast stat blocks.'));
+      return;
+    }
+
+    const selectedId = this.pendingWildShapeId || (activeForm ? activeForm.id : '');
+    this.pendingWildShapeId = selectedId;
+
+    const header = createElement('div', 'wildshape-controls');
+    const selectLabel = document.createElement('label');
+    selectLabel.textContent = 'Select form';
+    const select = document.createElement('select');
+    select.dataset.wildshapeSelect = 'active';
+    const emptyOption = document.createElement('option');
+    emptyOption.value = '';
+    emptyOption.textContent = 'No active form';
+    select.appendChild(emptyOption);
+    forms.forEach((form) => {
+      const option = document.createElement('option');
+      option.value = form.id;
+      const parts = [form.name];
+      if (form.cr) parts.push(`CR ${form.cr}`);
+      option.textContent = parts.join(' · ');
+      if (form.id === selectedId) {
+        option.selected = true;
+      }
+      select.appendChild(option);
+    });
+    select.value = selectedId;
+    selectLabel.appendChild(select);
+    header.appendChild(selectLabel);
+
+    const buttonGroup = createElement('div', 'wildshape-buttons');
+    const resumeButton = document.createElement('button');
+    resumeButton.type = 'button';
+    resumeButton.dataset.summaryAction = 'wildshape-resume';
+    resumeButton.textContent = activeForm && activeForm.id === selectedId ? 'Refresh form' : 'Resume form';
+    resumeButton.disabled = !selectedId;
+    buttonGroup.appendChild(resumeButton);
+
+    const revertButton = document.createElement('button');
+    revertButton.type = 'button';
+    revertButton.dataset.summaryAction = 'wildshape-revert';
+    revertButton.textContent = 'Revert';
+    revertButton.disabled = !activeForm;
+    buttonGroup.appendChild(revertButton);
+
+    header.appendChild(buttonGroup);
+    container.appendChild(header);
+
+    if (activeForm) {
+      const stats = createElement('div', 'summary-companion-stats');
+      const addChip = (label, value, base) => {
+        if (value === null || value === undefined || value === '') return;
+        const chip = document.createElement('span');
+        chip.className = 'companion-chip';
+        chip.append(document.createTextNode(`${label} `));
+        const strong = document.createElement('strong');
+        strong.textContent = String(value);
+        chip.appendChild(strong);
+        if (base !== undefined && base !== null && base !== '' && base !== value) {
+          const note = document.createElement('span');
+          note.textContent = `override · base ${base}`;
+          chip.appendChild(note);
+        }
+        stats.appendChild(chip);
+      };
+      addChip('AC', activeForm.ac, activeForm.baseAc);
+      addChip('HP', activeForm.hp, activeForm.baseHp);
+      if (activeForm.speed) {
+        const chip = document.createElement('span');
+        chip.className = 'companion-chip';
+        chip.append(document.createTextNode('Speed '));
+        const strong = document.createElement('strong');
+        strong.textContent = activeForm.speed;
+        chip.appendChild(strong);
+        if (activeForm.baseSpeed && activeForm.baseSpeed !== activeForm.speed) {
+          const note = document.createElement('span');
+          note.textContent = `override · base ${activeForm.baseSpeed}`;
+          chip.appendChild(note);
+        }
+        stats.appendChild(chip);
+      }
+      const info = createElement('div', 'wildshape-active-card');
+      info.appendChild(createElement('h4', null, `Active: ${activeForm.name}`));
+      if (activeForm.summary) {
+        info.appendChild(createElement('p', 'summary-companion-summary', activeForm.summary));
+      }
+      if (stats.children.length) {
+        info.appendChild(stats);
+      }
+      const metaParts = [];
+      if (activeForm.cr) metaParts.push(`CR ${activeForm.cr}`);
+      if (activeForm.size) metaParts.push(activeForm.size);
+      if (activeForm.type) metaParts.push(activeForm.type);
+      if (metaParts.length) {
+        info.appendChild(createElement('p', 'summary-companion-meta', metaParts.join(' · ')));
+      }
+      if (activeForm.source) {
+        info.appendChild(createElement('p', 'summary-companion-meta', `Source: ${activeForm.source}`));
+      }
+      container.appendChild(info);
+    } else {
+      container.appendChild(createElement('p', 'summary-empty-note', 'Select a form and resume it to track beast hit points.'));
+    }
+
+    const beastHp = wild.beastHp || { current: 0, max: 0 };
+    const hpCard = createElement('div', 'resource-card wildshape-hp-card');
+    hpCard.innerHTML = `
+      <h4>Beast hit points</h4>
+      <label>Current <input type="number" data-type="number" data-track="wildShape.beastHp.current" value="${beastHp.current}" min="0"></label>
+      <label>Maximum <input type="number" data-type="number" data-track="wildShape.beastHp.max" value="${beastHp.max}" min="0"></label>
+      ${activeForm && Number.isFinite(activeForm.baseHp) ? `<small>Base HP: ${activeForm.baseHp}</small>` : ''}
+    `;
+    container.appendChild(hpCard);
+
+    const damageRow = createElement('div', 'wildshape-damage-row');
+    damageRow.innerHTML = `
+      <label>Incoming damage
+        <input type="number" data-type="number" data-wildshape-damage value="" min="0" placeholder="e.g. 12">
+      </label>
+      <button type="button" data-summary-action="wildshape-apply-damage">Apply to beast</button>
+    `;
+    container.appendChild(damageRow);
+
+    const formList = createElement('div', 'wildshape-form-list');
+    forms.forEach((form) => {
+      const card = createElement('article', 'wildshape-form-card');
+      card.dataset.wildshapeForm = form.id;
+      if (activeForm && form.id === activeForm.id) {
+        card.dataset.state = 'active';
+      }
+      card.appendChild(createElement('h5', null, form.name));
+      const subtitleParts = [];
+      if (form.cr) subtitleParts.push(`CR ${form.cr}`);
+      if (form.size) subtitleParts.push(form.size);
+      if (form.type) subtitleParts.push(form.type);
+      if (subtitleParts.length) {
+        card.appendChild(createElement('p', 'summary-companion-meta', subtitleParts.join(' · ')));
+      }
+      const stats = createElement('div', 'summary-companion-stats');
+      const addStat = (label, value) => {
+        if (value === null || value === undefined || value === '') return;
+        const chip = document.createElement('span');
+        chip.className = 'companion-chip';
+        chip.innerHTML = `${label} <strong>${value}</strong>`;
+        stats.appendChild(chip);
+      };
+      addStat('AC', form.ac ?? form.baseAc ?? '—');
+      addStat('HP', form.hp ?? form.baseHp ?? '—');
+      addStat('Speed', form.speed || form.baseSpeed || '—');
+      if (stats.children.length) {
+        card.appendChild(stats);
+      }
+      const stored = storedMap[form.id] || storedMap[form.id.toLowerCase()] || null;
+      if (stored && Number.isFinite(stored.current)) {
+        const storedText = Number.isFinite(stored.max)
+          ? `${stored.current} / ${stored.max}`
+          : `${stored.current}`;
+        card.appendChild(createElement('p', 'summary-companion-meta', `Stored HP: ${storedText}`));
+      }
+      formList.appendChild(card);
+    });
+    container.appendChild(formList);
   }
 
   getTrackedClassResources() {

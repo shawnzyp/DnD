@@ -1564,6 +1564,12 @@ function serializeForm() {
       data.familiarNotes = familiarState.notes || data.familiarNotes || '';
     }
   }
+  if (familiarModule && typeof familiarModule.getWildShapeValue === 'function') {
+    const wildShapeState = familiarModule.getWildShapeValue();
+    if (wildShapeState) {
+      data.wildShapeForms = wildShapeState;
+    }
+  }
   if (typeof data.familiarData !== 'undefined') {
     delete data.familiarData;
   }
@@ -4446,6 +4452,14 @@ const familiarModule = (() => {
   let notesField = null;
   const filterNodes = new Map();
   const overrideInputs = new Map();
+  let wildShapeListNode = null;
+  let wildShapeDetailNode = null;
+  let wildShapeEmptyNode = null;
+  let wildShapeHiddenField = null;
+  let wildShapeSelectedList = null;
+  let wildShapeSelectedEmpty = null;
+  let wildShapeSearchInput = null;
+  const wildShapeFilterNodes = new Map();
 
   let companions = [];
   let companionMap = new Map();
@@ -4457,6 +4471,14 @@ const familiarModule = (() => {
   let syncing = false;
   let entryOrder = 0;
   let lastSnapshot = null;
+  let wildShapeCandidates = [];
+  let wildShapeMap = new Map();
+  let wildShapeFiltered = [];
+  let wildShapeSearchTerm = '';
+  let wildShapeActiveFilters = { cr: '' };
+  let wildShapeSelectedKey = '';
+  let wildShapeSelectedRawId = '';
+  let wildShapeForms = [];
 
   function normalizeId(value) {
     return value ? String(value).trim().toLowerCase() : '';
@@ -4724,6 +4746,55 @@ const familiarModule = (() => {
     });
   }
 
+  function sanitizeWildShapeForm(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const rawId = entry.id || entry.slug || entry.key || entry.name;
+    const id = rawId ? String(rawId).trim() : '';
+    if (!id) return null;
+    const key = normalizeId(id);
+    const name = entry.name ? String(entry.name) : id;
+    const overrides = entry.overrides && typeof entry.overrides === 'object'
+      ? Object.entries(entry.overrides).reduce((acc, [k, v]) => {
+        if (k === 'speed' && typeof v === 'string') {
+          acc.speed = v;
+        } else if (['ac', 'hp'].includes(k)) {
+          const num = Number.parseInt(v, 10);
+          if (Number.isFinite(num) && num >= 0) {
+            acc[k] = num;
+          }
+        }
+        return acc;
+      }, {})
+      : {};
+    const metaSnapshot = entry.meta ? sanitizeCompanionMeta(entry.meta) : null;
+    return {
+      id,
+      key,
+      name,
+      overrides,
+      meta: metaSnapshot
+    };
+  }
+
+  function sanitizeWildShapeState(value) {
+    if (!value) {
+      return [];
+    }
+    const source = Array.isArray(value?.forms)
+      ? value.forms
+      : (Array.isArray(value) ? value : []);
+    const seen = new Set();
+    const forms = [];
+    source.forEach((entry) => {
+      const sanitized = sanitizeWildShapeForm(entry);
+      if (!sanitized) return;
+      if (seen.has(sanitized.key)) return;
+      seen.add(sanitized.key);
+      forms.push(sanitized);
+    });
+    return forms;
+  }
+
   function rebuildCompanions() {
     const data = getPackData();
     const entries = Array.isArray(data?.companions) ? data.companions : [];
@@ -4734,6 +4805,18 @@ const familiarModule = (() => {
     companionMap = new Map();
     companions.forEach((entry) => {
       companionMap.set(entry.key, entry);
+    });
+    rebuildWildShapeCandidates();
+  }
+
+  function rebuildWildShapeCandidates() {
+    wildShapeCandidates = companions.filter((entry) => {
+      const type = entry.type ? String(entry.type).toLowerCase() : '';
+      return type.includes('beast');
+    });
+    wildShapeMap = new Map();
+    wildShapeCandidates.forEach((entry) => {
+      wildShapeMap.set(entry.key, entry);
     });
   }
 
@@ -4804,6 +4887,42 @@ const familiarModule = (() => {
     }
   }
 
+  function populateWildShapeFilterOptions() {
+    const crSelect = wildShapeFilterNodes.get('cr');
+    if (crSelect) {
+      const previous = crSelect.value;
+      while (crSelect.options.length > 1) {
+        crSelect.remove(1);
+      }
+      const seen = new Map();
+      wildShapeCandidates.forEach((entry) => {
+        if (!entry.crKey) return;
+        if (!seen.has(entry.crKey)) {
+          seen.set(entry.crKey, { label: entry.crLabel, sort: entry.crValue });
+        }
+      });
+      Array.from(seen.entries())
+        .sort((a, b) => {
+          if (a[1].sort !== b[1].sort) {
+            return a[1].sort - b[1].sort;
+          }
+          return a[1].label.localeCompare(b[1].label, undefined, { sensitivity: 'base' });
+        })
+        .forEach(([value, meta]) => {
+          const option = document.createElement('option');
+          option.value = value;
+          option.textContent = meta.label;
+          crSelect.appendChild(option);
+        });
+      if (previous && seen.has(previous)) {
+        crSelect.value = previous;
+      } else {
+        crSelect.value = '';
+        wildShapeActiveFilters.cr = '';
+      }
+    }
+  }
+
   function applyFilters() {
     const search = searchTerm.trim().toLowerCase();
     const crFilter = activeFilters.cr;
@@ -4823,6 +4942,34 @@ const familiarModule = (() => {
       return true;
     });
     filtered.sort((a, b) => {
+      if (a.crValue !== b.crValue) {
+        return a.crValue - b.crValue;
+      }
+      const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      if (nameCompare !== 0) {
+        return nameCompare;
+      }
+      return a.order - b.order;
+    });
+  }
+
+  function applyWildShapeFilters() {
+    const search = wildShapeSearchTerm.trim().toLowerCase();
+    const crFilter = wildShapeActiveFilters.cr;
+    wildShapeFiltered = wildShapeCandidates.filter((entry) => {
+      if (crFilter && entry.crKey !== crFilter) return false;
+      if (search) {
+        const haystack = entry.searchTokens;
+        if (!haystack.includes(search)) {
+          const partial = haystack.split(/\s+/).some((token) => token.startsWith(search));
+          if (!partial) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    wildShapeFiltered.sort((a, b) => {
       if (a.crValue !== b.crValue) {
         return a.crValue - b.crValue;
       }
@@ -4938,6 +5085,287 @@ const familiarModule = (() => {
     `;
   }
 
+  function resolveWildShapeDisplay(form) {
+    if (!form) return null;
+    const mapEntry = wildShapeMap.get(form.key);
+    const snapshot = mapEntry ? createCompanionSnapshot(mapEntry) : null;
+    const meta = form.meta || snapshot || mapEntry || null;
+    if (!meta) {
+      return {
+        name: form.name || form.id,
+        ac: null,
+        hp: null,
+        speed: '',
+        summary: '',
+        cr: '',
+        source: '',
+        features: [],
+        traits: []
+      };
+    }
+    const overrides = form.overrides || {};
+    const acBase = Number.isFinite(meta.ac) ? meta.ac : parseCompanionStat(meta.ac);
+    const hpBase = Number.isFinite(meta.hp) ? meta.hp : parseCompanionStat(meta.hp);
+    return {
+      name: form.name || meta.name || form.id,
+      ac: Number.isFinite(overrides.ac) ? overrides.ac : acBase,
+      hp: Number.isFinite(overrides.hp) ? overrides.hp : hpBase,
+      baseAc: acBase,
+      baseHp: hpBase,
+      speed: overrides.speed || meta.speed || '',
+      baseSpeed: meta.speed || '',
+      summary: meta.summary || '',
+      cr: meta.cr || meta.crLabel || '',
+      size: meta.size || '',
+      type: meta.type || '',
+      source: meta.source || '',
+      traits: Array.isArray(meta.traits) ? meta.traits : [],
+      features: Array.isArray(meta.features) ? meta.features : []
+    };
+  }
+
+  function renderWildShapeList() {
+    if (!wildShapeListNode) return;
+    wildShapeListNode.innerHTML = '';
+    if (!wildShapeFiltered.length) {
+      if (wildShapeEmptyNode) {
+        wildShapeEmptyNode.hidden = false;
+        wildShapeListNode.appendChild(wildShapeEmptyNode);
+      }
+      return;
+    }
+    if (wildShapeEmptyNode) {
+      wildShapeEmptyNode.hidden = true;
+    }
+    wildShapeFiltered.forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'companion-option';
+      button.dataset.wildshapeId = entry.id;
+      button.dataset.active = entry.key === wildShapeSelectedKey ? 'true' : 'false';
+      button.setAttribute('role', 'option');
+      button.setAttribute('aria-selected', entry.key === wildShapeSelectedKey ? 'true' : 'false');
+      const summary = entry.summary ? `<small>${entry.summary}</small>` : '';
+      const tags = entry.tags.length
+        ? `<div class="companion-tags">${entry.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>`
+        : '';
+      button.innerHTML = `
+        <div>
+          <strong>${entry.name}</strong>
+          ${summary}
+        </div>
+        ${tags}
+      `;
+      wildShapeListNode.appendChild(button);
+    });
+  }
+
+  function renderWildShapeDetail() {
+    if (!wildShapeDetailNode) return;
+    const entry = wildShapeMap.get(wildShapeSelectedKey) || null;
+    if (!entry) {
+      wildShapeDetailNode.innerHTML = '<p>Select a beast to view its statistics and add it to your prepared forms.</p>';
+      return;
+    }
+    const snapshot = createCompanionSnapshot(entry);
+    const inList = wildShapeForms.some((form) => form.key === entry.key);
+    const chips = [];
+    if (snapshot?.ac !== null && snapshot?.ac !== undefined && snapshot?.ac !== '') {
+      chips.push(`<span class="companion-chip">AC <strong>${snapshot.ac}</strong></span>`);
+    }
+    if (snapshot?.hp !== null && snapshot?.hp !== undefined && snapshot?.hp !== '') {
+      chips.push(`<span class="companion-chip">HP <strong>${snapshot.hp}</strong></span>`);
+    }
+    if (snapshot?.speed) {
+      chips.push(`<span class="companion-chip">Speed <strong>${snapshot.speed}</strong></span>`);
+    }
+    const subtitleParts = [];
+    if (entry.crLabel) subtitleParts.push(`CR ${entry.crLabel}`);
+    if (entry.size) subtitleParts.push(entry.size);
+    if (entry.type) subtitleParts.push(entry.type);
+    const subtitle = subtitleParts.join(' · ');
+    const detailLines = [];
+    if (entry.features.length) {
+      detailLines.push(`<dt>Requires</dt><dd>${entry.features.join(', ')}</dd>`);
+    }
+    if (entry.traits.length) {
+      detailLines.push(`<dt>Traits</dt><dd>${entry.traits.join('<br />')}</dd>`);
+    }
+    if (entry.source) {
+      detailLines.push(`<dt>Source</dt><dd>${entry.source}</dd>`);
+    }
+    wildShapeDetailNode.innerHTML = `
+      <header>
+        <h3>${entry.name}</h3>
+        ${subtitle ? `<span>${subtitle}</span>` : ''}
+      </header>
+      ${entry.summary ? `<p>${entry.summary}</p>` : ''}
+      ${chips.length ? `<div class="companion-stats">${chips.join('')}</div>` : ''}
+      ${detailLines.length ? `<dl>${detailLines.join('')}</dl>` : ''}
+      <div class="companion-actions">
+        <button type="button" data-wildshape-action="add" data-wildshape-id="${entry.id}" ${inList ? 'disabled' : ''}>
+          ${inList ? 'Added' : 'Add form'}
+        </button>
+      </div>
+    `;
+  }
+
+  function renderWildShapeForms() {
+    if (!wildShapeSelectedList) return;
+    wildShapeSelectedList.innerHTML = '';
+    if (!wildShapeForms.length) {
+      if (wildShapeSelectedEmpty) {
+        wildShapeSelectedEmpty.hidden = false;
+      }
+      return;
+    }
+    if (wildShapeSelectedEmpty) {
+      wildShapeSelectedEmpty.hidden = true;
+    }
+    wildShapeForms.forEach((form) => {
+      const display = resolveWildShapeDisplay(form);
+      const wrapper = document.createElement('article');
+      wrapper.className = 'companion-card';
+      wrapper.dataset.wildshapeFormId = form.id;
+      const stats = [];
+      if (display.ac !== null && display.ac !== undefined && display.ac !== '') {
+        const baseNote = display.baseAc !== undefined && display.baseAc !== null && display.baseAc !== display.ac
+          ? ` · base ${display.baseAc}`
+          : '';
+        stats.push(`<span class="companion-chip">AC <strong>${display.ac}</strong>${baseNote ? `<span>override${baseNote}</span>` : ''}</span>`);
+      }
+      if (display.hp !== null && display.hp !== undefined && display.hp !== '') {
+        const baseNote = display.baseHp !== undefined && display.baseHp !== null && display.baseHp !== display.hp
+          ? ` · base ${display.baseHp}`
+          : '';
+        stats.push(`<span class="companion-chip">HP <strong>${display.hp}</strong>${baseNote ? `<span>override${baseNote}</span>` : ''}</span>`);
+      }
+      if (display.speed) {
+        const baseNote = display.baseSpeed && display.baseSpeed !== display.speed
+          ? ` · base ${display.baseSpeed}`
+          : '';
+        stats.push(`<span class="companion-chip">Speed <strong>${display.speed}</strong>${baseNote ? `<span>override${baseNote}</span>` : ''}</span>`);
+      }
+      wrapper.innerHTML = `
+        <header>
+          <h4>${display.name}</h4>
+          <button type="button" data-wildshape-action="remove" data-wildshape-id="${form.id}">Remove</button>
+        </header>
+        ${display.summary ? `<p>${display.summary}</p>` : ''}
+        ${stats.length ? `<div class="companion-stats">${stats.join('')}</div>` : ''}
+      `;
+      wildShapeSelectedList.appendChild(wrapper);
+    });
+  }
+
+  function ensureWildShapeFormSnapshot(entry) {
+    if (!entry) return null;
+    const snapshot = createCompanionSnapshot(entry);
+    if (snapshot) {
+      return snapshot;
+    }
+    return null;
+  }
+
+  function addWildShapeForm(id) {
+    const key = normalizeId(id);
+    if (!key) return;
+    if (wildShapeForms.some((form) => form.key === key)) return;
+    const entry = wildShapeMap.get(key);
+    if (!entry) return;
+    const snapshot = ensureWildShapeFormSnapshot(entry);
+    const form = {
+      id: entry.id,
+      key: entry.key,
+      name: entry.name,
+      overrides: {},
+      meta: snapshot
+    };
+    wildShapeForms.push(form);
+    wildShapeForms.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+    renderWildShapeForms();
+    setWildShapeSelection(wildShapeSelectedRawId || entry.id, { userTriggered: false });
+    syncWildShapeField(true);
+  }
+
+  function removeWildShapeForm(id) {
+    const key = normalizeId(id);
+    if (!key) return;
+    wildShapeForms = wildShapeForms.filter((form) => form.key !== key);
+    if (key === wildShapeSelectedKey) {
+      wildShapeSelectedRawId = wildShapeForms[0]?.id || '';
+      wildShapeSelectedKey = normalizeId(wildShapeSelectedRawId);
+    }
+    renderWildShapeForms();
+    setWildShapeSelection(wildShapeSelectedRawId, { userTriggered: false });
+    syncWildShapeField(true);
+  }
+
+  function getWildShapeValue() {
+    const forms = wildShapeForms.map((form) => {
+      const payload = { id: form.id, name: form.name };
+      if (form.meta) {
+        payload.meta = form.meta;
+      }
+      if (form.overrides && Object.keys(form.overrides).length) {
+        payload.overrides = form.overrides;
+      }
+      return payload;
+    });
+    return { forms };
+  }
+
+  function syncWildShapeField(shouldDispatch = false) {
+    if (!wildShapeHiddenField) return;
+    const payload = getWildShapeValue();
+    const serialized = JSON.stringify(payload);
+    if (wildShapeHiddenField.value !== serialized) {
+      wildShapeHiddenField.value = serialized;
+    }
+    if (!syncing && shouldDispatch) {
+      wildShapeHiddenField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function handleWildShapeListClick(event) {
+    const target = event.target.closest('[data-wildshape-id]');
+    if (!target) return;
+    const { wildshapeId } = target.dataset;
+    if (!wildshapeId) return;
+    if (normalizeId(wildshapeId) === wildShapeSelectedKey) return;
+    setWildShapeSelection(wildshapeId, { userTriggered: true });
+  }
+
+  function handleWildShapeSearch(event) {
+    wildShapeSearchTerm = event.target.value || '';
+    applyWildShapeFilters();
+    renderWildShapeList();
+  }
+
+  function handleWildShapeFilterChange(event) {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
+    const key = select.dataset.wildshapeFilter;
+    if (!key) return;
+    wildShapeActiveFilters = { ...wildShapeActiveFilters, [key]: select.value };
+    applyWildShapeFilters();
+    renderWildShapeList();
+  }
+
+  function handleWildShapeAction(event) {
+    const button = event.target.closest('[data-wildshape-action]');
+    if (!button) return;
+    const action = button.dataset.wildshapeAction;
+    const { wildshapeId } = button.dataset;
+    if (!action) return;
+    if (action === 'add' && wildshapeId) {
+      addWildShapeForm(wildshapeId);
+    }
+    if (action === 'remove' && wildshapeId) {
+      removeWildShapeForm(wildshapeId);
+    }
+  }
+
   function getOverrides() {
     const overrides = {};
     const acInput = overrideInputs.get('ac');
@@ -4995,6 +5423,19 @@ const familiarModule = (() => {
     syncHiddenField(userTriggered);
   }
 
+  function setWildShapeSelection(id, { userTriggered = false } = {}) {
+    const raw = id !== undefined && id !== null ? id : wildShapeSelectedRawId;
+    const key = normalizeId(raw);
+    const entry = key ? wildShapeMap.get(key) : null;
+    wildShapeSelectedRawId = raw ? String(raw) : '';
+    wildShapeSelectedKey = entry ? entry.key : key;
+    renderWildShapeList();
+    renderWildShapeDetail();
+    if (userTriggered) {
+      syncWildShapeField(true);
+    }
+  }
+
   function handleListClick(event) {
     const target = event.target.closest('[data-companion-id]');
     if (!target) return;
@@ -5043,6 +5484,14 @@ const familiarModule = (() => {
     selectedRawId = familiar.id || data.familiarType || '';
     selectedKey = normalizeId(selectedRawId);
     lastSnapshot = sanitizeCompanionMeta(familiar.meta) || null;
+    wildShapeForms = sanitizeWildShapeState(data.wildShapeForms || familiar.wildShapeForms || []);
+    wildShapeForms.sort((a, b) => {
+      const nameA = (a.name || a.id || '').toLowerCase();
+      const nameB = (b.name || b.id || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+    wildShapeSelectedRawId = wildShapeForms.length ? wildShapeForms[0].id : '';
+    wildShapeSelectedKey = normalizeId(wildShapeSelectedRawId);
     syncing = true;
     if (nameField) {
       const value = familiar.name || data.familiarName || '';
@@ -5064,13 +5513,43 @@ const familiarModule = (() => {
     syncing = false;
     setSelection(selectedRawId, { userTriggered: false });
     syncHiddenField(false);
+    setWildShapeSelection(wildShapeSelectedRawId || (wildShapeForms[0]?.id || ''), { userTriggered: false });
+    renderWildShapeForms();
+    syncWildShapeField(false);
   }
 
   function refresh() {
     rebuildCompanions();
     populateFilterOptions();
     applyFilters();
+    populateWildShapeFilterOptions();
+    applyWildShapeFilters();
+    wildShapeForms = wildShapeForms.map((form) => {
+      const key = normalizeId(form.id || form.key);
+      if (!key) return form;
+      const entry = wildShapeMap.get(key);
+      if (!entry) {
+        return form;
+      }
+      const snapshot = ensureWildShapeFormSnapshot(entry);
+      return {
+        id: entry.id,
+        key: entry.key,
+        name: form.name || entry.name,
+        overrides: form.overrides || {},
+        meta: snapshot || form.meta || null
+      };
+    });
+    wildShapeForms.sort((a, b) => {
+      const nameA = (a.name || a.id || '').toLowerCase();
+      const nameB = (b.name || b.id || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
     setSelection(selectedRawId, { userTriggered: false });
+    const initialWildShapeId = wildShapeSelectedRawId
+      || (wildShapeForms.length ? wildShapeForms[0].id : (wildShapeFiltered[0]?.id || ''));
+    setWildShapeSelection(initialWildShapeId, { userTriggered: false });
+    renderWildShapeForms();
   }
 
   function getValue() {
@@ -5113,6 +5592,13 @@ const familiarModule = (() => {
       hiddenField = section.querySelector('[data-familiar-field]') || form?.elements?.namedItem('familiarData');
       nameField = section.querySelector('[data-familiar-name]') || form?.elements?.namedItem('familiarName');
       notesField = section.querySelector('[data-familiar-notes]') || form?.elements?.namedItem('familiarNotes');
+      wildShapeListNode = section.querySelector('[data-wildshape-list]');
+      wildShapeDetailNode = section.querySelector('[data-wildshape-detail]');
+      wildShapeEmptyNode = section.querySelector('[data-wildshape-empty]');
+      wildShapeHiddenField = section.querySelector('[data-wildshape-field]') || form?.elements?.namedItem('wildShapeForms');
+      wildShapeSelectedList = section.querySelector('[data-wildshape-selected-list]');
+      wildShapeSelectedEmpty = section.querySelector('[data-wildshape-selected-empty]');
+      wildShapeSearchInput = section.querySelector('[data-wildshape-search]');
       filterNodes.clear();
       section.querySelectorAll('[data-familiar-filter]').forEach((select) => {
         if (select instanceof HTMLSelectElement) {
@@ -5123,6 +5609,12 @@ const familiarModule = (() => {
       section.querySelectorAll('[data-familiar-override]').forEach((input) => {
         if (input instanceof HTMLInputElement) {
           overrideInputs.set(input.dataset.familiarOverride, input);
+        }
+      });
+      wildShapeFilterNodes.clear();
+      section.querySelectorAll('[data-wildshape-filter]').forEach((select) => {
+        if (select instanceof HTMLSelectElement) {
+          wildShapeFilterNodes.set(select.dataset.wildshapeFilter, select);
         }
       });
       if (listNode) {
@@ -5137,6 +5629,21 @@ const familiarModule = (() => {
       overrideInputs.forEach((input) => {
         input.addEventListener('input', handleOverrideInput);
       });
+      if (wildShapeListNode) {
+        wildShapeListNode.addEventListener('click', handleWildShapeListClick);
+      }
+      if (wildShapeSearchInput) {
+        wildShapeSearchInput.addEventListener('input', handleWildShapeSearch);
+      }
+      wildShapeFilterNodes.forEach((select) => {
+        select.addEventListener('change', handleWildShapeFilterChange);
+      });
+      if (wildShapeDetailNode) {
+        wildShapeDetailNode.addEventListener('click', handleWildShapeAction);
+      }
+      if (wildShapeSelectedList) {
+        wildShapeSelectedList.addEventListener('click', handleWildShapeAction);
+      }
       if (nameField) {
         if (!nameField.dataset.familiarAutofill) {
           nameField.dataset.familiarAutofill = nameField.value ? 'false' : 'true';
@@ -5149,6 +5656,9 @@ const familiarModule = (() => {
       refresh();
       renderDetail();
       syncHiddenField(false);
+      renderWildShapeDetail();
+      renderWildShapeForms();
+      syncWildShapeField(false);
     },
     onPackData() {
       refresh();
@@ -5159,7 +5669,8 @@ const familiarModule = (() => {
     onStatePersisted(currentState) {
       applyState(currentState || state);
     },
-    getValue
+    getValue,
+    getWildShapeValue
   };
 })();
 

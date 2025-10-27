@@ -1023,6 +1023,113 @@
       font-size: 0.78rem;
       color: var(--muted-strong);
     }
+    .wildshape-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 0.65rem;
+    }
+    .wildshape-controls label {
+      flex: 1 1 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .wildshape-controls select {
+      border-radius: 0.65rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--fg);
+      padding: 0.45rem 0.6rem;
+      font-size: 0.85rem;
+      min-width: 0;
+    }
+    .wildshape-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .wildshape-buttons button {
+      border-radius: 0.65rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--fg);
+      font-size: 0.78rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+    }
+    .wildshape-buttons button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .wildshape-active-card {
+      margin-top: 0.6rem;
+      padding: 0.75rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      display: grid;
+      gap: 0.45rem;
+    }
+    .wildshape-hp-card {
+      margin-top: 0.6rem;
+    }
+    .wildshape-damage-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+    }
+    .wildshape-damage-row label {
+      flex: 1 1 220px;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .wildshape-damage-row input {
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--fg);
+      padding: 0.4rem 0.5rem;
+      font-size: 0.85rem;
+    }
+    .wildshape-damage-row button {
+      border-radius: 0.65rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--fg);
+      font-size: 0.78rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+    }
+    .wildshape-form-list {
+      display: grid;
+      gap: 0.6rem;
+      margin-top: 0.8rem;
+    }
+    .wildshape-form-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.75rem;
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 0.35rem;
+    }
+    .wildshape-form-card[data-state="active"] {
+      border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.08) 45%);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent 70%);
+    }
+    .wildshape-form-card h5 {
+      margin: 0;
+      font-size: 0.9rem;
+    }
     .summary-empty-note {
       margin: 0;
       font-size: 0.8rem;
@@ -2032,6 +2139,34 @@
           </label>
         </div>
         <input type="hidden" name="familiarData" value="{}" data-familiar-field />
+        <h3>Wild Shape Forms</h3>
+        <p class="step-hint">Prepare beast forms for Wild Shape. Filter by challenge rating and add the creatures you rely on most.</p>
+        <div class="companion-picker" data-wildshape-root>
+          <div class="companion-toolbar">
+            <label>Search beasts
+              <input type="search" data-wildshape-search placeholder="Search beasts" autocomplete="off" />
+            </label>
+            <label>Challenge rating
+              <select data-wildshape-filter="cr">
+                <option value="">All CR</option>
+              </select>
+            </label>
+          </div>
+          <div class="companion-body">
+            <div class="companion-list" data-wildshape-list role="listbox" aria-label="Available wild shape forms">
+              <p class="companion-empty" data-wildshape-empty>No beasts available yet.</p>
+            </div>
+            <div class="companion-detail" data-wildshape-detail>
+              <p>Select a beast to view its statistics and add it to your prepared forms.</p>
+            </div>
+          </div>
+        </div>
+        <div data-wildshape-selected>
+          <h4>Prepared forms</h4>
+          <p class="companion-empty" data-wildshape-selected-empty>No wild shape forms added yet.</p>
+          <div data-wildshape-selected-list></div>
+        </div>
+        <input type="hidden" name="wildShapeForms" value="{}" data-wildshape-field />
       </section>
       <section class="step" data-step="finalize" id="finalize">
         <h2>Finalize &amp; Export</h2>
