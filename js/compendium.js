@@ -30,7 +30,7 @@ const builderAddButton = document.getElementById('builder-add');
 const spellPanelHost = document.getElementById('spell-panel');
 const monsterPanelHost = document.getElementById('monster-panel');
 
-const worker = new Worker('/js/compendium-worker.js', { type: 'module' });
+const worker = new Worker(new URL('./compendium-worker.js', import.meta.url), { type: 'module' });
 
 let packData = {
   packs: [],

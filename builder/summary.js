@@ -1860,7 +1860,7 @@ class SummaryUI {
       if (typeof window.persistBuilderState === 'function') {
         window.persistBuilderState();
       }
-      window.open('/builder/sheet.html', '_blank', 'noopener');
+      window.open(new URL('./sheet.html', import.meta.url).toString(), '_blank', 'noopener');
     }
     if (action === 'add-counter') {
       this.promptNewCounter();

@@ -1,29 +1,58 @@
 const APP_CACHE = 'quest-kit-shell-v2';
 const PACK_CACHE = 'quest-kit-packs-v1';
-const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/builder/',
-  '/css/theme.css',
-  '/js/app.js',
-  '/js/loader.js',
-  '/js/home.js',
-  '/js/pack-validation.js',
-  '/js/compendium.js',
-  '/js/compendium-worker.js',
-  '/builder/wizard.js',
-  '/builder/summary.js',
-  '/builder/index.html',
-  '/compendium/',
-  '/compendium/index.html',
-  '/manifest.webmanifest',
-  '/packs/manifest.json'
+
+const SCOPE_URL = (() => {
+  try {
+    return new URL(self.registration?.scope || self.location.href);
+  } catch (error) {
+    return new URL(self.location.href);
+  }
+})();
+
+function resolveAppUrl(path) {
+  return new URL(path, SCOPE_URL).toString();
+}
+
+function resolveAppPath(path) {
+  return new URL(path, SCOPE_URL).pathname;
+}
+
+function ensureTrailingSlash(pathname = '') {
+  return pathname.endsWith('/') ? pathname : `${pathname}/`;
+}
+
+const BASE_PATH = ensureTrailingSlash(resolveAppPath('./'));
+
+const APP_SHELL_PATHS = [
+  './',
+  'index.html',
+  'builder/',
+  'builder/index.html',
+  'compendium/',
+  'compendium/index.html',
+  'css/theme.css',
+  'js/app.js',
+  'js/loader.js',
+  'js/home.js',
+  'js/pack-validation.js',
+  'js/compendium.js',
+  'js/compendium-worker.js',
+  'builder/wizard.js',
+  'builder/summary.js',
+  'manifest.webmanifest',
+  'packs/manifest.json'
 ];
 
+const APP_SHELL_URLS = APP_SHELL_PATHS.map((path) => resolveAppUrl(path));
+const APP_SHELL_PATH_SET = new Set(APP_SHELL_URLS.map((url) => new URL(url).pathname));
+
 const ROUTE_ENTRIES = [
-  { base: '/builder', entry: '/builder/index.html' },
-  { base: '/compendium', entry: '/compendium/index.html' }
+  { base: ensureTrailingSlash(resolveAppPath('builder')), entry: resolveAppUrl('builder/index.html') },
+  { base: ensureTrailingSlash(resolveAppPath('compendium')), entry: resolveAppUrl('compendium/index.html') }
 ];
+
+const APP_INDEX_URL = resolveAppUrl('index.html');
+const DATA_PATH_PREFIX = ensureTrailingSlash(resolveAppPath('data/'));
 
 function normaliseRequest(input) {
   return input instanceof Request ? input : new Request(input);
@@ -35,11 +64,14 @@ function hasFileExtension(pathname = '') {
 }
 
 function resolveNavigationEntry(pathname = '') {
+  if (!pathname.startsWith(BASE_PATH)) {
+    return null;
+  }
   for (const { base, entry } of ROUTE_ENTRIES) {
-    if (pathname === base || pathname === `${base}/`) {
+    if (pathname === base || ensureTrailingSlash(pathname) === base) {
       return entry;
     }
-    if (pathname.startsWith(`${base}/`) && !hasFileExtension(pathname)) {
+    if (pathname.startsWith(base) && !hasFileExtension(pathname)) {
       return entry;
     }
   }
@@ -52,7 +84,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(APP_CACHE);
-      await cache.addAll(APP_SHELL);
+      await cache.addAll(APP_SHELL_URLS);
       await self.skipWaiting();
     })()
   );
@@ -94,7 +126,7 @@ async function cacheFirst(requestInput, cacheName) {
   } catch (error) {
     console.warn('SW: cacheFirst network error', error);
   }
-  return caches.match('/index.html');
+  return caches.match(APP_INDEX_URL);
 }
 
 async function staleWhileRevalidate(request, cacheName) {
@@ -127,12 +159,12 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/data/')) {
+  if (url.pathname.startsWith(DATA_PATH_PREFIX)) {
     event.respondWith(staleWhileRevalidate(request, PACK_CACHE));
     return;
   }
 
-  if (APP_SHELL.includes(url.pathname)) {
+  if (APP_SHELL_PATH_SET.has(url.pathname)) {
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }

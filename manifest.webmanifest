@@ -1,7 +1,7 @@
 {
   "name": "Quest Kit Adventurer Companion",
   "short_name": "Quest Kit",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#0b1014",
   "theme_color": "#4cc2ff",

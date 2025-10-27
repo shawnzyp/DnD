@@ -1,5 +1,55 @@
 import { getValidationBadge, getValidationForPack, summariseValidationIssues } from './pack-validation.js';
 
+const BASE_URL = (() => {
+  if (typeof window !== 'undefined' && typeof window.__dndBaseUrl === 'string') {
+    try {
+      return new URL(window.__dndBaseUrl);
+    } catch (error) {
+      // ignore invalid base from loader
+    }
+  }
+  try {
+    return new URL('../', import.meta.url);
+  } catch (error) {
+    if (typeof window !== 'undefined' && window.location) {
+      return new URL(window.location.href);
+    }
+    return new URL('.', 'https://localhost/');
+  }
+})();
+
+const BASE_PATH = (() => {
+  if (typeof window !== 'undefined' && typeof window.__dndBasePath === 'string') {
+    return window.__dndBasePath;
+  }
+  const pathname = BASE_URL.pathname;
+  return pathname.endsWith('/') ? pathname : `${pathname}/`;
+})();
+
+function hasFileExtension(pathname = '') {
+  const segment = pathname.split('/').pop() || '';
+  return segment.includes('.');
+}
+
+function normalisePath(pathname) {
+  try {
+    const resolved = new URL(pathname || '.', BASE_URL).pathname;
+    if (resolved.endsWith('/index.html')) {
+      const trimmed = resolved.slice(0, -'index.html'.length);
+      return trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
+    }
+    if (hasFileExtension(resolved)) {
+      return resolved;
+    }
+    return resolved.endsWith('/') ? resolved : `${resolved}/`;
+  } catch (error) {
+    if (!pathname) {
+      return BASE_PATH;
+    }
+    return pathname;
+  }
+}
+
 const DEFAULT_FILES = [
   'classes',
   'races',
@@ -40,20 +90,12 @@ let packManagerSaveTimer = null;
 let packManagerFocusReturn = null;
 let packManagerDragItem = null;
 
-function normalisePath(pathname) {
-  if (!pathname) return '/';
-  if (pathname !== '/' && pathname.endsWith('/')) {
-    return pathname;
-  }
-  return pathname.endsWith('/') ? pathname : `${pathname}/`;
-}
-
 function markActiveNavigation() {
   const navItems = document.querySelectorAll('[data-route]');
   if (!navItems.length) return;
   const currentPath = normalisePath(window.location.pathname);
   navItems.forEach((item) => {
-    const target = normalisePath(item.dataset.route || item.getAttribute('href') || '/');
+    const target = normalisePath(item.dataset.route || item.getAttribute('href') || './');
     const isActive = target === currentPath;
     item.classList.toggle('is-active', isActive);
     if (isActive) {

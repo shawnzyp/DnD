@@ -7785,7 +7785,7 @@ function setupFinalizeActions() {
         if (typeof window.persistBuilderState === 'function') {
           window.persistBuilderState();
         }
-        window.open('/builder/sheet.html', '_blank', 'noopener');
+        window.open(new URL('./sheet.html', import.meta.url).toString(), '_blank', 'noopener');
       });
     }
     if (action === 'export') {
@@ -7822,7 +7822,9 @@ function setupAboutModal() {
   async function loadLegalNotice() {
     if (!legalBlock || loaded) return;
     try {
-      const response = await fetch('/LEGAL/NOTICE.txt', { cache: 'no-store' });
+      const response = await fetch(new URL('../LEGAL/NOTICE.txt', import.meta.url).toString(), {
+        cache: 'no-store'
+      });
       if (!response.ok) throw new Error(`Failed to fetch legal notice: ${response.status}`);
       const text = await response.text();
       legalBlock.textContent = text;
