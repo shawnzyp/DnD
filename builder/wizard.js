@@ -180,7 +180,7 @@ let currentStep = 0;
 
 function createBaseState() {
   return {
-    data: {},
+    data: { classes: [] },
     completedSteps: [],
     saveCount: 1,
     updatedAt: Date.now(),
@@ -1064,9 +1064,20 @@ function serializeForm() {
   arrayFields.forEach((values, key) => {
     data[key] = values.map((entry) => parseJsonValue(entry));
   });
-  const classes = normalizeClassEntries(data);
+  const normalizedClasses = normalizeClassEntries(data);
+  const packClasses = getPackData().classes || [];
+  const classes = normalizedClasses.map((entry, index) => {
+    const meta = entry.class ? findEntry(packClasses, entry.class) : null;
+    const label = meta?.name || entry.name || entry.class || `Class ${index + 1}`;
+    return {
+      class: entry.class || '',
+      level: entry.level,
+      name: label
+    };
+  });
   data.classes = classes;
-  const totalLevel = classes.reduce((sum, entry) => {
+  const derivedClasses = computeClassDerived({ ...data, classes });
+  const totalLevel = derivedClasses.totalLevel || classes.reduce((sum, entry) => {
     const parsed = Number.parseInt(entry.level, 10);
     return sum + (Number.isFinite(parsed) ? parsed : 0);
   }, 0);
@@ -1074,11 +1085,15 @@ function serializeForm() {
   data.level = String(boundedTotal);
   if (classes.length) {
     const primary = classes[0];
-    data.class = primary.class || primary.slug || primary.id || primary.name || '';
+    data.class = primary.class || primary.name || '';
   } else {
     data.class = data.class || '';
   }
-  data.proficiencyBonus = String(calculateProficiencyBonus(totalLevel));
+  const proficiency = Number.isFinite(derivedClasses.proficiencyBonus)
+    ? derivedClasses.proficiencyBonus
+    : calculateProficiencyBonus(totalLevel);
+  data.proficiencyBonus = String(proficiency);
+  data.hitDice = derivedClasses.hitDice || {};
   return data;
 }
 
@@ -1190,6 +1205,34 @@ function hydrateForm(data) {
   const merged = createBaseState();
   const incoming = cloneState(data);
   merged.data = { ...merged.data, ...(incoming.data || incoming) };
+  const normalizedClasses = normalizeClassEntries(merged.data);
+  const packClasses = getPackData().classes || [];
+  merged.data.classes = normalizedClasses.map((entry, index) => {
+    const meta = entry.class ? findEntry(packClasses, entry.class) : null;
+    const label = meta?.name || entry.name || entry.class || `Class ${index + 1}`;
+    return {
+      class: entry.class || '',
+      level: entry.level,
+      name: label
+    };
+  });
+  const derivedClasses = computeClassDerived({ ...merged.data, classes: merged.data.classes });
+  const totalLevel = derivedClasses.totalLevel || merged.data.classes.reduce((sum, entry) => {
+    const parsed = Number.parseInt(entry.level, 10);
+    return sum + (Number.isFinite(parsed) ? parsed : 0);
+  }, 0);
+  merged.data.level = String(Math.max(1, totalLevel || Number.parseInt(merged.data.level, 10) || 1));
+  if (merged.data.classes.length) {
+    const primary = merged.data.classes[0];
+    merged.data.class = primary.class || primary.name || merged.data.class || '';
+  } else {
+    merged.data.class = merged.data.class || '';
+  }
+  const proficiency = Number.isFinite(derivedClasses.proficiencyBonus)
+    ? derivedClasses.proficiencyBonus
+    : calculateProficiencyBonus(totalLevel);
+  merged.data.proficiencyBonus = String(proficiency);
+  merged.data.hitDice = derivedClasses.hitDice || {};
   merged.completedSteps = Array.isArray(incoming.completedSteps) ? [...incoming.completedSteps] : [];
   merged.saveCount = Number.isFinite(incoming.saveCount) ? incoming.saveCount : merged.saveCount;
   merged.updatedAt = incoming.updatedAt || merged.updatedAt;
@@ -1197,7 +1240,7 @@ function hydrateForm(data) {
     merged.currentStepIndex = Math.min(Math.max(0, incoming.currentStepIndex), steps.length - 1);
   }
   merged.currentStep = incoming.currentStep || (steps[merged.currentStepIndex] ? steps[merged.currentStepIndex].dataset.step : merged.currentStep);
-  merged.derived = incoming.derived ? cloneState(incoming.derived) : computeDerivedState(merged.data);
+  merged.derived = computeDerivedState(merged.data);
   state = merged;
 
   Object.entries(state.data).forEach(([key, value]) => {
@@ -1414,6 +1457,8 @@ const identityModule = (() => {
 
 const classModule = (() => {
   let summaryNode = null;
+  let summaryTextNode = null;
+  let summaryWarningsNode = null;
   let rowsContainer = null;
   let addButton = null;
   let warningsNode = null;
@@ -1422,6 +1467,43 @@ const classModule = (() => {
   let activeStep = false;
   let nextLocked = false;
   const rows = [];
+
+  function setSummaryText(message) {
+    const target = summaryTextNode || summaryNode;
+    if (!target) return;
+    target.textContent = message;
+  }
+
+  function updateSummaryWarningsList(warnings) {
+    if (!summaryWarningsNode) return;
+    summaryWarningsNode.innerHTML = '';
+    if (!Array.isArray(warnings) || !warnings.length) {
+      summaryWarningsNode.hidden = true;
+      return;
+    }
+    summaryWarningsNode.hidden = false;
+    warnings.forEach((warning) => {
+      if (!warning?.message) return;
+      const item = document.createElement('li');
+      item.textContent = warning.message;
+      if (warning.severity) {
+        item.dataset.state = warning.severity;
+      }
+      summaryWarningsNode.appendChild(item);
+    });
+  }
+
+  function extractRowWarnings(allWarnings) {
+    if (!Array.isArray(allWarnings)) return [];
+    return allWarnings.filter((warning) => {
+      const message = typeof warning?.message === 'string' ? warning.message.trim() : '';
+      if (!message) return false;
+      if (/^Class\s+\d+/i.test(message)) return true;
+      if (message.includes(':')) return true;
+      if (message.toLowerCase().includes('requires')) return true;
+      return false;
+    });
+  }
 
   function populateClassOptions(select, value = '', label = '') {
     if (!select) return;
@@ -1512,9 +1594,19 @@ const classModule = (() => {
     if (!summaryNode) return;
     const entries = derivedClasses?.entries || [];
     const hasClass = entries.some((entry) => entry.class);
+    const rowWarnings = extractRowWarnings(warnings);
     if (!hasClass) {
-      summaryNode.textContent = 'Pick a class to view hit die and proficiencies.';
-      summaryNode.dataset.state = warnings.some((warning) => warning.severity === 'error') ? 'warn' : '';
+      setSummaryText('Pick a class to view hit die and proficiencies.');
+      updateSummaryWarningsList(rowWarnings);
+      const hasErrors = warnings.some((warning) => warning.severity === 'error');
+      const hasWarns = warnings.some((warning) => warning.severity === 'warn');
+      if (hasErrors) {
+        summaryNode.dataset.state = 'error';
+      } else if (hasWarns || rowWarnings.length) {
+        summaryNode.dataset.state = 'warn';
+      } else {
+        summaryNode.dataset.state = '';
+      }
       return;
     }
     const parts = [];
@@ -1526,20 +1618,35 @@ const classModule = (() => {
     if (Number.isFinite(pb)) {
       parts.push(`PB +${pb}`);
     }
-    const hitParts = entries.map((entry) => {
-      const label = entry.name || entry.class || 'Class';
-      if (entry.hitDie) {
-        return `${label} ${entry.hitDie}×${entry.level}`;
-      }
-      return `${label} ${entry.level}`;
-    }).filter(Boolean);
+    const hitParts = entries
+      .map((entry) => {
+        const label = entry.name || entry.class || 'Class';
+        if (entry.hitDie && Number.isFinite(entry.level)) {
+          return `${label} ${entry.hitDie}×${entry.level}`;
+        }
+        if (Number.isFinite(entry.level)) {
+          return `${label} ${entry.level}`;
+        }
+        return label;
+      })
+      .filter(Boolean);
     if (hitParts.length) {
       parts.push(hitParts.join(', '));
     }
-    summaryNode.textContent = parts.join(' · ');
+    const summaryText = parts.length ? parts.join(' · ') : 'Classes ready.';
+    setSummaryText(summaryText);
+    updateSummaryWarningsList(rowWarnings);
     const hasErrors = warnings.some((warning) => warning.severity === 'error');
     const hasWarns = warnings.some((warning) => warning.severity === 'warn');
-    summaryNode.dataset.state = hasErrors || hasWarns ? 'warn' : 'ok';
+    let state = '';
+    if (hasErrors) {
+      state = 'error';
+    } else if (hasWarns || rowWarnings.length) {
+      state = 'warn';
+    } else {
+      state = 'ok';
+    }
+    summaryNode.dataset.state = state;
   }
 
   function enforceNextButton() {
@@ -1892,11 +1999,16 @@ const classModule = (() => {
   return {
     setup(section) {
       summaryNode = section.querySelector('[data-class-summary]');
+      summaryTextNode = summaryNode?.querySelector('[data-class-summary-text]') || summaryNode;
+      summaryWarningsNode = summaryNode?.querySelector('[data-class-summary-warnings]') || null;
       rowsContainer = section.querySelector('[data-class-rows]');
       addButton = section.querySelector('[data-class-add]');
       warningsNode = section.querySelector('[data-class-warnings]');
       totalDisplay = section.querySelector('[data-class-total]');
       totalField = section.querySelector('[data-class-total-field]');
+      if (summaryWarningsNode) {
+        summaryWarningsNode.hidden = true;
+      }
       if (warningsNode) {
         warningsNode.hidden = true;
       }

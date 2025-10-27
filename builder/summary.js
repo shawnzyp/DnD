@@ -397,6 +397,9 @@ class SummaryUI {
 
   ensurePlayDefaults() {
     const level = this.getLevel();
+    if (!this.playState.hitDice || typeof this.playState.hitDice !== 'object') {
+      this.playState.hitDice = { total: Math.max(1, level), available: Math.max(1, level), die: '' };
+    }
     if (!Number.isFinite(this.playState.hp.max) || this.playState.hp.max <= 0) {
       this.playState.hp.max = Math.max(1, level * 5);
     }
@@ -410,11 +413,28 @@ class SummaryUI {
       this.playState.hitDice.available = this.playState.hitDice.total;
     }
     this.playState.hitDice.available = Math.min(this.playState.hitDice.total, this.playState.hitDice.available);
+    const classEntries = this.getClassEntries();
     const classMeta = this.getClassMeta();
-    if (classMeta && classMeta.hit_die) {
-      this.playState.hitDice.die = classMeta.hit_die;
+    const hitDiceBreakdown = this.getHitDiceBreakdown();
+    const existingDie = typeof this.playState.hitDice.die === 'string' ? this.playState.hitDice.die.trim() : '';
+    if (!existingDie) {
+      if (classEntries.length === 1 && classEntries[0].hitDie) {
+        this.playState.hitDice.die = classEntries[0].hitDie;
+      } else if (hitDiceBreakdown) {
+        this.playState.hitDice.die = hitDiceBreakdown;
+      } else if (classMeta && classMeta.hit_die) {
+        this.playState.hitDice.die = classMeta.hit_die;
+      }
+    } else if (existingDie === 'd8') {
+      if (classEntries.length === 1 && classEntries[0].hitDie && classEntries[0].hitDie !== 'd8') {
+        this.playState.hitDice.die = classEntries[0].hitDie;
+      } else if (classEntries.length > 1 && hitDiceBreakdown && hitDiceBreakdown !== 'd8') {
+        this.playState.hitDice.die = hitDiceBreakdown;
+      } else if (classMeta && classMeta.hit_die && classMeta.hit_die !== 'd8' && !classEntries.length) {
+        this.playState.hitDice.die = classMeta.hit_die;
+      }
     }
-    const isDruid = (classMeta && classMeta.slug === 'druid') || (this.builderState && /druid/i.test(this.builderState.data?.class || ''));
+    const isDruid = this.hasClassSlug('druid') || (classMeta && String(classMeta.slug || '').toLowerCase() === 'druid');
     if (isDruid) {
       if (!Number.isFinite(this.playState.wildShape.max) || this.playState.wildShape.max < 2) {
         this.playState.wildShape.max = 2;
@@ -611,20 +631,121 @@ class SummaryUI {
     this.render();
   }
 
+  getClassEntries() {
+    if (!this.builderState) return [];
+    const derivedEntries = this.builderState.derived?.classes?.entries;
+    if (Array.isArray(derivedEntries) && derivedEntries.length) {
+      return derivedEntries;
+    }
+    const raw = this.builderState.data?.classes;
+    if (!Array.isArray(raw) || !raw.length) return [];
+    return raw.map((entry, index) => {
+      const source = entry && typeof entry === 'object' ? entry : { class: entry };
+      const identifier = source.class || source.slug || source.id || '';
+      const meta = identifier ? resolveClassMeta(identifier) : null;
+      const label = source.name || meta?.name || identifier || `Class ${index + 1}`;
+      const level = parseNumber(source.level, 0);
+      const hitDie = meta?.hit_die || source.hitDie || source.hit_die || null;
+      const slug = meta?.slug || source.slug || null;
+      const id = meta?.id || source.id || null;
+      return {
+        index,
+        class: identifier,
+        level,
+        name: label,
+        hitDie,
+        slug,
+        id,
+        meta: meta ? { slug: meta.slug || null, id: meta.id || null } : null
+      };
+    });
+  }
+
+  hasClassSlug(slug) {
+    if (!slug) return false;
+    const target = String(slug).trim().toLowerCase();
+    if (!target) return false;
+    return this.getClassEntries().some((entry) => {
+      const candidates = [];
+      if (entry.slug) {
+        candidates.push(String(entry.slug).toLowerCase());
+      }
+      if (entry.meta?.slug) {
+        candidates.push(String(entry.meta.slug).toLowerCase());
+      }
+      if (entry.meta?.id) {
+        candidates.push(String(entry.meta.id).toLowerCase());
+      }
+      if (entry.class) {
+        candidates.push(String(entry.class).toLowerCase());
+      }
+      if (entry.name) {
+        candidates.push(String(entry.name).toLowerCase());
+      }
+      return candidates.includes(target);
+    });
+  }
+
+  getHitDiceBreakdown() {
+    const source = (this.builderState?.derived?.hitDice) || (this.builderState?.data?.hitDice);
+    if (!source || typeof source !== 'object') return '';
+    const entries = Object.entries(source).map(([die, count]) => {
+      const amount = parseNumber(count, 0);
+      const size = parseNumber(String(die).replace(/[^0-9]/g, ''), 0);
+      return { die: String(die), count: amount, size };
+    }).filter((entry) => entry.count > 0 && entry.die);
+    if (!entries.length) return '';
+    entries.sort((a, b) => {
+      if (a.size === b.size) {
+        return a.die.localeCompare(b.die);
+      }
+      return b.size - a.size;
+    });
+    return entries.map((entry) => `${entry.count}×${entry.die}`).join(', ');
+  }
+
   getLevel() {
     if (!this.builderState) return parseNumber(this.playState.levelOverride, 1);
+    const derivedTotal = this.builderState.derived?.classes?.totalLevel;
+    if (Number.isFinite(derivedTotal) && derivedTotal > 0) {
+      return derivedTotal;
+    }
+    const entries = this.getClassEntries();
+    if (entries.length) {
+      const total = entries.reduce((sum, entry) => sum + (Number.isFinite(entry.level) ? entry.level : 0), 0);
+      if (total > 0) {
+        return total;
+      }
+    }
     const level = parseNumber(this.builderState.data?.level, 1);
     return level > 0 ? level : 1;
   }
 
   getClassMeta() {
     if (!this.builderState) return null;
+    const entries = this.getClassEntries();
+    if (entries.length) {
+      const primary = entries[0];
+      const candidates = [primary.meta?.slug, primary.meta?.id, primary.slug, primary.class, primary.name]
+        .filter(Boolean);
+      for (const candidate of candidates) {
+        const meta = resolveClassMeta(candidate);
+        if (meta) return meta;
+      }
+    }
     const cls = this.builderState.data?.class;
-    if (!cls) return null;
-    return resolveClassMeta(cls);
+    if (cls) {
+      const meta = resolveClassMeta(cls);
+      if (meta) return meta;
+    }
+    return null;
   }
 
   getProficiencyBonus() {
+    const derived = this.builderState?.derived?.classes?.proficiencyBonus ?? this.builderState?.derived?.proficiencyBonus;
+    if (Number.isFinite(derived)) {
+      return derived;
+    }
     const level = this.getLevel();
     return Math.max(2, Math.floor((level - 1) / 4) + 2);
   }
@@ -1282,17 +1403,40 @@ class SummaryUI {
 
   getIdentityMarkup() {
     const name = this.builderState?.data?.name || 'Unnamed adventurer';
-    const cls = this.builderState?.data?.class || 'Classless';
     const subclass = this.builderState?.data?.subclass;
-    const level = this.builderState?.data?.level || '1';
     const background = this.builderState?.data?.background;
     const alignment = this.builderState?.data?.alignment;
-    const subtitle = [
-      `Level ${level} ${cls}`,
-      subclass ? subclass : null,
-      background ? `Background: ${background}` : null,
-      alignment ? `Alignment: ${alignment}` : null
-    ].filter(Boolean).join(' · ');
+    const level = this.getLevel();
+    const classEntries = this.getClassEntries();
+    let classLabel = '';
+    if (classEntries.length === 1) {
+      classLabel = classEntries[0].name || classEntries[0].class || '';
+    } else if (classEntries.length > 1) {
+      classLabel = classEntries
+        .map((entry) => {
+          const label = entry.name || entry.class || `Class ${entry.index + 1}`;
+          return entry.level ? `${label} ${entry.level}` : label;
+        })
+        .join(' / ');
+    } else if (this.builderState?.data?.class) {
+      classLabel = this.builderState.data.class;
+    }
+    const parts = [];
+    if (Number.isFinite(level) && level > 0) {
+      if (classEntries.length > 1 && classLabel) {
+        parts.push(`Level ${level} · ${classLabel}`);
+      } else if (classLabel) {
+        parts.push(`Level ${level} ${classLabel}`.trim());
+      } else {
+        parts.push(`Level ${level}`);
+      }
+    } else if (classLabel) {
+      parts.push(classLabel);
+    }
+    if (subclass) parts.push(subclass);
+    if (background) parts.push(`Background: ${background}`);
+    if (alignment) parts.push(`Alignment: ${alignment}`);
+    const subtitle = parts.filter(Boolean).join(' · ');
     return `
       <h3>${name}</h3>
       <p>${subtitle || 'Fill out the builder to customize this summary.'}</p>
@@ -1422,6 +1566,15 @@ class SummaryUI {
       <label>Total <input type="number" data-type="number" data-track="hitDice.total" value="${this.playState.hitDice.total}" min="1"></label>
       <label>Die Size <input type="text" data-track="hitDice.die" value="${this.playState.hitDice.die || ''}" placeholder="d8"></label>
     `;
+    const hitDiceBreakdown = this.getHitDiceBreakdown();
+    if (hitDiceBreakdown) {
+      const helper = document.createElement('small');
+      helper.textContent = `Builder hit dice: ${hitDiceBreakdown}`;
+      helper.style.display = 'block';
+      helper.style.marginTop = '0.35rem';
+      helper.style.color = 'var(--muted)';
+      hitDiceCard.appendChild(helper);
+    }
     resourceGrid.appendChild(hitDiceCard);
 
     const deathCard = createElement('div', 'resource-card death-saves-card');
