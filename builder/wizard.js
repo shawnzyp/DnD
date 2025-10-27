@@ -187,7 +187,7 @@ let currentStep = 0;
 
 function createBaseState() {
   return {
-    data: { classes: [], feats: [], featBonusSlots: '0' },
+    data: { classes: [], feats: [], featSelections: [], featBonusSlots: '0' },
     completedSteps: [],
     saveCount: 1,
     updatedAt: Date.now(),
@@ -791,7 +791,7 @@ function normalizeFeatSelections(source) {
       return;
     }
     if (typeof raw === 'object') {
-      const candidate = raw.slug || raw.id || raw.value || raw.name || raw.label;
+      const candidate = raw.key || raw.slug || raw.id || raw.value || raw.name || raw.label;
       if (candidate) {
         addValue(String(candidate));
       }
@@ -834,6 +834,79 @@ function normalizeFeatSelections(source) {
   return Array.from(selections)
     .map((entry) => canonicalizeFeatKey(entry))
     .map((entry) => String(entry).trim())
+    .filter(Boolean);
+}
+
+function sanitizeFeatSelectionState(records) {
+  if (!Array.isArray(records)) return [];
+  const feats = getPackData().feats || [];
+  return records
+    .map((record) => {
+      if (record === null || record === undefined) return null;
+      if (typeof record === 'string') {
+        const key = canonicalizeFeatKey(record);
+        if (!key) return null;
+        const feat = findEntry(feats, key);
+        const prerequisites = Array.isArray(feat?.prerequisites)
+          ? feat.prerequisites.map((value) => String(value).trim()).filter(Boolean)
+          : [];
+        const sourceLabel =
+          typeof feat?.source === 'string'
+            ? feat.source
+            : feat?.source?.name || '';
+        return {
+          key,
+          name: feat?.name || key,
+          source: sourceLabel,
+          summary: feat?.summary || '',
+          prerequisites,
+          locked: false,
+          checks: []
+        };
+      }
+      if (typeof record === 'object') {
+        const candidate =
+          record.key || record.slug || record.id || record.value || record.name || record.label;
+        const key = canonicalizeFeatKey(candidate);
+        if (!key) return null;
+        const feat = findEntry(feats, key);
+        const prerequisites = Array.isArray(record.prerequisites)
+          ? record.prerequisites.map((value) => String(value).trim()).filter(Boolean)
+          : Array.isArray(feat?.prerequisites)
+          ? feat.prerequisites.map((value) => String(value).trim()).filter(Boolean)
+          : [];
+        const checks = Array.isArray(record.checks)
+          ? record.checks
+              .map((check) => {
+                if (!check) return null;
+                const label = String(check.label || '').trim();
+                if (!label) return null;
+                return {
+                  label,
+                  satisfied: Boolean(check.satisfied),
+                  unknown: Boolean(check.unknown)
+                };
+              })
+              .filter(Boolean)
+          : [];
+        const sourceLabel =
+          record.source ||
+          (typeof feat?.source === 'string'
+            ? feat.source
+            : feat?.source?.name || '');
+        const summary = record.summary || feat?.summary || '';
+        return {
+          key,
+          name: record.name || feat?.name || key,
+          source: sourceLabel,
+          summary,
+          prerequisites,
+          locked: Boolean(record.locked),
+          checks
+        };
+      }
+      return null;
+    })
     .filter(Boolean);
 }
 
@@ -1167,9 +1240,16 @@ function serializeForm() {
     : calculateProficiencyBonus(totalLevel);
   data.proficiencyBonus = String(proficiency);
   data.hitDice = derivedClasses.hitDice || {};
-  if (!Array.isArray(data.feats)) {
-    data.feats = normalizeFeatSelections(data);
-  }
+  const featSelectionRecords = Array.isArray(data.feats)
+    ? sanitizeFeatSelectionState(data.feats)
+    : [];
+  data.featSelections = featSelectionRecords.map((entry) => ({
+    ...entry,
+    checks: Array.isArray(entry.checks)
+      ? entry.checks.map((check) => ({ ...check }))
+      : []
+  }));
+  data.feats = normalizeFeatSelections({ feats: featSelectionRecords });
   if (familiarModule && typeof familiarModule.getValue === 'function') {
     const familiarState = familiarModule.getValue();
     if (familiarState) {
@@ -1329,7 +1409,23 @@ function hydrateForm(data) {
   merged.currentStep = incoming.currentStep || (steps[merged.currentStepIndex] ? steps[merged.currentStepIndex].dataset.step : merged.currentStep);
   merged.derived = computeDerivedState(merged.data);
   state = merged;
-  state.data.feats = normalizeFeatSelections(state.data);
+  const canonicalFeats = normalizeFeatSelections(state.data);
+  const hasStructuredSelections =
+    Array.isArray(state.data.featSelections) && state.data.featSelections.length > 0;
+  const sanitizedSelections = hasStructuredSelections
+    ? sanitizeFeatSelectionState(state.data.featSelections)
+    : sanitizeFeatSelectionState(canonicalFeats);
+  const selectionKeys = sanitizedSelections.map((entry) => entry.key);
+  const canonical = Array.from(new Set([...canonicalFeats, ...selectionKeys]));
+  state.data.feats = canonical;
+  state.data.featSelections = sanitizedSelections
+    .filter((entry) => canonical.includes(entry.key))
+    .map((entry) => ({
+      ...entry,
+      checks: Array.isArray(entry.checks)
+        ? entry.checks.map((check) => ({ ...check }))
+        : []
+    }));
   const bonusSlotsValue = Number.parseInt(state.data.featBonusSlots, 10);
   state.data.featBonusSlots = Number.isFinite(bonusSlotsValue) && bonusSlotsValue >= 0 ? String(bonusSlotsValue) : '0';
 
@@ -1342,8 +1438,10 @@ function hydrateForm(data) {
       });
     } else {
       if (key === 'feats') {
-        const normalized = Array.isArray(value) ? value : normalizeFeatSelections({ feats: value });
-        field.value = JSON.stringify(normalized);
+        const payload = Array.isArray(state.data.featSelections)
+          ? state.data.featSelections
+          : [];
+        field.value = JSON.stringify(payload);
       } else if (key === 'featBonusSlots') {
         const numeric = Number.parseInt(value, 10);
         field.value = Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '0';
@@ -2626,6 +2724,7 @@ const featsModule = (() => {
   let featList = [];
   let featLookup = new Map();
   let selected = new Set();
+  let structuredSelections = [];
   let activeStep = false;
   let nextLocked = false;
 
@@ -2641,6 +2740,22 @@ const featsModule = (() => {
     const lower = canonical.toLowerCase();
     const entry = featLookup.get(lower);
     return entry ? entry.key : canonical;
+  }
+
+  function getFeatEntry(key) {
+    if (!key) return null;
+    const lower = String(key).trim().toLowerCase();
+    return featLookup.get(lower) || null;
+  }
+
+  function cloneSelection(entry) {
+    if (!entry) return null;
+    return {
+      ...entry,
+      checks: Array.isArray(entry.checks)
+        ? entry.checks.map((check) => ({ ...check }))
+        : []
+    };
   }
 
   function buildFeatList() {
@@ -2679,9 +2794,9 @@ const featsModule = (() => {
       .sort((a, b) => a.name.localeCompare(b.name));
   }
 
-  function updateHiddenField({ silent = false } = {}) {
+  function updateHiddenField({ silent = false, data = structuredSelections } = {}) {
     if (!hiddenField) return;
-    const payload = JSON.stringify(Array.from(selected));
+    const payload = JSON.stringify(Array.isArray(data) ? data : []);
     if (hiddenField.value === payload) return;
     hiddenField.value = payload;
     if (!silent) {
@@ -2690,13 +2805,45 @@ const featsModule = (() => {
   }
 
   function syncSelectedFromData(data, { silent = false } = {}) {
-    const values = normalizeFeatSelections(data || {});
-    const canonical = values.map((value) => resolveFeatKey(value)).filter(Boolean);
+    const structured = Array.isArray(data?.featSelections) && data.featSelections.length
+      ? sanitizeFeatSelectionState(data.featSelections)
+      : sanitizeFeatSelectionState(normalizeFeatSelections(data || {}));
+    const keys = structured.length
+      ? structured.map((entry) => resolveFeatKey(entry.key))
+      : normalizeFeatSelections(data || {}).map((value) => resolveFeatKey(value));
+    const canonical = keys.filter(Boolean);
     selected = new Set(canonical);
+    structuredSelections = structured
+      .filter((entry) => entry && selected.has(resolveFeatKey(entry.key)))
+      .map((entry) => {
+        const feat = getFeatEntry(entry.key) || entry;
+        return {
+          key: feat.key || entry.key,
+          name: entry.name || feat.name || entry.key,
+          source: entry.source || feat.source || '',
+          summary: entry.summary || feat.summary || '',
+          prerequisites: Array.isArray(entry.prerequisites)
+            ? entry.prerequisites.map((value) => String(value).trim()).filter(Boolean)
+            : Array.isArray(feat.prerequisites)
+            ? feat.prerequisites
+                .map((value) => String(value).trim())
+                .filter(Boolean)
+            : [],
+          locked: Boolean(entry.locked),
+          checks: Array.isArray(entry.checks)
+            ? entry.checks.map((check) => ({
+                label: String(check.label || '').trim(),
+                satisfied: Boolean(check.satisfied),
+                unknown: Boolean(check.unknown)
+              })).filter((check) => Boolean(check.label))
+            : []
+        };
+      });
     if (state.data) {
       state.data.feats = Array.from(selected);
+      state.data.featSelections = structuredSelections.map((entry) => cloneSelection(entry));
     }
-    updateHiddenField({ silent });
+    updateHiddenField({ silent, data: structuredSelections });
   }
 
   function getContext(options = {}) {
@@ -2836,9 +2983,10 @@ const featsModule = (() => {
       nextLocked = false;
       return;
     }
-    const { selectedCount, lockedTotal } = stats;
+    const { selectedCount, lockedTotal, selectedLocked } = stats;
     const totalSlots = slotInfo.total;
     const parts = [];
+    let shouldLock = false;
     if (totalSlots <= 0) {
       parts.push(`Level ${slotInfo.totalLevel} grants 0 feat slots.`);
       if (slotInfo.classBonus > 0 || slotInfo.manual > 0) {
@@ -2859,13 +3007,12 @@ const featsModule = (() => {
     }
     if (selectedCount === 0) {
       parts.push(`Choose at least one feat (0/${totalSlots}).`);
-      nextLocked = true;
+      shouldLock = true;
     } else if (selectedCount > totalSlots) {
       parts.push(`Over capacity: ${selectedCount}/${totalSlots} feats selected.`);
-      nextLocked = true;
+      shouldLock = true;
     } else {
       parts.push(`Using ${selectedCount}/${totalSlots} feat slots.`);
-      nextLocked = false;
     }
     const breakdown = [`base ${slotInfo.base}`];
     if (slotInfo.classBonus > 0) breakdown.push(`class bonus ${slotInfo.classBonus}`);
@@ -2873,11 +3020,17 @@ const featsModule = (() => {
     if (breakdown.length > 1) {
       parts.push(`(${breakdown.join(' + ')})`);
     }
-    if (lockedTotal > 0) {
+    if (selectedLocked > 0) {
+      parts.push(
+        `${selectedLocked} selection${selectedLocked === 1 ? ' has' : 's have'} unmet prerequisites.`
+      );
+      shouldLock = true;
+    } else if (lockedTotal > 0) {
       parts.push(`${lockedTotal} locked by prerequisites`);
     }
     summaryNode.textContent = parts.join(' ');
-    summaryNode.dataset.state = nextLocked ? 'warn' : 'ok';
+    nextLocked = shouldLock;
+    summaryNode.dataset.state = shouldLock ? 'warn' : 'ok';
   }
 
   function enforceNextButton() {
@@ -2898,10 +3051,12 @@ const featsModule = (() => {
       .map((value) => resolveFeatKey(value))
       .filter(Boolean);
     selected = new Set(canonicalSelections);
-    if (state.data) {
-      state.data.feats = Array.from(selected);
-    }
-    updateHiddenField({ silent: true });
+    const snapshotSelections = Array.isArray(context.snapshot?.featSelections)
+      ? sanitizeFeatSelectionState(context.snapshot.featSelections)
+      : [];
+    const snapshotLookup = new Map(
+      snapshotSelections.map((entry) => [resolveFeatKey(entry.key), entry])
+    );
     const sanitizedBonus = sanitizeBonusValue(context.snapshot?.featBonusSlots);
     if (state.data) {
       state.data.featBonusSlots = sanitizedBonus;
@@ -2921,6 +3076,7 @@ const featsModule = (() => {
       feat,
       status: evaluatePrerequisites(feat, evaluationContext)
     }));
+    const statusLookup = new Map(evaluated.map(({ feat, status }) => [feat.key, status]));
     const filtered = evaluated.filter(
       (item) => matchesSearch(item.feat) && matchesFilter(item.feat, item.status)
     );
@@ -2945,13 +3101,12 @@ const featsModule = (() => {
           const isSelected = selected.has(feat.key);
           button.dataset.selected = isSelected ? 'true' : 'false';
           button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-          if (status.locked) {
+          button.dataset.state = status.locked ? 'locked' : 'available';
+          if (status.locked && !isSelected) {
             button.disabled = true;
-            button.dataset.state = 'locked';
             button.setAttribute('aria-disabled', 'true');
           } else {
             button.disabled = false;
-            button.dataset.state = 'available';
             button.removeAttribute('aria-disabled');
           }
           const header = document.createElement('div');
@@ -3019,10 +3174,59 @@ const featsModule = (() => {
         });
       }
     }
+    const selectionDetails = Array.from(selected).map((key) => {
+      const resolved = resolveFeatKey(key);
+      const feat = getFeatEntry(resolved);
+      const fallback = snapshotLookup.get(resolved) || structuredSelections.find((entry) => entry.key === resolved) || null;
+      const status = statusLookup.get(resolved) || {
+        locked: Boolean(fallback?.locked),
+        checks: Array.isArray(fallback?.checks) ? fallback.checks : []
+      };
+      const prerequisites = Array.isArray(feat?.prerequisites)
+        ? feat.prerequisites
+        : Array.isArray(fallback?.prerequisites)
+        ? fallback.prerequisites
+        : [];
+      const checks = Array.isArray(status.checks)
+        ? status.checks
+            .map((check) => {
+              if (!check) return null;
+              const label = String(check.label || '').trim();
+              if (!label) return null;
+              return {
+                label,
+                satisfied: Boolean(check.satisfied),
+                unknown: Boolean(check.unknown)
+              };
+            })
+            .filter(Boolean)
+        : [];
+      const sourceLabel = feat?.source || fallback?.source || '';
+      const summaryText = feat?.summary || fallback?.summary || '';
+      return {
+        key: resolved,
+        name: feat?.name || fallback?.name || resolved,
+        source: sourceLabel,
+        summary: summaryText,
+        prerequisites,
+        locked: Boolean(status.locked),
+        checks
+      };
+    });
+    structuredSelections = selectionDetails;
+    selected = new Set(selectionDetails.map((entry) => entry.key));
+    if (state.data) {
+      state.data.feats = Array.from(selected);
+      state.data.featSelections = selectionDetails.map((entry) => cloneSelection(entry));
+      state.data.featBonusSlots = sanitizedBonus;
+    }
+    updateHiddenField({ data: selectionDetails, silent: !options.useFormValues });
     const lockedTotal = evaluated.filter((item) => item.status.locked).length;
+    const selectedLocked = selectionDetails.filter((entry) => entry.locked).length;
     updateSummary(slotInfo, {
-      selectedCount: selected.size,
-      lockedTotal
+      selectedCount: selectionDetails.length,
+      lockedTotal,
+      selectedLocked
     });
     enforceNextButton();
   }
@@ -3039,10 +3243,36 @@ const featsModule = (() => {
     } else {
       selected.add(resolved);
     }
+    const preliminary = Array.from(selected).map((selectionKey) => {
+      const feat = getFeatEntry(selectionKey);
+      const fallback = structuredSelections.find((entry) => entry.key === selectionKey) || null;
+      const prerequisites = Array.isArray(feat?.prerequisites)
+        ? feat.prerequisites
+        : Array.isArray(fallback?.prerequisites)
+        ? fallback.prerequisites
+        : [];
+      return {
+        key: selectionKey,
+        name: feat?.name || fallback?.name || selectionKey,
+        source: feat?.source || fallback?.source || '',
+        summary: feat?.summary || fallback?.summary || '',
+        prerequisites,
+        locked: Boolean(fallback?.locked),
+        checks: Array.isArray(fallback?.checks)
+          ? fallback.checks.map((check) => ({
+              label: String(check.label || '').trim(),
+              satisfied: Boolean(check.satisfied),
+              unknown: Boolean(check.unknown)
+            })).filter((check) => Boolean(check.label))
+          : []
+      };
+    });
+    structuredSelections = preliminary;
     if (state.data) {
       state.data.feats = Array.from(selected);
+      state.data.featSelections = preliminary.map((entry) => cloneSelection(entry));
     }
-    updateHiddenField();
+    updateHiddenField({ data: preliminary });
     render({ useFormValues: true });
   }
 
