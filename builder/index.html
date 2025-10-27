@@ -983,12 +983,34 @@
       margin: 0;
       font-size: 0.78rem;
       color: var(--muted);
+      display: grid;
+      gap: 0.25rem;
     }
     .step-hint[data-state="warn"] {
       color: #f0a870;
     }
+    .step-hint[data-state="error"] {
+      color: #f87171;
+    }
     .step-hint[data-state="ok"] {
       color: var(--accent);
+    }
+    .step-hint-list {
+      margin: 0;
+      padding-left: 1.1rem;
+      display: grid;
+      gap: 0.2rem;
+      font-size: 0.75rem;
+      color: inherit;
+    }
+    .step-hint-list[hidden] {
+      display: none;
+    }
+    .step-hint-list li[data-state="error"] {
+      color: #f87171;
+    }
+    .step-hint-list li[data-state="warn"] {
+      color: #facc15;
     }
     .ability {
       gap: 0.55rem;
@@ -1172,7 +1194,10 @@
           <input type="text" name="subclass" placeholder="Circle of Stars" />
         </label>
         <ul class="class-warnings" data-class-warnings aria-live="polite"></ul>
-        <p class="step-hint" data-class-summary aria-live="polite">Pick a class to view hit die and proficiencies.</p>
+        <div class="step-hint" data-class-summary aria-live="polite">
+          <span data-class-summary-text>Pick a class to view hit die and proficiencies.</span>
+          <ul class="step-hint-list" data-class-summary-warnings hidden></ul>
+        </div>
         <input type="hidden" name="level" value="1" data-class-total-field />
       </section>
       <section class="step" data-step="abilities">
