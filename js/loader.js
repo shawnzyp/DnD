@@ -1,7 +1,60 @@
 (function () {
   'use strict';
 
-  const MANIFEST_URL = '/packs/manifest.json';
+  const loaderScript =
+    document.currentScript ||
+    document.querySelector('script[src$="/js/loader.js"], script[src*="loader.js"]');
+  const scriptUrl = loaderScript?.src ? loaderScript.src : new URL('./js/loader.js', document.baseURI).href;
+  const APP_BASE_URL = new URL('../', scriptUrl);
+
+  function resolveToAppUrl(path = '.') {
+    try {
+      return new URL(path, APP_BASE_URL).toString();
+    } catch (error) {
+      return path || APP_BASE_URL.toString();
+    }
+  }
+
+  function resolveToAppPath(path = '.') {
+    try {
+      return new URL(path, APP_BASE_URL).pathname;
+    } catch (error) {
+      return path || APP_BASE_URL.pathname;
+    }
+  }
+
+  function normalisePackPath(path) {
+    if (typeof path !== 'string') {
+      return '';
+    }
+    const trimmed = path.trim();
+    if (!trimmed) {
+      return '';
+    }
+    if (/^https?:/i.test(trimmed)) {
+      return trimmed.replace(/\/$/, '');
+    }
+    if (trimmed.startsWith('//')) {
+      return `${APP_BASE_URL.protocol}${trimmed}`.replace(/\/$/, '');
+    }
+    if (trimmed.startsWith('/')) {
+      return resolveToAppUrl(trimmed.slice(1)).replace(/\/$/, '');
+    }
+    return resolveToAppUrl(trimmed).replace(/\/$/, '');
+  }
+
+  const APP_BASE_URL_STRING = resolveToAppUrl('./');
+  const APP_BASE_PATH = (() => {
+    const pathname = resolveToAppPath('./');
+    return pathname.endsWith('/') ? pathname : `${pathname}/`;
+  })();
+
+  if (typeof window !== 'undefined') {
+    window.__dndBaseUrl = APP_BASE_URL_STRING;
+    window.__dndBasePath = APP_BASE_PATH;
+  }
+
+  const MANIFEST_URL = resolveToAppUrl('packs/manifest.json');
   const DEFAULT_FILES = [
     'classes',
     'races',
@@ -34,7 +87,7 @@
   const SETTINGS_STORE = 'settings';
   const PACK_SETTINGS_ID = 'pack-state';
   const PACK_STATE_STORAGE_KEY = 'quest-kit:pack-state';
-  const SERVICE_WORKER_URL = '/sw.js';
+  const SERVICE_WORKER_URL = resolveToAppUrl('sw.js');
 
   function createEmptyData() {
     return {
@@ -443,12 +496,7 @@
     const urlMap = new Map();
     loadedPacks.forEach((pack) => {
       if (!pack || typeof pack !== 'object') return;
-      const path = typeof pack.path === 'string' ? pack.path.trim() : '';
-      if (!path) return;
-      let base = path.endsWith('/') ? path.slice(0, -1) : path;
-      if (!/^https?:/i.test(base) && !base.startsWith('/')) {
-        base = `/${base}`;
-      }
+      const base = normalisePackPath(pack.path);
       if (!base) return;
       const files = Array.isArray(pack.files) ? pack.files : [];
       files.forEach((file) => {
@@ -742,7 +790,7 @@
       description: typeof definition.description === 'string' ? definition.description : '',
       license: typeof definition.license === 'string' ? definition.license : '',
       priority: Number.isFinite(priority) ? priority : 50,
-      path: typeof definition.path === 'string' ? definition.path : '',
+      path: normalisePackPath(definition.path),
       files: Array.from(new Set(cleanedFiles)),
       data,
       origin: definition.origin || null,
@@ -761,11 +809,11 @@
   }
 
   async function fetchPackFiles(definition) {
-    const base = definition.path ? definition.path.replace(/\/$/, '') : '';
+    const base = definition.path ? normalisePackPath(definition.path) : '';
     const data = {};
     await Promise.all(definition.files.map(async (file) => {
       const name = file.replace(/\.json$/i, '');
-      const target = base ? `${base}/${name}.json` : `${name}.json`;
+      const target = base ? `${base}/${name}.json` : resolveToAppUrl(`${name}.json`);
       try {
         const payload = await fetchJSON(target);
         data[name] = Array.isArray(payload) ? payload : [];

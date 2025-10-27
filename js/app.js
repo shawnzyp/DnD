@@ -161,10 +161,18 @@ function initThemeSwitching() {
 }
 
 const MODULE_DEFINITIONS = {
-  home: { loader: () => import('./home.js'), strategy: 'dom' },
-  compendium: { loader: () => import('./compendium.js'), strategy: 'visible', selector: '#list-viewport' },
-  'builder-wizard': { loader: () => import('../builder/wizard.js'), strategy: 'dom' },
-  'builder-summary': { loader: () => import('../builder/summary.js'), strategy: 'idle', selector: '#summary-root' }
+  home: { loader: () => import(new URL('./home.js', import.meta.url).href), strategy: 'dom' },
+  compendium: {
+    loader: () => import(new URL('./compendium.js', import.meta.url).href),
+    strategy: 'visible',
+    selector: '#list-viewport'
+  },
+  'builder-wizard': { loader: () => import(new URL('../builder/wizard.js', import.meta.url).href), strategy: 'dom' },
+  'builder-summary': {
+    loader: () => import(new URL('../builder/summary.js', import.meta.url).href),
+    strategy: 'idle',
+    selector: '#summary-root'
+  }
 };
 
 const requestedModules = new Set();
