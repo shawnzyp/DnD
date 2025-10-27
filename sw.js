@@ -28,6 +28,7 @@ const APP_SHELL_PATHS = [
   'index.html',
   'builder/',
   'builder/index.html',
+  'builder/sheet.html',
   'compendium/',
   'compendium/index.html',
   'css/theme.css',
@@ -45,6 +46,9 @@ const APP_SHELL_PATHS = [
 
 const APP_SHELL_URLS = APP_SHELL_PATHS.map((path) => resolveAppUrl(path));
 const APP_SHELL_PATH_SET = new Set(APP_SHELL_URLS.map((url) => new URL(url).pathname));
+
+const BUILDER_SHEET_URL = resolveAppUrl('builder/sheet.html');
+const BUILDER_SHEET_PATH = new URL(BUILDER_SHEET_URL).pathname;
 
 const ROUTE_ENTRIES = [
   { base: ensureTrailingSlash(resolveAppPath('builder')), entry: resolveAppUrl('builder/index.html') },
@@ -153,6 +157,10 @@ self.addEventListener('fetch', (event) => {
     const entry = resolveNavigationEntry(url.pathname);
     if (entry) {
       event.respondWith(cacheFirst(entry, APP_CACHE));
+      return;
+    }
+    if (url.pathname === BUILDER_SHEET_PATH) {
+      event.respondWith(cacheFirst(BUILDER_SHEET_URL, APP_CACHE));
       return;
     }
     event.respondWith(cacheFirst(request, APP_CACHE));
