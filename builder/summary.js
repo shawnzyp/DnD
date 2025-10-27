@@ -54,6 +54,52 @@ const coinTypes = [
   { id: 'pp', label: 'Platinum (pp)' }
 ];
 
+const CLASS_RESOURCE_PATHS = [
+  'wildShape',
+  'arcaneRecovery',
+  'channelDivinity.cleric',
+  'channelDivinity.paladin',
+  'layOnHands',
+  'rage',
+  'bardicInspiration',
+  'ki',
+  'sorceryPoints',
+  'actionSurge',
+  'secondWind',
+  'indomitable'
+];
+
+const CLASS_RESOURCE_DEFAULTS = {
+  arcaneRecovery: { slotLevelCap: 5 }
+};
+
+const REST_REFRESH_LABELS = {
+  short: 'Refreshes on a short rest.',
+  long: 'Refreshes on a long rest.',
+  either: 'Refreshes on short or long rest.'
+};
+
+function getRestRefreshLabel(type) {
+  return REST_REFRESH_LABELS[type] || REST_REFRESH_LABELS.long;
+}
+
+function getBarbarianRageUses(level) {
+  if (!Number.isFinite(level) || level <= 0) return 0;
+  if (level >= 20) return Infinity;
+  if (level >= 17) return 6;
+  if (level >= 12) return 5;
+  if (level >= 6) return 4;
+  if (level >= 3) return 3;
+  return 2;
+}
+
+function getFighterIndomitableUses(level) {
+  if (!Number.isFinite(level) || level < 9) return 0;
+  if (level >= 17) return 3;
+  if (level >= 13) return 2;
+  return 1;
+}
+
 const conditionsCatalog = [
   { id: 'blinded', label: 'Blinded', note: 'Attack rolls against you have advantage; your attacks have disadvantage.' },
   { id: 'charmed', label: 'Charmed', note: 'Unable to attack charmer; charmer has advantage on social ability checks.' },
@@ -470,6 +516,13 @@ class SummaryUI {
         paladin: { max: 0, remaining: 0 }
       },
       layOnHands: { max: 0, remaining: 0 },
+      rage: { max: 0, remaining: 0 },
+      bardicInspiration: { max: 0, remaining: 0 },
+      ki: { max: 0, remaining: 0 },
+      sorceryPoints: { max: 0, remaining: 0 },
+      actionSurge: { max: 0, remaining: 0 },
+      secondWind: { max: 0, remaining: 0 },
+      indomitable: { max: 0, remaining: 0 },
       concentration: { active: false, spell: '', notes: '', warCaster: false, lastDc: null },
       restLog: [],
       skills: {},
@@ -638,7 +691,6 @@ class SummaryUI {
     const classEntries = this.getClassEntries();
     const classMeta = this.getClassMeta();
     const hitDiceBreakdown = this.getHitDiceBreakdown();
-    const druidLevel = this.getClassLevelBySlug('druid');
     const existingDie = typeof this.playState.hitDice.die === 'string' ? this.playState.hitDice.die.trim() : '';
     if (!existingDie) {
       if (classEntries.length === 1 && classEntries[0].hitDie) {
@@ -660,18 +712,11 @@ class SummaryUI {
     if (!this.playState.wildShape || typeof this.playState.wildShape !== 'object') {
       this.playState.wildShape = { max: 0, remaining: 0 };
     }
-    if (druidLevel >= 2) {
-      const wildShapeUses = 2;
-      this.playState.wildShape.max = wildShapeUses;
-      if (!Number.isFinite(this.playState.wildShape.remaining) || this.playState.wildShape.remaining > wildShapeUses) {
-        this.playState.wildShape.remaining = wildShapeUses;
-      } else {
-        this.playState.wildShape.remaining = Math.max(0, this.playState.wildShape.remaining);
+    ['rage', 'bardicInspiration', 'ki', 'sorceryPoints', 'actionSurge', 'secondWind', 'indomitable'].forEach((key) => {
+      if (!this.playState[key] || typeof this.playState[key] !== 'object') {
+        this.playState[key] = { max: 0, remaining: 0 };
       }
-    } else {
-      this.playState.wildShape.max = 0;
-      this.playState.wildShape.remaining = 0;
-    }
+    });
     if (!Array.isArray(this.playState.classCounters)) {
       this.playState.classCounters = [];
     }
@@ -818,62 +863,274 @@ class SummaryUI {
     }, 0);
   }
 
-  ensureClassResourceDefaults() {
-    if (!this.playState.arcaneRecovery || typeof this.playState.arcaneRecovery !== 'object') {
-      this.playState.arcaneRecovery = { max: 0, remaining: 0, slotLevelCap: 5 };
+  ensureResourceObject(path, defaults = {}) {
+    if (!path) return null;
+    const segments = path.split('.');
+    let target = this.playState;
+    while (segments.length > 1) {
+      const key = segments.shift();
+      if (!target[key] || typeof target[key] !== 'object') {
+        target[key] = {};
+      }
+      target = target[key];
     }
-    if (!this.playState.channelDivinity || typeof this.playState.channelDivinity !== 'object') {
-      this.playState.channelDivinity = {
-        cleric: { max: 0, remaining: 0 },
-        paladin: { max: 0, remaining: 0 }
-      };
+    const finalKey = segments.shift();
+    if (!finalKey) return null;
+    if (!target[finalKey] || typeof target[finalKey] !== 'object') {
+      target[finalKey] = { max: 0, remaining: 0 };
     }
-    if (!this.playState.channelDivinity.cleric || typeof this.playState.channelDivinity.cleric !== 'object') {
-      this.playState.channelDivinity.cleric = { max: 0, remaining: 0 };
+    const resource = target[finalKey];
+    if (!Number.isFinite(resource.max)) {
+      resource.max = 0;
     }
-    if (!this.playState.channelDivinity.paladin || typeof this.playState.channelDivinity.paladin !== 'object') {
-      this.playState.channelDivinity.paladin = { max: 0, remaining: 0 };
+    if (!Number.isFinite(resource.remaining)) {
+      resource.remaining = resource.max;
     }
-    if (!this.playState.layOnHands || typeof this.playState.layOnHands !== 'object') {
-      this.playState.layOnHands = { max: 0, remaining: 0 };
-    }
+    Object.entries(defaults).forEach(([key, value]) => {
+      if (resource[key] === undefined) {
+        resource[key] = value;
+      }
+    });
+    return resource;
+  }
 
+  getClassResourceDefinitions() {
+    const defs = [];
     const wizardLevel = this.getClassLevelBySlug('wizard');
     const clericLevel = this.getClassLevelBySlug('cleric');
     const paladinLevel = this.getClassLevelBySlug('paladin');
+    const druidLevel = this.getClassLevelBySlug('druid');
+    const barbarianLevel = this.getClassLevelBySlug('barbarian');
+    const bardLevel = this.getClassLevelBySlug('bard');
+    const monkLevel = this.getClassLevelBySlug('monk');
+    const sorcererLevel = this.getClassLevelBySlug('sorcerer');
+    const fighterLevel = this.getClassLevelBySlug('fighter');
 
-    const arcaneBudget = wizardLevel > 0 ? Math.ceil(wizardLevel / 2) : 0;
-    this.playState.arcaneRecovery.max = arcaneBudget;
-    this.playState.arcaneRecovery.slotLevelCap = 5;
-    if (!Number.isFinite(this.playState.arcaneRecovery.remaining) || this.playState.arcaneRecovery.remaining > arcaneBudget || arcaneBudget === 0) {
-      this.playState.arcaneRecovery.remaining = arcaneBudget;
-    } else {
-      this.playState.arcaneRecovery.remaining = clamp(this.playState.arcaneRecovery.remaining, 0, arcaneBudget);
+    if (wizardLevel > 0) {
+      const arcaneBudget = Math.max(0, Math.ceil(wizardLevel / 2));
+      if (arcaneBudget > 0) {
+        defs.push({
+          id: 'arcaneRecovery',
+          path: 'arcaneRecovery',
+          label: 'Arcane Recovery',
+          max: arcaneBudget,
+          refreshType: 'long',
+          refreshText: getRestRefreshLabel('long'),
+          detail: `Wizard level ${wizardLevel}: recover spell slots totaling ${arcaneBudget} levels (≤5th level).`,
+          promptSpend: true,
+          promptRecover: true,
+          promptSpendMessage: 'Spend how many spell levels from Arcane Recovery?',
+          promptRecoverMessage: 'Recover how many spell levels toward Arcane Recovery?',
+          step: 1,
+          extra: { slotLevelCap: 5 }
+        });
+      }
     }
 
-    const clericUses = clericLevel >= 2 ? 1 + (clericLevel >= 6 ? 1 : 0) + (clericLevel >= 18 ? 1 : 0) : 0;
-    this.playState.channelDivinity.cleric.max = clericUses;
-    if (!Number.isFinite(this.playState.channelDivinity.cleric.remaining) || this.playState.channelDivinity.cleric.remaining > clericUses || clericUses === 0) {
-      this.playState.channelDivinity.cleric.remaining = clericUses;
-    } else {
-      this.playState.channelDivinity.cleric.remaining = clamp(this.playState.channelDivinity.cleric.remaining, 0, clericUses);
+    if (clericLevel >= 2) {
+      const clericUses = 1 + (clericLevel >= 6 ? 1 : 0) + (clericLevel >= 18 ? 1 : 0);
+      defs.push({
+        id: 'channelDivinityCleric',
+        path: 'channelDivinity.cleric',
+        label: 'Channel Divinity (Cleric)',
+        max: clericUses,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Cleric level ${clericLevel}: uses refresh on short or long rests.`,
+        step: 1
+      });
     }
 
-    const paladinUses = paladinLevel >= 3 ? 1 : 0;
-    this.playState.channelDivinity.paladin.max = paladinUses;
-    if (!Number.isFinite(this.playState.channelDivinity.paladin.remaining) || this.playState.channelDivinity.paladin.remaining > paladinUses || paladinUses === 0) {
-      this.playState.channelDivinity.paladin.remaining = paladinUses;
-    } else {
-      this.playState.channelDivinity.paladin.remaining = clamp(this.playState.channelDivinity.paladin.remaining, 0, paladinUses);
+    if (paladinLevel >= 3) {
+      defs.push({
+        id: 'channelDivinityPaladin',
+        path: 'channelDivinity.paladin',
+        label: 'Channel Divinity (Paladin)',
+        max: 1,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Paladin level ${paladinLevel}: one use per short or long rest.`,
+        step: 1
+      });
     }
 
-    const layOnHandsMax = paladinLevel >= 2 ? paladinLevel * 5 : 0;
-    this.playState.layOnHands.max = layOnHandsMax;
-    if (!Number.isFinite(this.playState.layOnHands.remaining) || this.playState.layOnHands.remaining > layOnHandsMax || layOnHandsMax === 0) {
-      this.playState.layOnHands.remaining = layOnHandsMax;
-    } else {
-      this.playState.layOnHands.remaining = clamp(this.playState.layOnHands.remaining, 0, layOnHandsMax);
+    if (paladinLevel >= 2) {
+      const layOnHandsMax = paladinLevel * 5;
+      defs.push({
+        id: 'layOnHands',
+        path: 'layOnHands',
+        label: 'Lay on Hands',
+        max: layOnHandsMax,
+        refreshType: 'long',
+        refreshText: getRestRefreshLabel('long'),
+        detail: `Paladin level ${paladinLevel}: pool of ${layOnHandsMax} hit points.`,
+        promptSpend: true,
+        promptRecover: true,
+        promptSpendMessage: 'Heal how many hit points from Lay on Hands?',
+        promptRecoverMessage: 'Recover how many hit points to Lay on Hands?',
+        step: 1
+      });
     }
+
+    if (druidLevel >= 2) {
+      const wildShapeUses = 2;
+      defs.push({
+        id: 'wildShape',
+        path: 'wildShape',
+        label: 'Wild Shape',
+        max: wildShapeUses,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Druid level ${druidLevel}: ${wildShapeUses} uses per short rest.`,
+        step: 1
+      });
+    }
+
+    const rageUses = getBarbarianRageUses(barbarianLevel);
+    if (Number.isFinite(rageUses) && rageUses > 0) {
+      defs.push({
+        id: 'rage',
+        path: 'rage',
+        label: 'Rage',
+        max: rageUses,
+        refreshType: 'long',
+        refreshText: getRestRefreshLabel('long'),
+        detail: `Barbarian level ${barbarianLevel}: ${rageUses} rage${rageUses === 1 ? '' : 's'} per long rest.`,
+        step: 1
+      });
+    }
+
+    if (bardLevel > 0) {
+      const chaMod = this.getAbilityModifier('cha');
+      const bardUses = Math.max(1, chaMod);
+      const refreshType = bardLevel >= 5 ? 'either' : 'long';
+      defs.push({
+        id: 'bardicInspiration',
+        path: 'bardicInspiration',
+        label: 'Bardic Inspiration',
+        max: bardUses,
+        refreshType,
+        refreshText: getRestRefreshLabel(refreshType),
+        detail: `Bard level ${bardLevel}: uses equal to CHA modifier (${chaMod >= 0 ? '+' : ''}${chaMod}), minimum 1.`,
+        step: 1
+      });
+    }
+
+    if (monkLevel >= 2) {
+      defs.push({
+        id: 'ki',
+        path: 'ki',
+        label: 'Ki Points',
+        max: monkLevel,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Monk level ${monkLevel}: ${monkLevel} ki points.`,
+        promptSpend: true,
+        promptRecover: true,
+        promptSpendMessage: 'Spend how many ki points?',
+        promptRecoverMessage: 'Recover how many ki points?',
+        step: 1
+      });
+    }
+
+    if (sorcererLevel >= 2) {
+      defs.push({
+        id: 'sorceryPoints',
+        path: 'sorceryPoints',
+        label: 'Sorcery Points',
+        max: sorcererLevel,
+        refreshType: 'long',
+        refreshText: getRestRefreshLabel('long'),
+        detail: `Sorcerer level ${sorcererLevel}: ${sorcererLevel} sorcery points.`,
+        promptSpend: true,
+        promptRecover: true,
+        promptSpendMessage: 'Spend how many sorcery points?',
+        promptRecoverMessage: 'Recover how many sorcery points?',
+        step: 1
+      });
+    }
+
+    if (fighterLevel >= 2) {
+      const actionSurgeUses = fighterLevel >= 17 ? 2 : 1;
+      defs.push({
+        id: 'actionSurge',
+        path: 'actionSurge',
+        label: 'Action Surge',
+        max: actionSurgeUses,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Fighter level ${fighterLevel}: ${actionSurgeUses} use${actionSurgeUses === 1 ? '' : 's'} per short rest.`,
+        step: 1
+      });
+    }
+
+    if (fighterLevel >= 1) {
+      defs.push({
+        id: 'secondWind',
+        path: 'secondWind',
+        label: 'Second Wind',
+        max: 1,
+        refreshType: 'either',
+        refreshText: getRestRefreshLabel('either'),
+        detail: `Fighter level ${fighterLevel}: 1 use per short rest.`,
+        step: 1
+      });
+    }
+
+    const indomitableUses = getFighterIndomitableUses(fighterLevel);
+    if (indomitableUses > 0) {
+      defs.push({
+        id: 'indomitable',
+        path: 'indomitable',
+        label: 'Indomitable',
+        max: indomitableUses,
+        refreshType: 'long',
+        refreshText: getRestRefreshLabel('long'),
+        detail: `Fighter level ${fighterLevel}: ${indomitableUses} use${indomitableUses === 1 ? '' : 's'} per long rest.`,
+        step: 1
+      });
+    }
+
+    return defs;
+  }
+
+  ensureClassResourceDefaults() {
+    if (!this.playState.channelDivinity || typeof this.playState.channelDivinity !== 'object') {
+      this.playState.channelDivinity = {};
+    }
+    const definitions = this.getClassResourceDefinitions();
+    const activePaths = new Set(definitions.filter((def) => Number.isFinite(def.max) && def.max > 0).map((def) => def.path));
+    const defaultsByPath = CLASS_RESOURCE_DEFAULTS;
+    const allPaths = new Set(CLASS_RESOURCE_PATHS);
+
+    allPaths.forEach((path) => {
+      const defaults = defaultsByPath[path] || {};
+      const resource = this.ensureResourceObject(path, defaults);
+      if (!activePaths.has(path)) {
+        resource.max = 0;
+        resource.remaining = 0;
+        Object.entries(defaults).forEach(([key, value]) => {
+          resource[key] = value;
+        });
+      }
+    });
+
+    definitions.forEach((def) => {
+      const defaults = defaultsByPath[def.path] || {};
+      const resource = this.ensureResourceObject(def.path, defaults);
+      const max = Math.max(0, Number.isFinite(def.max) ? def.max : 0);
+      resource.max = max;
+      if (!Number.isFinite(resource.remaining) || resource.remaining > max || max === 0) {
+        resource.remaining = max;
+      } else {
+        resource.remaining = clamp(resource.remaining, 0, max);
+      }
+      if (def.extra) {
+        Object.entries(def.extra).forEach(([key, value]) => {
+          resource[key] = value;
+        });
+      }
+    });
   }
 
   updatePlayState(path, value) {
@@ -926,6 +1183,15 @@ class SummaryUI {
       this.playState.layOnHands.max = Math.max(0, this.playState.layOnHands.max);
       this.playState.layOnHands.remaining = clamp(this.playState.layOnHands.remaining, 0, this.playState.layOnHands.max);
     }
+    ['rage', 'bardicInspiration', 'ki', 'sorceryPoints', 'actionSurge', 'secondWind', 'indomitable'].forEach((key) => {
+      if (path.startsWith(`${key}.`)) {
+        const resource = this.getResourceState(key);
+        if (resource) {
+          resource.max = Math.max(0, resource.max);
+          resource.remaining = clamp(resource.remaining, 0, resource.max);
+        }
+      }
+    });
     savePlayState(this.playState);
     this.render();
   }
@@ -1633,23 +1899,13 @@ class SummaryUI {
 
   performRest(type) {
     this.ensureClassResourceDefaults();
+    const resourceDefs = this.getClassResourceDefinitions();
     const now = new Date();
     const logEntry = { type, at: now.toISOString() };
     if (type === 'short') {
       const spendInput = prompt('How many hit dice did you spend during this short rest?', '0');
       const spend = Math.max(0, Math.min(this.playState.hitDice.available, parseNumber(spendInput, 0)));
       this.playState.hitDice.available = Math.max(0, this.playState.hitDice.available - spend);
-      if (this.playState.wildShape.max > 0) {
-        this.playState.wildShape.remaining = this.playState.wildShape.max;
-      }
-      const clericChannel = this.playState.channelDivinity?.cleric;
-      if (clericChannel && clericChannel.max > 0) {
-        clericChannel.remaining = clericChannel.max;
-      }
-      const paladinChannel = this.playState.channelDivinity?.paladin;
-      if (paladinChannel && paladinChannel.max > 0) {
-        paladinChannel.remaining = paladinChannel.max;
-      }
       this.resetCounters('short');
       this.toast('Short rest complete. Update hit dice and reset features.');
     }
@@ -1657,23 +1913,6 @@ class SummaryUI {
       this.playState.hp.current = this.playState.hp.max;
       const recovery = Math.max(1, Math.floor(this.playState.hitDice.total / 2));
       this.playState.hitDice.available = Math.min(this.playState.hitDice.total, this.playState.hitDice.available + recovery);
-      if (this.playState.wildShape.max > 0) {
-        this.playState.wildShape.remaining = this.playState.wildShape.max;
-      }
-      if (this.playState.arcaneRecovery.max > 0) {
-        this.playState.arcaneRecovery.remaining = this.playState.arcaneRecovery.max;
-      }
-      const clericChannel = this.playState.channelDivinity?.cleric;
-      if (clericChannel && clericChannel.max > 0) {
-        clericChannel.remaining = clericChannel.max;
-      }
-      const paladinChannel = this.playState.channelDivinity?.paladin;
-      if (paladinChannel && paladinChannel.max > 0) {
-        paladinChannel.remaining = paladinChannel.max;
-      }
-      if (this.playState.layOnHands.max > 0) {
-        this.playState.layOnHands.remaining = this.playState.layOnHands.max;
-      }
       if (this.playState.spellcasting && this.playState.spellcasting.slots) {
         Object.values(this.playState.spellcasting.slots).forEach((slot) => {
           if (slot && typeof slot === 'object') {
@@ -1695,10 +1934,25 @@ class SummaryUI {
       this.playState.hp.temp = 0;
       this.toast('Long rest complete. Fully restore hit points and resources.');
     }
+    this.applyRestToClassResources(type, resourceDefs);
     this.playState.restLog.unshift(logEntry);
     this.playState.restLog = this.playState.restLog.slice(0, 10);
     savePlayState(this.playState);
     this.render();
+  }
+
+  applyRestToClassResources(restType, definitions = null) {
+    const defs = Array.isArray(definitions) ? definitions : this.getClassResourceDefinitions();
+    defs.forEach((def) => {
+      const resource = this.getResourceState(def.path);
+      if (!resource) return;
+      const refreshType = def.refreshType || 'long';
+      const resetsOnShort = refreshType === 'short' || refreshType === 'either';
+      const resetsOnLong = refreshType === 'long' || refreshType === 'either';
+      if ((restType === 'short' && resetsOnShort) || (restType === 'long' && resetsOnLong)) {
+        resource.remaining = resource.max;
+      }
+    });
   }
 
   resetCounters(restType) {
@@ -1957,6 +2211,7 @@ class SummaryUI {
     const container = this.root.querySelector('[data-summary-section="resources"]');
     if (!container) return;
     container.innerHTML = '';
+    this.ensureClassResourceDefaults();
 
     const resourceGrid = createElement('div', 'resource-grid');
     const hpCard = createElement('div', 'resource-card');
@@ -2061,87 +2316,30 @@ class SummaryUI {
 
   getTrackedClassResources() {
     const resources = [];
-    const wizardLevel = this.getClassLevelBySlug('wizard');
-    const clericLevel = this.getClassLevelBySlug('cleric');
-    const paladinLevel = this.getClassLevelBySlug('paladin');
-    const druidLevel = this.getClassLevelBySlug('druid');
-
-    if (this.playState.arcaneRecovery?.max > 0) {
-      const slotCap = this.playState.arcaneRecovery.slotLevelCap || 5;
+    const definitions = this.getClassResourceDefinitions();
+    definitions.forEach((def) => {
+      const state = this.getResourceState(def.path) || this.ensureResourceObject(def.path);
+      if (!state) return;
+      const max = Math.max(0, Number.isFinite(state.max) ? state.max : 0);
+      if (max <= 0) return;
+      const remaining = clamp(Number.isFinite(state.remaining) ? state.remaining : max, 0, max);
+      state.remaining = remaining;
+      state.max = max;
       resources.push({
-        id: 'arcaneRecovery',
-        path: 'arcaneRecovery',
-        label: 'Arcane Recovery',
-        remaining: this.playState.arcaneRecovery.remaining,
-        max: this.playState.arcaneRecovery.max,
-        detail: `Wizard level ${wizardLevel}: recover spell slots totaling ${this.playState.arcaneRecovery.max} levels (≤${slotCap}th level).`,
-        refresh: 'Refreshes on a long rest.',
-        promptSpend: true,
-        promptRecover: true,
-        promptSpendMessage: 'Spend how many spell levels from Arcane Recovery?',
-        promptRecoverMessage: 'Recover how many spell levels toward Arcane Recovery?',
-        step: 1
+        id: def.id || def.path.replace(/\./g, '-'),
+        path: def.path,
+        label: def.label,
+        remaining,
+        max,
+        detail: def.detail || '',
+        refresh: def.refreshText || getRestRefreshLabel(def.refreshType || 'long'),
+        promptSpend: !!def.promptSpend,
+        promptRecover: !!def.promptRecover,
+        promptSpendMessage: def.promptSpendMessage || '',
+        promptRecoverMessage: def.promptRecoverMessage || '',
+        step: def.step || 1
       });
-    }
-
-    const clericChannel = this.playState.channelDivinity?.cleric;
-    if (clericChannel && clericChannel.max > 0) {
-      resources.push({
-        id: 'channelDivinityCleric',
-        path: 'channelDivinity.cleric',
-        label: 'Channel Divinity (Cleric)',
-        remaining: clericChannel.remaining,
-        max: clericChannel.max,
-        detail: `Cleric level ${clericLevel}: uses refresh on short or long rests.`,
-        refresh: 'Refreshes on short or long rest.',
-        step: 1
-      });
-    }
-
-    const paladinChannel = this.playState.channelDivinity?.paladin;
-    if (paladinChannel && paladinChannel.max > 0) {
-      resources.push({
-        id: 'channelDivinityPaladin',
-        path: 'channelDivinity.paladin',
-        label: 'Channel Divinity (Paladin)',
-        remaining: paladinChannel.remaining,
-        max: paladinChannel.max,
-        detail: `Paladin level ${paladinLevel}: use once per short or long rest.`,
-        refresh: 'Refreshes on short or long rest.',
-        step: 1
-      });
-    }
-
-    if (this.playState.layOnHands?.max > 0) {
-      resources.push({
-        id: 'layOnHands',
-        path: 'layOnHands',
-        label: 'Lay on Hands',
-        remaining: this.playState.layOnHands.remaining,
-        max: this.playState.layOnHands.max,
-        detail: `Paladin level ${paladinLevel}: pool of ${this.playState.layOnHands.max} hit points.`,
-        refresh: 'Refreshes on a long rest.',
-        promptSpend: true,
-        promptRecover: true,
-        promptSpendMessage: 'Heal how many hit points from Lay on Hands?',
-        promptRecoverMessage: 'Recover how many hit points to Lay on Hands?',
-        step: 1
-      });
-    }
-
-    if (this.playState.wildShape?.max > 0) {
-      resources.push({
-        id: 'wildShape',
-        path: 'wildShape',
-        label: 'Wild Shape',
-        remaining: this.playState.wildShape.remaining,
-        max: this.playState.wildShape.max,
-        detail: `Druid level ${druidLevel}: ${this.playState.wildShape.max} uses per rest.`,
-        refresh: 'Refreshes on short or long rest.',
-        step: 1
-      });
-    }
-
+    });
     return resources;
   }
 
