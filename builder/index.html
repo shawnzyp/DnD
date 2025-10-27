@@ -22,15 +22,23 @@
       --accent-strong: #2fb985;
       --accent-contrast: #031a12;
       --focus-ring: #93f2cc;
+      --viewport-height: 100dvh;
+      --viewport-bottom-offset: 0px;
+      --builder-shell-footer-space: 7rem;
+      --builder-summary-offset: 4.5rem;
     }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--fg);
       min-height: 100vh;
+      min-height: 100dvh;
+      min-height: 100svh;
+      min-height: var(--viewport-height);
       display: flex;
       flex-direction: column;
       line-height: 1.6;
+      scroll-padding-bottom: calc(var(--builder-shell-footer-space) + env(safe-area-inset-bottom) + var(--viewport-bottom-offset));
     }
     .skip-link {
       position: absolute;
@@ -151,9 +159,12 @@
     }
     main {
       flex: 1;
-      padding: 1rem 1.5rem 7rem;
       display: grid;
       gap: 1.25rem;
+      padding-inline: 1.5rem;
+      padding-block: 1rem calc(var(--builder-shell-footer-space) + env(safe-area-inset-bottom));
+      padding-block-end: calc(var(--builder-shell-footer-space) + env(safe-area-inset-bottom) + var(--viewport-bottom-offset));
+      scroll-padding-block-end: calc(var(--builder-shell-footer-space) + env(safe-area-inset-bottom) + var(--viewport-bottom-offset));
     }
     section.step {
       display: none;
@@ -797,9 +808,8 @@
     }
     .sticky-nav {
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
+      inset-inline: 0;
+      inset-block-end: calc(env(safe-area-inset-bottom) + var(--viewport-bottom-offset));
       display: flex;
       padding: 0.75rem calc(env(safe-area-inset-left) + 1rem) calc(env(safe-area-inset-bottom) + 1rem);
       gap: 0.75rem;
@@ -851,13 +861,22 @@
     }
     #summary-panel {
       position: fixed;
-      inset: auto 0 calc(env(safe-area-inset-bottom) + 4.5rem);
+      inset: auto 0 calc(env(safe-area-inset-bottom) + var(--viewport-bottom-offset) + var(--builder-summary-offset));
       margin: 0 1rem;
       background: rgba(13,17,23,0.94);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 1rem;
       padding: 0;
-      max-height: clamp(320px, 45vh, 520px);
+      max-height: min(
+        520px,
+        max(
+          0px,
+          calc(
+            var(--viewport-height) -
+            (var(--builder-summary-offset) + var(--viewport-bottom-offset) + env(safe-area-inset-bottom) + 2.5rem)
+          )
+        )
+      );
       overflow-y: auto;
       transform: translateY(110%);
       transition: transform 220ms ease;
@@ -1861,6 +1880,35 @@
     </section>
   </div>
   <div class="coachmark-overlay" id="coachmark-overlay" aria-hidden="true"></div>
+  <script>
+    (function () {
+      const root = document.documentElement;
+      const updateViewportMetrics = () => {
+        const viewport = window.visualViewport;
+        if (viewport) {
+          const height = viewport.height;
+          const bottomOffset = Math.max(
+            0,
+            window.innerHeight - (viewport.height + viewport.offsetTop)
+          );
+          root.style.setProperty('--viewport-height', `${height}px`);
+          root.style.setProperty('--viewport-bottom-offset', `${bottomOffset}px`);
+        } else {
+          root.style.setProperty('--viewport-height', `${window.innerHeight}px`);
+          root.style.setProperty('--viewport-bottom-offset', '0px');
+        }
+      };
+      updateViewportMetrics();
+      window.addEventListener('resize', updateViewportMetrics);
+      if ('onorientationchange' in window) {
+        window.addEventListener('orientationchange', updateViewportMetrics);
+      }
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', updateViewportMetrics);
+        window.visualViewport.addEventListener('scroll', updateViewportMetrics);
+      }
+    })();
+  </script>
   <script src="/builder/wizard.js" type="module" defer></script>
   <script src="/builder/summary.js" type="module" defer></script>
 </body>
