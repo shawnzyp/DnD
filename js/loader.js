@@ -559,7 +559,9 @@
       spells: merged.data.spells || [],
       feats: merged.data.feats || [],
       items: merged.data.items || [],
-      rules: merged.data.rules || []
+      rules: merged.data.rules || [],
+      skills: merged.data.skills || [],
+      monsters: merged.data.monsters || []
     };
   }
 
@@ -619,6 +621,8 @@
       items: detail.builder.items,
       companions: detail.builder.companions,
       spells: detail.compendium.spells,
+      skills: detail.compendium.skills,
+      monsters: detail.compendium.monsters,
       rules: detail.compendium.rules,
       sources: detail.merged.sources,
       sourceIndex: detail.merged.sourceIndex
