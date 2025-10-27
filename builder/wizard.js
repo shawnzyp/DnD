@@ -802,7 +802,7 @@ function getEquipmentRecordsFromFormData(formData) {
   return records;
 }
 
-function getClassProficiencies(formData) {
+function getClassProficiencies(formData, extra = {}) {
   const classes = Array.isArray(formData?.classes) ? formData.classes : normalizeClassEntries(formData || {});
   const weaponProfs = new Set();
   const armorProfs = new Set();
@@ -824,6 +824,22 @@ function getClassProficiencies(formData) {
         if (!value) return;
         armorProfs.add(String(value).toLowerCase());
       });
+    }
+  });
+  const extraWeapons = Array.isArray(extra?.weapons) ? extra.weapons : [];
+  extraWeapons.forEach((value) => {
+    if (!value && value !== 0) return;
+    const text = String(value).trim().toLowerCase();
+    if (text) {
+      weaponProfs.add(text);
+    }
+  });
+  const extraArmor = Array.isArray(extra?.armor) ? extra.armor : [];
+  extraArmor.forEach((value) => {
+    if (!value && value !== 0) return;
+    const text = String(value).trim().toLowerCase();
+    if (text) {
+      armorProfs.add(text);
     }
   });
   return { entries, weaponProfs, armorProfs };
@@ -874,7 +890,7 @@ function formatWeight(value) {
   return Number.isInteger(rounded) ? `${rounded.toFixed(0)} lb` : `${rounded.toFixed(1)} lb`;
 }
 
-function computeEquipmentDerived(formData, abilityDerived = {}) {
+function computeEquipmentDerived(formData, abilityDerived = {}, proficiencyDerived = null) {
   const derived = {
     groups: { weapons: [], armor: [], gear: [], attunements: [] },
     proficiency: { weaponMismatches: [], armorMismatches: [] },
@@ -885,7 +901,16 @@ function computeEquipmentDerived(formData, abilityDerived = {}) {
     return derived;
   }
   const records = getEquipmentRecordsFromFormData(formData);
-  const { weaponProfs, armorProfs } = getClassProficiencies(formData);
+  const extraWeapons = Array.isArray(proficiencyDerived?.weapons?.list)
+    ? proficiencyDerived.weapons.list
+    : [];
+  const extraArmor = Array.isArray(proficiencyDerived?.armor?.list)
+    ? proficiencyDerived.armor.list
+    : [];
+  const { weaponProfs, armorProfs } = getClassProficiencies(formData, {
+    weapons: extraWeapons,
+    armor: extraArmor
+  });
   EQUIPMENT_CATEGORIES.forEach(({ key }) => {
     const list = records[key] || [];
     list.forEach((record) => {
@@ -1259,24 +1284,33 @@ function sanitizeFeatSelectionState(records) {
     .filter(Boolean);
 }
 
-function computeAbilityBonuses(formData) {
-  const bonuses = {};
-  abilityFields.forEach((field) => {
-    bonuses[field.id] = { total: 0, sources: [] };
-  });
+function resolveSelectionEntries(formData) {
+  const selections = { race: null, background: null, feats: [] };
+  if (!formData) {
+    return selections;
+  }
+
   const raceValue = typeof formData?.race === 'string' ? formData.race.trim() : formData?.race;
   const raceEntry = findEntry(packData.races || [], raceValue);
   if (raceEntry) {
-    applyAbilityEntryBonuses(bonuses, raceEntry, raceEntry.name || 'Race');
+    selections.race = raceEntry;
   }
-  const backgroundValue = typeof formData?.background === 'string' ? formData.background.trim() : formData?.background;
+
+  const backgroundValue =
+    typeof formData?.background === 'string' ? formData.background.trim() : formData?.background;
   const backgroundEntry = findEntry(packData.backgrounds || [], backgroundValue);
   if (backgroundEntry) {
-    applyAbilityEntryBonuses(bonuses, backgroundEntry, backgroundEntry.name || 'Background');
+    selections.background = backgroundEntry;
   }
-  const featNames = normalizeFeatSelections(formData);
+
+  const featSelections = Array.isArray(formData?.featSelections)
+    ? sanitizeFeatSelectionState(formData.featSelections)
+    : sanitizeFeatSelectionState(normalizeFeatSelections(formData || {}));
+
   const seenFeatIds = new Set();
-  featNames.forEach((identifier) => {
+  featSelections.forEach((selection) => {
+    const identifier =
+      selection?.key || selection?.slug || selection?.id || selection?.value || selection?.name || selection;
     const featKey = typeof identifier === 'string' ? identifier.trim() : identifier;
     if (!featKey) return;
     const featEntry = findEntry(packData.feats || [], featKey);
@@ -1286,9 +1320,406 @@ function computeAbilityBonuses(formData) {
     if (unique) {
       seenFeatIds.add(unique);
     }
+    selections.feats.push(featEntry);
+  });
+
+  return selections;
+}
+
+function computeAbilityBonuses(formData) {
+  const bonuses = {};
+  abilityFields.forEach((field) => {
+    bonuses[field.id] = { total: 0, sources: [] };
+  });
+
+  const selections = resolveSelectionEntries(formData);
+  if (selections.race) {
+    applyAbilityEntryBonuses(bonuses, selections.race, selections.race.name || 'Race');
+  }
+  if (selections.background) {
+    applyAbilityEntryBonuses(
+      bonuses,
+      selections.background,
+      selections.background.name || 'Background'
+    );
+  }
+  selections.feats.forEach((featEntry) => {
     applyAbilityEntryBonuses(bonuses, featEntry, featEntry.name || 'Feat');
   });
   return bonuses;
+}
+
+function computeFeatureDerived(formData) {
+  const selections = resolveSelectionEntries(formData);
+  const sources = [];
+  if (selections.race) {
+    sources.push({ type: 'Race', entry: selections.race, label: selections.race.name || 'Race' });
+  }
+  if (selections.background) {
+    sources.push({
+      type: 'Background',
+      entry: selections.background,
+      label: selections.background.name || 'Background'
+    });
+  }
+  selections.feats.forEach((featEntry) => {
+    sources.push({ type: 'Feat', entry: featEntry, label: featEntry.name || 'Feat' });
+  });
+
+  const languageMap = new Map();
+  const languageChoices = [];
+  let languageChoiceTotal = 0;
+
+  const proficiencyMaps = {
+    skills: new Map(),
+    tools: new Map(),
+    weapons: new Map(),
+    armor: new Map()
+  };
+  const proficiencyChoices = {
+    skills: [],
+    tools: [],
+    weapons: [],
+    armor: []
+  };
+
+  const speedSources = [];
+  const speedSourceKeys = new Set();
+  let baseSpeedNumeric = null;
+  let baseSpeedLabel = '';
+
+  function recordLanguage(value, sourceLabel) {
+    if (!value) return;
+    const text = String(value).trim();
+    if (!text) return;
+    const key = text.toLowerCase();
+    if (!languageMap.has(key)) {
+      languageMap.set(key, { value: text, sources: new Set() });
+    }
+    if (sourceLabel) {
+      languageMap.get(key).sources.add(sourceLabel);
+    }
+  }
+
+  function recordLanguageChoice(amount, sourceLabel, options = []) {
+    const numeric = Number.parseInt(amount, 10);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    const choiceEntry = { amount: numeric };
+    if (sourceLabel) {
+      choiceEntry.source = sourceLabel;
+    }
+    const optionList = Array.isArray(options)
+      ? options.map((entry) => (entry && entry.value ? entry.value : entry)).map((entry) => {
+          if (!entry) return '';
+          return typeof entry === 'string' ? entry.trim() : String(entry).trim();
+        })
+      : [];
+    const filteredOptions = optionList.filter(Boolean);
+    if (filteredOptions.length) {
+      choiceEntry.options = filteredOptions;
+    }
+    languageChoices.push(choiceEntry);
+    languageChoiceTotal += numeric;
+  }
+
+  function recordProficiency(category, value, sourceLabel) {
+    if (!value) return;
+    const text = String(value).trim();
+    if (!text) return;
+    const key = text.toLowerCase();
+    const map = proficiencyMaps[category];
+    if (!map) return;
+    if (!map.has(key)) {
+      map.set(key, { value: text, sources: new Set() });
+    }
+    if (sourceLabel) {
+      map.get(key).sources.add(sourceLabel);
+    }
+  }
+
+  function recordProficiencyChoice(category, amount, sourceLabel, options = []) {
+    const numeric = Number.parseInt(amount, 10);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    const entry = { amount: numeric };
+    if (sourceLabel) {
+      entry.source = sourceLabel;
+    }
+    const optionList = Array.isArray(options)
+      ? options.map((item) => (item && item.value ? item.value : item)).map((item) => {
+          if (!item && item !== 0) return '';
+          return typeof item === 'string' ? item.trim() : String(item).trim();
+        })
+      : [];
+    const filtered = optionList.filter(Boolean);
+    if (filtered.length) {
+      entry.options = filtered;
+    }
+    proficiencyChoices[category].push(entry);
+  }
+
+  function getNumericChoiceValue(source) {
+    if (!source || typeof source !== 'object') return null;
+    const candidates = [
+      source.choose,
+      source.count,
+      source.number,
+      source.amount,
+      source.quantity,
+      source.pick
+    ];
+    for (const candidate of candidates) {
+      const numeric = Number.parseInt(candidate, 10);
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return numeric;
+      }
+    }
+    return null;
+  }
+
+  function extractTextValues(value) {
+    const results = [];
+    const visit = (input) => {
+      if (input === null || input === undefined) return;
+      if (Array.isArray(input)) {
+        input.forEach(visit);
+        return;
+      }
+      if (typeof input === 'object') {
+        if (typeof input.value === 'string' || typeof input.value === 'number') {
+          visit(String(input.value));
+        }
+        if (typeof input.name === 'string') {
+          visit(input.name);
+        }
+        if (typeof input.label === 'string') {
+          visit(input.label);
+        }
+        if (typeof input.text === 'string') {
+          visit(input.text);
+        }
+        if (typeof input.description === 'string') {
+          visit(input.description);
+        }
+        ['entries', 'options', 'list', 'values', 'items', 'languages', 'proficiencies'].forEach((key) => {
+          if (input[key] !== undefined) {
+            visit(input[key]);
+          }
+        });
+        return;
+      }
+      if (typeof input === 'number') {
+        results.push(String(input));
+        return;
+      }
+      if (typeof input === 'string') {
+        const trimmed = input.trim();
+        if (!trimmed) return;
+        if (/[;,\n]/.test(trimmed)) {
+          trimmed
+            .split(/[;,\n]+/)
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .forEach((part) => results.push(part));
+        } else {
+          results.push(trimmed);
+        }
+      }
+    };
+    visit(value);
+    return results;
+  }
+
+  function collectLanguageValues(sourceValue, sourceLabel) {
+    if (sourceValue === null || sourceValue === undefined) return;
+    if (Number.isFinite(sourceValue)) {
+      recordLanguageChoice(sourceValue, sourceLabel);
+      return;
+    }
+    if (typeof sourceValue === 'object' && !Array.isArray(sourceValue)) {
+      const numeric = getNumericChoiceValue(sourceValue);
+      if (Number.isFinite(numeric)) {
+        const options = [];
+        ['options', 'choices', 'list', 'values', 'languages'].forEach((key) => {
+          if (sourceValue[key] !== undefined) {
+            options.push(...extractTextValues(sourceValue[key]));
+          }
+        });
+        recordLanguageChoice(numeric, sourceLabel, options);
+      }
+      ['value', 'values', 'list', 'languages', 'granted', 'known', 'defaults', 'options', 'entries'].forEach((key) => {
+        if (sourceValue[key] !== undefined) {
+          collectLanguageValues(sourceValue[key], sourceLabel);
+        }
+      });
+      return;
+    }
+    extractTextValues(sourceValue).forEach((entry) => recordLanguage(entry, sourceLabel));
+  }
+
+  function collectProficiencyValues(category, value, sourceLabel) {
+    if (value === null || value === undefined) return;
+    if (Number.isFinite(value)) {
+      recordProficiencyChoice(category, value, sourceLabel);
+      return;
+    }
+    if (typeof value === 'object' && !Array.isArray(value)) {
+      const numeric = getNumericChoiceValue(value);
+      if (Number.isFinite(numeric)) {
+        const options = [];
+        ['options', 'choices', 'list', 'values', 'proficiencies'].forEach((key) => {
+          if (value[key] !== undefined) {
+            options.push(...extractTextValues(value[key]));
+          }
+        });
+        recordProficiencyChoice(category, numeric, sourceLabel, options);
+      }
+      ['value', 'values', 'list', 'choices', 'options', 'proficiencies', 'entries'].forEach((key) => {
+        if (value[key] !== undefined) {
+          collectProficiencyValues(category, value[key], sourceLabel);
+        }
+      });
+      if (value[category] !== undefined) {
+        collectProficiencyValues(category, value[category], sourceLabel);
+      }
+      return;
+    }
+    extractTextValues(value).forEach((entry) => recordProficiency(category, entry, sourceLabel));
+  }
+
+  function normalizeSpeedValue(value) {
+    if (value === null || value === undefined) return null;
+    if (Number.isFinite(value)) {
+      return { numeric: Number(value), label: `${Number(value)} ft.` };
+    }
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return null;
+      const match = trimmed.match(/([0-9]+)\s*(?:ft|feet|foot)?/i);
+      const numeric = match ? Number.parseInt(match[1], 10) : null;
+      return { numeric: Number.isFinite(numeric) ? numeric : null, label: trimmed };
+    }
+    if (Array.isArray(value)) {
+      for (const entry of value) {
+        const normalized = normalizeSpeedValue(entry);
+        if (normalized) return normalized;
+      }
+      return null;
+    }
+    if (typeof value === 'object') {
+      const candidates = [];
+      ['walk', 'walking', 'land', 'base', 'speed', 'value', 'amount', 'distance', 'label', 'text'].forEach((key) => {
+        if (value[key] !== undefined) {
+          candidates.push(value[key]);
+        }
+      });
+      for (const candidate of candidates) {
+        const normalized = normalizeSpeedValue(candidate);
+        if (normalized) return normalized;
+      }
+    }
+    return null;
+  }
+
+  function recordSpeed(value, sourceLabel) {
+    const normalized = normalizeSpeedValue(value);
+    if (!normalized) return;
+    const label = normalized.label || (Number.isFinite(normalized.numeric) ? `${normalized.numeric} ft.` : '');
+    if (label) {
+      const key = `${sourceLabel || ''}|${label}`;
+      if (!speedSourceKeys.has(key)) {
+        speedSourceKeys.add(key);
+        speedSources.push({ value: label, source: sourceLabel || '' });
+      }
+    }
+    if (Number.isFinite(normalized.numeric)) {
+      if (!Number.isFinite(baseSpeedNumeric) || normalized.numeric > baseSpeedNumeric) {
+        baseSpeedNumeric = normalized.numeric;
+        baseSpeedLabel = label || `${normalized.numeric} ft.`;
+      }
+    } else if (!baseSpeedLabel && label) {
+      baseSpeedLabel = label;
+    }
+  }
+
+  sources.forEach(({ type, entry, label }) => {
+    if (!entry) return;
+    const sourceLabel = label ? `${type}: ${label}` : type;
+    collectLanguageValues(entry.languages, sourceLabel);
+    collectLanguageValues(entry.language_options, sourceLabel);
+    collectLanguageValues(entry.language_choices, sourceLabel);
+    collectLanguageValues(entry.languageSelections, sourceLabel);
+
+    collectProficiencyValues('skills', entry.skills, sourceLabel);
+    collectProficiencyValues('skills', entry.skill_proficiencies, sourceLabel);
+    collectProficiencyValues('skills', entry.skillProficiencies, sourceLabel);
+    collectProficiencyValues('skills', entry.proficiencies?.skills, sourceLabel);
+
+    collectProficiencyValues('tools', entry.tools, sourceLabel);
+    collectProficiencyValues('tools', entry.tool_proficiencies, sourceLabel);
+    collectProficiencyValues('tools', entry.toolProficiencies, sourceLabel);
+    collectProficiencyValues('tools', entry.proficiencies?.tools, sourceLabel);
+
+    collectProficiencyValues('weapons', entry.weapons, sourceLabel);
+    collectProficiencyValues('weapons', entry.weapon_proficiencies, sourceLabel);
+    collectProficiencyValues('weapons', entry.weaponProficiencies, sourceLabel);
+    collectProficiencyValues('weapons', entry.proficiencies?.weapons, sourceLabel);
+
+    collectProficiencyValues('armor', entry.armor, sourceLabel);
+    collectProficiencyValues('armor', entry.armor_proficiencies, sourceLabel);
+    collectProficiencyValues('armor', entry.armorProficiencies, sourceLabel);
+    collectProficiencyValues('armor', entry.armour_proficiencies, sourceLabel);
+    collectProficiencyValues('armor', entry.proficiencies?.armor, sourceLabel);
+
+    recordSpeed(entry.speed, sourceLabel);
+    recordSpeed(entry.walk_speed, sourceLabel);
+    recordSpeed(entry.walkSpeed, sourceLabel);
+    recordSpeed(entry.base_speed, sourceLabel);
+    recordSpeed(entry.movement, sourceLabel);
+    recordSpeed(entry.movementModes, sourceLabel);
+    recordSpeed(entry.speeds, sourceLabel);
+    recordSpeed(entry.speed_desc, sourceLabel);
+  });
+
+  const languages = {
+    list: [],
+    sources: [],
+    choices: languageChoices.slice()
+  };
+  languageMap.forEach((entry) => {
+    languages.list.push(entry.value);
+    entry.sources.forEach((sourceLabel) => {
+      languages.sources.push({ value: entry.value, source: sourceLabel });
+    });
+  });
+  if (languageChoiceTotal > 0) {
+    languages.totalChoices = languageChoiceTotal;
+  }
+
+  const proficiencies = {};
+  Object.keys(proficiencyMaps).forEach((category) => {
+    const map = proficiencyMaps[category];
+    const entries = Array.from(map.values());
+    proficiencies[category] = {
+      list: entries.map((entry) => entry.value),
+      sources: entries.flatMap((entry) =>
+        Array.from(entry.sources).map((sourceLabel) => ({ value: entry.value, source: sourceLabel }))
+      ),
+      choices: proficiencyChoices[category].slice()
+    };
+    const total = proficiencyChoices[category].reduce((sum, entry) => sum + (entry.amount || 0), 0);
+    if (total > 0) {
+      proficiencies[category].totalChoices = total;
+    }
+  });
+
+  const speed = {
+    base: Number.isFinite(baseSpeedNumeric) ? baseSpeedNumeric : null,
+    label:
+      baseSpeedLabel || (Number.isFinite(baseSpeedNumeric) ? `${baseSpeedNumeric} ft.` : ''),
+    sources: speedSources
+  };
+
+  return { languages, proficiencies, speed };
 }
 
 function computeDerivedState(formData) {
@@ -1310,8 +1741,16 @@ function computeDerivedState(formData) {
       }))
     };
   });
+  const featureDerived = computeFeatureDerived(formData);
+  derived.languages = featureDerived.languages;
+  derived.proficiencies = featureDerived.proficiencies;
+  derived.speed = featureDerived.speed;
   derived.classes = computeClassDerived(formData);
-  derived.equipment = computeEquipmentDerived(formData, derived.abilities);
+  derived.equipment = computeEquipmentDerived(
+    formData,
+    derived.abilities,
+    derived.proficiencies
+  );
   derived.proficiencyBonus = derived.classes?.proficiencyBonus || calculateProficiencyBonus(Number.parseInt(formData?.level, 10));
   derived.hitDice = derived.classes?.hitDice || {};
   return derived;
@@ -4247,7 +4686,11 @@ const equipmentModule = (() => {
     const baseDerived = useFormValues ? computeDerivedState(snapshot) : state.derived;
     const equipmentDerived = baseDerived && baseDerived.equipment
       ? baseDerived.equipment
-      : computeEquipmentDerived(snapshot, baseDerived?.abilities || {});
+      : computeEquipmentDerived(
+          snapshot,
+          baseDerived?.abilities || {},
+          baseDerived?.proficiencies || null
+        );
     syncStateFromData(snapshot);
     EQUIPMENT_CATEGORIES.forEach(({ key }) => renderGroup(key, equipmentDerived));
     renderSummary(equipmentDerived);

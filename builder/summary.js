@@ -727,6 +727,7 @@ class SummaryUI {
       passives: {},
       sensesNote: '',
       languagesNote: '',
+      speedOverride: '',
       currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
       spellcasting: { prepared: '', known: '', notes: '', slots: {} },
       dice: { history: [], lastResult: null, lastExpression: '', lastDetail: '', lastContext: null },
@@ -1012,6 +1013,10 @@ class SummaryUI {
       } else if (typeof this.playState.languagesNote !== 'string') {
         this.playState.languagesNote = '';
       }
+    }
+
+    if (typeof this.playState.speedOverride !== 'string') {
+      this.playState.speedOverride = '';
     }
 
     this.ensureClassResourceDefaults();
@@ -1533,6 +1538,38 @@ class SummaryUI {
     return entries.map((entry) => `${entry.count}×${entry.die}`).join(', ');
   }
 
+  getDerivedSpeedInfo() {
+    const derived = this.builderState?.derived?.speed || {};
+    const baseNumeric = Number.isFinite(derived.base) ? derived.base : null;
+    const baseLabelRaw = typeof derived.label === 'string' ? derived.label.trim() : '';
+    const baseLabel = baseLabelRaw || (baseNumeric !== null ? `${baseNumeric} ft.` : '');
+    const sources = Array.isArray(derived.sources)
+      ? derived.sources
+          .map((entry) => {
+            if (!entry) return null;
+            const valueRaw =
+              entry.value === null || entry.value === undefined
+                ? ''
+                : typeof entry.value === 'string'
+                ? entry.value.trim()
+                : String(entry.value).trim();
+            const sourceRaw =
+              entry.source === null || entry.source === undefined
+                ? ''
+                : typeof entry.source === 'string'
+                ? entry.source.trim()
+                : String(entry.source).trim();
+            if (!valueRaw && !sourceRaw) return null;
+            return {
+              value: valueRaw,
+              source: sourceRaw
+            };
+          })
+          .filter(Boolean)
+      : [];
+    return { base: baseNumeric, baseLabel, sources };
+  }
+
   getLevel() {
     if (!this.builderState) return parseNumber(this.playState.levelOverride, 1);
     const derivedTotal = this.builderState.derived?.classes?.totalLevel;
@@ -1613,6 +1650,15 @@ class SummaryUI {
   deriveBuilderSkillDefaults() {
     const data = this.builderState?.data || {};
     const defaults = {};
+    const derivedSkillList = Array.isArray(this.builderState?.derived?.proficiencies?.skills?.list)
+      ? this.builderState.derived.proficiencies.skills.list
+      : [];
+    derivedSkillList.forEach((entry) => {
+      const match = resolveSkillFromText(entry);
+      if (!match) return;
+      defaults[match.id] = defaults[match.id] || { proficient: false, expertise: false };
+      defaults[match.id].proficient = true;
+    });
     const proficientList = normalizeList(data.skills || data.skillProficiencies || data.proficiencies || '');
     const expertiseList = normalizeList(data.skillExpertise || data.expertise || data.expertiseSkills || '');
 
@@ -1682,8 +1728,22 @@ class SummaryUI {
 
   extractBuilderLanguages() {
     const data = this.builderState?.data || {};
-    const list = normalizeList(data.languages || data.tongues || data.languageNotes || '');
-    return list.join(', ');
+    const derivedList = Array.isArray(this.builderState?.derived?.languages?.list)
+      ? this.builderState.derived.languages.list
+      : [];
+    const manualList = normalizeList(data.languages || data.tongues || data.languageNotes || '');
+    const combined = [];
+    const seen = new Set();
+    [...derivedList, ...manualList].forEach((entry) => {
+      if (entry === null || entry === undefined) return;
+      const text = String(entry).trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      combined.push(text);
+    });
+    return combined.join(', ');
   }
 
   extractBuilderCurrency() {
@@ -3190,6 +3250,63 @@ class SummaryUI {
       hitDiceCard.appendChild(helper);
     }
     resourceGrid.appendChild(hitDiceCard);
+
+    const speedInfo = this.getDerivedSpeedInfo();
+    const overrideValue = typeof this.playState.speedOverride === 'string' ? this.playState.speedOverride : '';
+    const currentLabel = overrideValue || speedInfo.baseLabel || '';
+    const detailText = overrideValue
+      ? speedInfo.baseLabel
+        ? `Override · base ${speedInfo.baseLabel}`
+        : 'Override set'
+      : speedInfo.baseLabel
+      ? `Base ${speedInfo.baseLabel}`
+      : 'No derived speed';
+    const overrideAttr = overrideValue.replace(/"/g, '&quot;');
+    const placeholderAttr = (speedInfo.baseLabel || '30 ft.').replace(/"/g, '&quot;');
+    const speedCard = createElement('div', 'resource-card');
+    speedCard.dataset.speedCard = 'true';
+    speedCard.innerHTML = `
+      <h4>Speed</h4>
+      <div class="resource-metric" data-speed-metric>
+        <strong data-speed-current>${currentLabel || '—'}</strong>
+        <span data-speed-detail>${detailText}</span>
+      </div>
+      <label>Override <input type="text" data-track="speedOverride" value="${overrideAttr}" placeholder="${placeholderAttr}"></label>
+    `;
+    const baseNote = document.createElement('p');
+    baseNote.className = 'resource-note';
+    baseNote.dataset.speedBase = '';
+    baseNote.textContent = speedInfo.baseLabel ? `Base ${speedInfo.baseLabel}` : 'No derived speed';
+    speedCard.appendChild(baseNote);
+    if (speedInfo.sources.length) {
+      const seenSources = new Set();
+      const sourceText = speedInfo.sources
+        .map((entry) => {
+          if (!entry) return null;
+          const valueRaw =
+            entry.value === null || entry.value === undefined ? '' : String(entry.value).trim();
+          const labelRaw =
+            entry.source === null || entry.source === undefined ? '' : String(entry.source).trim();
+          const combined =
+            labelRaw && valueRaw && !valueRaw.toLowerCase().includes(labelRaw.toLowerCase())
+              ? `${labelRaw} (${valueRaw})`
+              : labelRaw || valueRaw;
+          const trimmed = (combined || '').trim();
+          if (!trimmed) return null;
+          const key = trimmed.toLowerCase();
+          if (seenSources.has(key)) return null;
+          seenSources.add(key);
+          return trimmed;
+        })
+        .filter(Boolean);
+      if (sourceText.length) {
+        const sourceNote = document.createElement('p');
+        sourceNote.className = 'resource-note';
+        sourceNote.textContent = `Sources: ${sourceText.join(' · ')}`;
+        speedCard.appendChild(sourceNote);
+      }
+    }
+    resourceGrid.appendChild(speedCard);
 
     const deathCard = createElement('div', 'resource-card death-saves-card');
     const successBoxes = Array.from({ length: 3 }).map((_, index) => `
