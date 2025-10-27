@@ -12,6 +12,7 @@ const APP_SHELL = [
   '/js/compendium-worker.js',
   '/builder/wizard.js',
   '/builder/summary.js',
+  '/builder/sheet.html',
   '/builder/index.html',
   '/compendium/index.html',
   '/manifest.webmanifest',
@@ -50,7 +51,7 @@ async function fetchAndCache(request, cacheName, { refresh = false } = {}) {
   return response;
 }
 
-async function cacheFirst(request, cacheName) {
+async function cacheFirst(request, cacheName, { fallbackURL = '/index.html' } = {}) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
   if (cached) {
@@ -63,6 +64,12 @@ async function cacheFirst(request, cacheName) {
     }
   } catch (error) {
     console.warn('SW: cacheFirst network error', error);
+  }
+  if (fallbackURL) {
+    const fallback = await caches.match(fallbackURL);
+    if (fallback) {
+      return fallback;
+    }
   }
   return caches.match('/index.html');
 }
@@ -88,6 +95,10 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
+    if (url.pathname === '/builder/sheet.html') {
+      event.respondWith(cacheFirst(request, APP_CACHE, { fallbackURL: '/builder/sheet.html' }));
+      return;
+    }
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }
