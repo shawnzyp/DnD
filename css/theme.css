@@ -5,6 +5,8 @@
   line-height: 1.6;
   --bg: #04070f;
   --bg-alt: linear-gradient(180deg, #04070f 0%, #0c1324 100%);
+  --bg-overlay:
+    radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 55%);
   --fg: #f7f9ff;
   --muted: #c6cee8;
   --muted-strong: #e4e9ff;
@@ -47,12 +49,17 @@
   color-scheme: light;
   --bg: #f6f7fb;
   --bg-alt: linear-gradient(180deg, #f6f7fb 0%, #e0e5f8 100%);
+  --bg-overlay:
+    radial-gradient(120% 140% at 20% -10%, color-mix(in srgb, var(--accent) 28%, transparent 72%) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.6) 100%);
   --fg: #101835;
   --muted: #566391;
   --muted-strong: #303d62;
   --accent: #118b6a;
   --accent-strong: #0c7255;
   --accent-contrast: #ffffff;
+  --focus-ring-color: color-mix(in srgb, var(--accent) 65%, #ffffff 35%);
+  --focus-ring-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent 75%);
   --surface: rgba(255, 255, 255, 0.92);
   --surface-strong: #ffffff;
   --surface-outline: rgba(13, 106, 85, 0.18);
@@ -69,6 +76,10 @@
   --bg-alt:
     radial-gradient(120% 140% at 20% 0%, rgba(255, 244, 220, 0.72) 0%, transparent 55%),
     linear-gradient(180deg, #f3ead3 0%, #e3d1a6 100%);
+  --bg-overlay:
+    radial-gradient(140% 160% at 80% 20%, rgba(214, 184, 133, 0.4) 0%, transparent 60%),
+    linear-gradient(120deg, rgba(255, 252, 244, 0.5) 0%, transparent 40%),
+    linear-gradient(180deg, transparent 0%, rgba(191, 155, 96, 0.2) 100%);
   --fg: #2f1a0f;
   --muted: #6f5240;
   --muted-strong: #4c3527;
@@ -93,6 +104,10 @@
   --bg-alt:
     radial-gradient(140% 140% at 50% -20%, rgba(252, 114, 255, 0.25) 0%, transparent 62%),
     linear-gradient(180deg, #070019 0%, #150042 55%, #0b0130 100%);
+  --bg-overlay:
+    radial-gradient(120% 120% at 20% 20%, rgba(40, 196, 255, 0.18) 0%, transparent 55%),
+    linear-gradient(135deg, rgba(255, 61, 176, 0.25) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(10, 0, 35, 0.4) 0%, transparent 80%);
   --fg: #f6f1ff;
   --muted: #c6b3ff;
   --muted-strong: #f0deff;
@@ -115,6 +130,7 @@
   color-scheme: dark light;
   --bg: #06080c;
   --bg-alt: linear-gradient(180deg, #06080c 0%, #020203 100%);
+  --bg-overlay: none;
   --fg: #f8fbff;
   --muted: #d6e0ff;
   --muted-strong: #ffffff;
@@ -133,17 +149,26 @@
   --shadow-soft: 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
+:root[data-theme="high-contrast"] body::before {
+  display: none;
+}
+
 @media (prefers-color-scheme: light) {
   :root:not([data-theme="dark"]) {
     color-scheme: light;
     --bg: #f6f7fb;
     --bg-alt: linear-gradient(180deg, #f6f7fb 0%, #e0e5f8 100%);
+    --bg-overlay:
+      radial-gradient(120% 140% at 20% -10%, color-mix(in srgb, var(--accent) 28%, transparent 72%) 0%, transparent 60%),
+      linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.6) 100%);
     --fg: #101835;
     --muted: #566391;
     --muted-strong: #303d62;
     --accent: #118b6a;
     --accent-strong: #0c7255;
     --accent-contrast: #ffffff;
+    --focus-ring-color: color-mix(in srgb, var(--accent) 65%, #ffffff 35%);
+    --focus-ring-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent 75%);
     --surface: rgba(255, 255, 255, 0.92);
     --surface-strong: #ffffff;
     --surface-outline: rgba(13, 106, 85, 0.18);
@@ -261,7 +286,7 @@ body::before {
   content: "";
   position: fixed;
   inset: 0;
-  background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--accent) 35%, transparent) 0%, transparent 55%);
+  background: var(--bg-overlay);
   pointer-events: none;
   z-index: -1;
 }
@@ -712,7 +737,7 @@ button {
   gap: var(--space-xs);
   padding: var(--space-xs) calc(var(--safe-left) + var(--space-lg)) calc(var(--safe-bottom) + var(--space-xs));
   border-top: 1px solid var(--surface-border);
-  box-shadow: 0 -20px 50px -40px rgba(4, 7, 15, 0.72);
+  box-shadow: 0 -20px 50px -40px color-mix(in srgb, var(--fg) 12%, transparent 88%);
   background: color-mix(in srgb, var(--surface-strong) 92%, transparent 8%);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
@@ -782,11 +807,32 @@ button {
 .fab:hover,
 .fab:focus-visible {
   transform: translateY(-2px);
-  box-shadow: 0 34px 48px -32px rgba(4, 7, 15, 0.85);
+  box-shadow: 0 34px 48px -32px color-mix(in srgb, var(--fg) 24%, transparent 76%);
 }
 
 .fab__icon {
   line-height: 1;
+}
+
+:root[data-theme="high-contrast"] .bottom-nav {
+  background: color-mix(in srgb, var(--bg) 65%, var(--surface-strong) 35%);
+  border-top: 2px solid var(--surface-outline);
+  box-shadow: none;
+}
+
+:root[data-theme="high-contrast"] .bottom-nav__item.is-active {
+  border-color: var(--surface-outline);
+  box-shadow: none;
+}
+
+:root[data-theme="high-contrast"] .fab {
+  box-shadow: none;
+  border: 2px solid var(--accent-strong);
+}
+
+:root[data-theme="high-contrast"] .fab:hover,
+:root[data-theme="high-contrast"] .fab:focus-visible {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-strong) 35%, transparent 65%);
 }
 
 @media (min-width: 960px) {

@@ -1,13 +1,15 @@
 const THEME_STORAGE_KEY = 'quest-kit:theme';
 const THEME_OPTIONS = [
   { value: 'system', label: 'System default' },
-  { value: 'dark', label: 'Nightfall' },
-  { value: 'light', label: 'Daybreak' },
-  { value: 'parchment', label: 'Parchment' },
-  { value: 'synthwave', label: 'Synthwave' },
-  { value: 'high-contrast', label: 'High contrast' }
+  { value: 'dark', label: 'Nightfall (dark)' },
+  { value: 'light', label: 'Daybreak (light)' },
+  { value: 'parchment', label: 'Parchment (sepia)' },
+  { value: 'synthwave', label: 'Synthwave (neon)' },
+  { value: 'high-contrast', label: 'High contrast (WCAG)' }
 ];
-const AVAILABLE_THEMES = new Set(['dark', 'light', 'parchment', 'synthwave', 'high-contrast']);
+const AVAILABLE_THEMES = new Set(
+  THEME_OPTIONS.map((option) => option.value).filter((value) => value !== 'system')
+);
 const themeListeners = new Set();
 let activeTheme = 'system';
 
