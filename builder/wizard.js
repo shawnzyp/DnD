@@ -2778,16 +2778,76 @@ const featsModule = (() => {
       } else if (/cast\b.*spell/.test(normalized) || normalized.includes('spellcasting')) {
         satisfied = spellcastingCount > 0;
       } else {
-        const abilityMatch = label.match(
-          /(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*(\d{1,2})/i
-        );
-        if (abilityMatch) {
-          const abilityId = abilityNameToId(abilityMatch[1]);
-          const required = Number.parseInt(abilityMatch[2], 10);
-          const score = abilityId
-            ? abilities[abilityId]?.total ?? Number.parseInt(context.snapshot?.[abilityId], 10)
-            : null;
-          satisfied = Number.isFinite(score) && score >= required;
+        const abilityMatches = Array.from(
+          label.matchAll(/(strength|dexterity|constitution|intelligence|wisdom|charisma)/gi)
+        )
+          .map((match) => ({
+            id: abilityNameToId(match[1]),
+            index: match.index ?? 0,
+            end: (match.index ?? 0) + match[0].length
+          }))
+          .filter((entry) => entry.id);
+        const abilityScoreMatches = Array.from(
+          label.matchAll(
+            /(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*(\d{1,2})/gi
+          )
+        )
+          .map((match) => ({
+            id: abilityNameToId(match[1]),
+            required: Number.parseInt(match[2], 10),
+            index: match.index ?? 0,
+            end: (match.index ?? 0) + match[0].length
+          }))
+          .filter((entry) => entry.id && Number.isFinite(entry.required));
+        if (abilityMatches.length && abilityScoreMatches.length) {
+          const getScore = (abilityId) => {
+            if (!abilityId) return null;
+            const value =
+              abilities[abilityId]?.total ?? Number.parseInt(context.snapshot?.[abilityId], 10);
+            return Number.isFinite(value) ? value : null;
+          };
+          if (abilityScoreMatches.length > 1) {
+            const hasOr = abilityScoreMatches.some((entry, index) => {
+              if (index === 0) return false;
+              const prev = abilityScoreMatches[index - 1];
+              const between = normalized.slice(prev.end, entry.index);
+              return between.includes(' or ');
+            });
+            if (hasOr) {
+              satisfied = abilityScoreMatches.some(({ id, required }) => {
+                const score = getScore(id);
+                return Number.isFinite(score) && score >= required;
+              });
+            } else {
+              satisfied = abilityScoreMatches.every(({ id, required }) => {
+                const score = getScore(id);
+                return Number.isFinite(score) && score >= required;
+              });
+            }
+          } else {
+            const [{ required }] = abilityScoreMatches;
+            const uniqueAbilityIds = Array.from(
+              new Set(abilityMatches.map((entry) => entry.id))
+            );
+            const hasOr = uniqueAbilityIds.length > 1 && normalized.includes(' or ');
+            const hasAnd = uniqueAbilityIds.length > 1 && normalized.includes(' and ');
+            if (hasOr) {
+              satisfied = uniqueAbilityIds.some((abilityId) => {
+                const score = getScore(abilityId);
+                return Number.isFinite(score) && score >= required;
+              });
+            } else if (hasAnd) {
+              satisfied = uniqueAbilityIds.every((abilityId) => {
+                const score = getScore(abilityId);
+                return Number.isFinite(score) && score >= required;
+              });
+            } else {
+              const [primary] = abilityScoreMatches;
+              const abilityId = primary?.id || uniqueAbilityIds[0];
+              const score = getScore(abilityId);
+              satisfied = Number.isFinite(score) && score >= required;
+            }
+          }
         } else {
           const classMatch = label.match(
             /(barbarian|bard|cleric|druid|fighter|monk|paladin|ranger|rogue|sorcerer|warlock|wizard)[^0-9]*(\d+)/i
@@ -2945,13 +3005,13 @@ const featsModule = (() => {
           const isSelected = selected.has(feat.key);
           button.dataset.selected = isSelected ? 'true' : 'false';
           button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-          if (status.locked) {
+          if (status.locked && !isSelected) {
             button.disabled = true;
             button.dataset.state = 'locked';
             button.setAttribute('aria-disabled', 'true');
           } else {
             button.disabled = false;
-            button.dataset.state = 'available';
+            button.dataset.state = status.locked ? 'locked' : 'available';
             button.removeAttribute('aria-disabled');
           }
           const header = document.createElement('div');
