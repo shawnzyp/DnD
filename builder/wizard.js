@@ -1,5 +1,6 @@
 const STORAGE_KEY = 'dndBuilderState';
 const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
+const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
 const HISTORY_LIMIT = 50;
 
 const abilityFields = [
@@ -320,6 +321,41 @@ function findEntry(list, value) {
     const name = entry.name ? String(entry.name).toLowerCase() : null;
     return slug === target || id === target || name === target || entry.name === value;
   }) || null;
+}
+
+function loadQuickAddQueue() {
+  try {
+    const raw = localStorage.getItem(QUICK_ADD_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    console.warn('Failed to read builder quick-add queue', error);
+    return [];
+  }
+}
+
+function persistQuickAddQueue(queue) {
+  try {
+    const payload = Array.isArray(queue) ? queue : [];
+    localStorage.setItem(QUICK_ADD_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.warn('Failed to persist builder quick-add queue', error);
+  }
+}
+
+function formatList(values, { conjunction = 'and' } = {}) {
+  const entries = Array.isArray(values)
+    ? values.filter((value) => value || value === 0).map((value) => String(value))
+    : [];
+  if (!entries.length) return '';
+  if (entries.length === 1) return entries[0];
+  if (entries.length === 2) {
+    return `${entries[0]} ${conjunction} ${entries[1]}`;
+  }
+  const head = entries.slice(0, -1).join(', ');
+  const tail = entries[entries.length - 1];
+  return `${head}, ${conjunction} ${tail}`;
 }
 
 function slugifyLoose(value) {
@@ -1084,6 +1120,9 @@ function populateDynamicOptions() {
     window.dndBuilderState = state;
   }
   notifyModules('onPackData', data);
+  if (quickAddManager && typeof quickAddManager.onPackData === 'function') {
+    quickAddManager.onPackData();
+  }
   if (state && state.data) {
     window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
     window.dispatchEvent(new CustomEvent('dnd-state-changed'));
@@ -2727,11 +2766,78 @@ const featsModule = (() => {
   let structuredSelections = [];
   let activeStep = false;
   let nextLocked = false;
+  const highlightKeys = new Set();
 
   function sanitizeBonusValue(value) {
     const parsed = Number.parseInt(value, 10);
     if (!Number.isFinite(parsed) || parsed < 0) return '0';
     return String(parsed);
+  }
+
+  function escapeSelector(value) {
+    if (!value && value !== 0) return '';
+    if (window.CSS && typeof window.CSS.escape === 'function') {
+      return window.CSS.escape(String(value));
+    }
+    return String(value).replace(/([:\\.#\[\],=])/g, '\\$1');
+  }
+
+  function computeStructuredSelections(baseSelections = structuredSelections) {
+    return Array.from(selected).map((selectionKey) => {
+      const feat = getFeatEntry(selectionKey);
+      const fallback = baseSelections.find((entry) => entry.key === selectionKey) || null;
+      const prerequisites = Array.isArray(feat?.prerequisites)
+        ? feat.prerequisites
+        : Array.isArray(fallback?.prerequisites)
+        ? fallback.prerequisites
+        : [];
+      return {
+        key: selectionKey,
+        name: feat?.name || fallback?.name || selectionKey,
+        source: feat?.source || fallback?.source || '',
+        summary: feat?.summary || fallback?.summary || '',
+        prerequisites,
+        locked: Boolean(fallback?.locked),
+        checks: Array.isArray(fallback?.checks)
+          ? fallback.checks
+              .map((check) => ({
+                label: String(check.label || '').trim(),
+                satisfied: Boolean(check.satisfied),
+                unknown: Boolean(check.unknown)
+              }))
+              .filter((check) => Boolean(check.label))
+          : []
+      };
+    });
+  }
+
+  function commitSelections(baseSelections = structuredSelections) {
+    const preliminary = computeStructuredSelections(baseSelections);
+    structuredSelections = preliminary;
+    if (state.data) {
+      state.data.feats = Array.from(selected);
+      state.data.featSelections = preliminary.map((entry) => cloneSelection(entry));
+    }
+    updateHiddenField({ data: preliminary });
+  }
+
+  function applyHighlights() {
+    if (!gridNode || !highlightKeys.size) return;
+    const keys = Array.from(highlightKeys);
+    highlightKeys.clear();
+    requestAnimationFrame(() => {
+      keys.forEach((key) => {
+        const selector = `[data-feat-card="${escapeSelector(key)}"]`;
+        const node = gridNode.querySelector(selector);
+        if (!node) return;
+        node.classList.add('quick-add-highlight');
+        window.setTimeout(() => {
+          if (node.isConnected) {
+            node.classList.remove('quick-add-highlight');
+          }
+        }, 2000);
+      });
+    });
   }
 
   function resolveFeatKey(value) {
@@ -3229,6 +3335,7 @@ const featsModule = (() => {
       selectedLocked
     });
     enforceNextButton();
+    applyHighlights();
   }
 
   function handleCardClick(event) {
@@ -3238,41 +3345,13 @@ const featsModule = (() => {
     if (!key) return;
     const resolved = resolveFeatKey(key);
     if (!resolved) return;
+    const previousStructured = structuredSelections.map((entry) => cloneSelection(entry));
     if (selected.has(resolved)) {
       selected.delete(resolved);
     } else {
       selected.add(resolved);
     }
-    const preliminary = Array.from(selected).map((selectionKey) => {
-      const feat = getFeatEntry(selectionKey);
-      const fallback = structuredSelections.find((entry) => entry.key === selectionKey) || null;
-      const prerequisites = Array.isArray(feat?.prerequisites)
-        ? feat.prerequisites
-        : Array.isArray(fallback?.prerequisites)
-        ? fallback.prerequisites
-        : [];
-      return {
-        key: selectionKey,
-        name: feat?.name || fallback?.name || selectionKey,
-        source: feat?.source || fallback?.source || '',
-        summary: feat?.summary || fallback?.summary || '',
-        prerequisites,
-        locked: Boolean(fallback?.locked),
-        checks: Array.isArray(fallback?.checks)
-          ? fallback.checks.map((check) => ({
-              label: String(check.label || '').trim(),
-              satisfied: Boolean(check.satisfied),
-              unknown: Boolean(check.unknown)
-            })).filter((check) => Boolean(check.label))
-          : []
-      };
-    });
-    structuredSelections = preliminary;
-    if (state.data) {
-      state.data.feats = Array.from(selected);
-      state.data.featSelections = preliminary.map((entry) => cloneSelection(entry));
-    }
-    updateHiddenField({ data: preliminary });
+    commitSelections(previousStructured);
     render({ useFormValues: true });
   }
 
@@ -3330,7 +3409,7 @@ const featsModule = (() => {
         filterContainer.addEventListener('click', handleFilterClick);
       }
       if (gridNode) {
-        gridNode.addEventListener('click', handleCardClick);
+      gridNode.addEventListener('click', handleCardClick);
       }
       if (bonusInput) {
         bonusInput.addEventListener('input', handleBonusInput);
@@ -3383,6 +3462,76 @@ const featsModule = (() => {
       if (activeStep) {
         render({ useFormValues: true });
       }
+    },
+    applyQuickAdd(payloads = []) {
+      if (!Array.isArray(payloads) || !payloads.length) {
+        return null;
+      }
+      const applied = [];
+      const additions = [];
+      const duplicates = [];
+      const missing = [];
+      const previousSelected = new Set(selected);
+      const previousStructured = structuredSelections.map((entry) => cloneSelection(entry));
+
+      payloads.forEach((payload) => {
+        if (!payload || typeof payload !== 'object') return;
+        const candidate = payload.slug || payload.id || payload.name || payload.key;
+        if (!candidate) {
+          missing.push(payload);
+          return;
+        }
+        const key = resolveFeatKey(candidate);
+        if (!key) {
+          missing.push(payload);
+          return;
+        }
+        applied.push(payload);
+        highlightKeys.add(key);
+        if (selected.has(key)) {
+          duplicates.push(getFeatEntry(key)?.name || key);
+          return;
+        }
+        const feat = getFeatEntry(key);
+        selected.add(key);
+        additions.push(feat?.name || key);
+      });
+
+      if (!applied.length) {
+        return { applied: [], message: '', undo: null };
+      }
+
+      let undo = null;
+      let undoMessage = '';
+      if (additions.length) {
+        commitSelections(previousStructured);
+        render({ useFormValues: true });
+        undo = () => {
+          selected = new Set(previousSelected);
+          commitSelections(previousStructured);
+          render({ useFormValues: true });
+        };
+        undoMessage = `Removed ${formatList(additions)} from feats.`;
+      } else {
+        render({ useFormValues: true });
+      }
+
+      let message = '';
+      if (additions.length && duplicates.length) {
+        message = `Added ${formatList(additions)} to feats. Already tracking ${formatList(duplicates)}.`;
+      } else if (additions.length) {
+        message = `Added ${formatList(additions)} to feats.`;
+      } else if (duplicates.length) {
+        message = `Already tracking ${formatList(duplicates)} in feats.`;
+      }
+
+      return {
+        applied,
+        message,
+        undo,
+        undoMessage: additions.length ? undoMessage : '',
+        remaining: missing
+      };
     }
   };
 })();
@@ -3397,6 +3546,7 @@ const equipmentModule = (() => {
   let section = null;
   let summaryNode = null;
   let attunementFeedback = null;
+  const highlightKeys = new Set();
 
   function syncStateFromData(data) {
     const parsed = getEquipmentRecordsFromFormData(data || {});
@@ -3434,8 +3584,16 @@ const equipmentModule = (() => {
       id: null,
       name: trimmed,
       quantity: category === 'attunements' ? 1 : quantity,
-      custom: true
-    };
+    custom: true
+  };
+  }
+
+  function categorizeQuickAddItem(item) {
+    if (!item) return 'gear';
+    const category = String(item.category || '').toLowerCase();
+    if (category.includes('weapon')) return 'weapons';
+    if (category.includes('armor') || category.includes('shield')) return 'armor';
+    return 'gear';
   }
 
   function renderOptions() {
@@ -3588,6 +3746,18 @@ const equipmentModule = (() => {
       itemNode.appendChild(controls);
 
       listNode.appendChild(itemNode);
+      if (highlightKeys.has(key)) {
+        highlightKeys.delete(key);
+        requestAnimationFrame(() => {
+          if (!itemNode.isConnected) return;
+          itemNode.classList.add('quick-add-highlight');
+          window.setTimeout(() => {
+            if (itemNode.isConnected) {
+              itemNode.classList.remove('quick-add-highlight');
+            }
+          }, 2000);
+        });
+      }
     });
   }
 
@@ -3845,6 +4015,109 @@ const equipmentModule = (() => {
     },
     onStatePersisted() {
       render();
+    },
+    applyQuickAdd(payloads = []) {
+      if (!Array.isArray(payloads) || !payloads.length) {
+        return null;
+      }
+      const applied = [];
+      const missing = [];
+      const updates = new Map();
+      const previous = new Map();
+      const additions = [];
+
+      payloads.forEach((payload) => {
+        if (!payload || typeof payload !== 'object') return;
+        const type = String(payload.type || '').toLowerCase();
+        if (type && type !== 'item') {
+          missing.push(payload);
+          return;
+        }
+        const identifier = payload.slug || payload.id || payload.name;
+        if (!identifier) {
+          missing.push(payload);
+          return;
+        }
+        const item = findEntry(getPackData().items || [], identifier);
+        if (!item) {
+          missing.push(payload);
+          return;
+        }
+        const category = categorizeQuickAddItem(item);
+        if (!category) {
+          missing.push(payload);
+          return;
+        }
+        const current = updates.has(category)
+          ? updates.get(category)
+          : (equipmentState[category] || []).map((entry) => ({ ...entry }));
+        if (!previous.has(category)) {
+          previous.set(category, (equipmentState[category] || []).map((entry) => ({ ...entry })));
+        }
+        const record = {
+          slug: item.slug || null,
+          id: item.id || null,
+          name: item.name || identifier,
+          quantity: category === 'attunements' ? 1 : 1,
+          custom: false,
+          notes: ''
+        };
+        const key = getEquipmentRecordKey(record);
+        const next = mergeEquipmentEntries([...current, record]);
+        updates.set(category, next);
+        const nextEntry = next.find((entry) => getEquipmentRecordKey(entry) === key) || record;
+        const totalQuantity = Number.isFinite(nextEntry.quantity) ? nextEntry.quantity : 1;
+        const wasNew = !current.some((entry) => getEquipmentRecordKey(entry) === key);
+        highlightKeys.add(key);
+        applied.push(payload);
+        additions.push({
+          name: item.name || record.name || key,
+          category,
+          newEntry: wasNew,
+          total: totalQuantity
+        });
+      });
+
+      if (!applied.length) {
+        return { applied: [], message: '', undo: null, remaining: missing };
+      }
+
+      updates.forEach((list, category) => {
+        equipmentState[category] = list.map((entry) => ({ ...entry }));
+        setFieldValue(category, list);
+      });
+      render({ useFormValues: true });
+
+      let undo = null;
+      let undoMessage = '';
+      if (previous.size) {
+        undo = () => {
+          previous.forEach((list, category) => {
+            equipmentState[category] = list.map((entry) => ({ ...entry }));
+            setFieldValue(category, equipmentState[category]);
+          });
+          render({ useFormValues: true });
+        };
+        if (additions.length) {
+          undoMessage = `Removed ${formatList(additions.map((entry) => entry.name))} from equipment.`;
+        }
+      }
+
+      const labels = additions.map((entry) => {
+        if (entry.newEntry) return entry.name;
+        return `${entry.name} (now ${entry.total})`;
+      });
+      const message = labels.length
+        ? `Added ${formatList(labels)} to equipment.`
+        : 'Updated equipment.';
+
+      return {
+        applied,
+        message,
+        undo,
+        undoMessage,
+        remaining: missing
+      };
     }
   };
 })();
@@ -4593,6 +4866,179 @@ const moduleDefinitions = {
   finalize: finalizeModule
 };
 
+const quickAddManager = (() => {
+  let pending = loadQuickAddQueue();
+  let ready = false;
+  let processing = false;
+  let toastHost = null;
+
+  function ensureToastHost() {
+    if (toastHost && toastHost.isConnected) {
+      return toastHost;
+    }
+    const host = document.createElement('div');
+    host.className = 'builder-toast-host';
+    host.setAttribute('aria-live', 'polite');
+    host.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(host);
+    toastHost = host;
+    return toastHost;
+  }
+
+  function removeToast(node) {
+    if (!node || !node.isConnected) return;
+    node.classList.add('builder-toast-dismissed');
+    window.setTimeout(() => {
+      if (node.isConnected) {
+        node.remove();
+      }
+    }, 180);
+  }
+
+  function showToast(message, { undo = null, undoMessage = '', duration = 4800 } = {}) {
+    if (!message) return;
+    const host = ensureToastHost();
+    const toast = document.createElement('div');
+    toast.className = 'builder-toast';
+    const text = document.createElement('span');
+    text.className = 'builder-toast-message';
+    text.textContent = message;
+    toast.appendChild(text);
+    if (typeof undo === 'function') {
+      const action = document.createElement('button');
+      action.type = 'button';
+      action.className = 'builder-toast-undo';
+      action.textContent = 'Undo';
+      action.addEventListener('click', () => {
+        try {
+          undo();
+        } catch (error) {
+          console.warn('Failed to undo quick add', error);
+        }
+        if (undoMessage) {
+          showToast(undoMessage, { duration: 3200 });
+        }
+        removeToast(toast);
+      });
+      toast.appendChild(action);
+    }
+    host.appendChild(toast);
+    const ttl = Number.isFinite(duration) ? duration : 4800;
+    if (ttl > 0) {
+      window.setTimeout(() => removeToast(toast), ttl);
+    }
+  }
+
+  function categorizePayload(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const type = String(payload.type || '').toLowerCase();
+    if (type === 'item') return 'equipment';
+    if (type === 'feat') return 'feats';
+    if (type === 'spell') return 'spells';
+    return null;
+  }
+
+  function persist() {
+    persistQuickAddQueue(pending);
+  }
+
+  function processQueue() {
+    if (!ready || processing) return;
+    if (!pending.length) {
+      persist();
+      return;
+    }
+    processing = true;
+    try {
+      const groups = new Map();
+      const leftovers = [];
+      pending.forEach((payload) => {
+        const moduleId = categorizePayload(payload);
+        if (!moduleId) {
+          leftovers.push(payload);
+          return;
+        }
+        const module = stepModules.get(moduleId);
+        if (!module || typeof module.applyQuickAdd !== 'function') {
+          leftovers.push(payload);
+          return;
+        }
+        if (!groups.has(moduleId)) {
+          groups.set(moduleId, []);
+        }
+        groups.get(moduleId).push(payload);
+      });
+
+      const results = [];
+      groups.forEach((payloads, moduleId) => {
+        const module = stepModules.get(moduleId);
+        if (!module || typeof module.applyQuickAdd !== 'function') {
+          payloads.forEach((payload) => leftovers.push(payload));
+          return;
+        }
+        let result = null;
+        try {
+          result = module.applyQuickAdd(payloads, { source: 'quick-add' }) || null;
+        } catch (error) {
+          console.warn('Failed to apply quick-add payloads', error);
+        }
+        const appliedSet = new Set(Array.isArray(result?.applied) ? result.applied : []);
+        payloads.forEach((payload) => {
+          if (!appliedSet.has(payload)) {
+            leftovers.push(payload);
+          }
+        });
+        if (result && appliedSet.size) {
+          results.push(result);
+        }
+      });
+
+      pending = leftovers;
+      persist();
+      results.forEach((result) => {
+        if (!result || !result.message) return;
+        showToast(result.message, {
+          undo: typeof result.undo === 'function' ? result.undo : null,
+          undoMessage: result.undoMessage || ''
+        });
+      });
+    } finally {
+      processing = false;
+    }
+  }
+
+  function enqueue(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    pending.unshift(payload);
+    if (pending.length > 50) {
+      pending.length = 50;
+    }
+    persist();
+    processQueue();
+  }
+
+  return {
+    init() {
+      pending = Array.isArray(pending) ? pending : [];
+      window.addEventListener('dnd-builder-quick-add', (event) => {
+        if (!event || !event.detail) return;
+        enqueue(event.detail);
+      });
+    },
+    ready() {
+      if (ready) return;
+      ready = true;
+      processQueue();
+    },
+    onPackData() {
+      processQueue();
+    },
+    enqueue
+  };
+})();
+
+quickAddManager.init();
+
 function setupStepModules() {
   steps.forEach((section) => {
     const module = moduleDefinitions[section.dataset.step];
@@ -5017,6 +5463,7 @@ async function init() {
   window.addEventListener('beforeunload', () => {
     persistState({ skipHistory: true, preserveTimestamp: true });
   });
+  quickAddManager.ready();
 }
 
 if (document.readyState === 'loading') {
