@@ -384,6 +384,329 @@
       gap: 0.85rem;
     }
 
+    .wildshape-manager {
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 1rem;
+      background: rgba(14, 20, 35, 0.65);
+      padding: 1rem 1.1rem 1.15rem;
+      display: grid;
+      gap: 0.85rem;
+      box-shadow: 0 20px 45px -38px rgba(4, 7, 15, 0.65);
+    }
+
+    .wildshape-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .wildshape-header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .wildshape-header p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 60ch;
+    }
+
+    .wildshape-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .wildshape-toolbar label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      min-width: 160px;
+    }
+
+    .wildshape-toolbar input[type="search"],
+    .wildshape-toolbar select {
+      appearance: none;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 0.5rem 0.75rem;
+      background: rgba(20, 27, 43, 0.78);
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
+
+    .wildshape-toolbar input[type="search"]::placeholder {
+      color: color-mix(in srgb, var(--muted) 75%, transparent 25%);
+    }
+
+    .wildshape-body {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: minmax(220px, 1fr) minmax(280px, 1.45fr) minmax(200px, 0.95fr);
+      align-items: start;
+    }
+
+    .wildshape-list,
+    .wildshape-detail,
+    .wildshape-tracked {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 0.95rem;
+      background: rgba(12, 18, 32, 0.75);
+      padding: 0.75rem 0.85rem;
+      display: grid;
+      gap: 0.65rem;
+      min-height: 220px;
+    }
+
+    .wildshape-list {
+      max-height: clamp(220px, 45vh, 420px);
+      overflow-y: auto;
+    }
+
+    .wildshape-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color var(--transition-base), background var(--transition-base), transform 140ms ease;
+      width: 100%;
+    }
+
+    .wildshape-option > div {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .wildshape-option strong {
+      font-size: 0.9rem;
+    }
+
+    .wildshape-option small {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      line-height: 1.4;
+      max-width: 32ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
+
+    .wildshape-option .wildshape-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .wildshape-option .wildshape-tags span {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 0.15rem 0.45rem;
+      white-space: nowrap;
+    }
+
+    .wildshape-option:hover,
+    .wildshape-option:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent 45%);
+      background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.08) 82%);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .wildshape-option[data-active="true"] {
+      border-color: color-mix(in srgb, var(--accent) 75%, transparent 25%);
+      background: color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.08) 72%);
+    }
+
+    .wildshape-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .wildshape-detail header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+    }
+
+    .wildshape-detail header h4 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .wildshape-detail header span {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .wildshape-detail p {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .wildshape-detail .summary-companion-summary {
+      color: var(--muted-strong);
+    }
+
+    .wildshape-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0.2rem;
+    }
+
+    .wildshape-actions button {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.4rem 0.65rem;
+      cursor: pointer;
+    }
+
+    .wildshape-actions button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .wildshape-detail .companion-traits {
+      margin: 0;
+      padding-left: 1.2rem;
+      display: grid;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .wildshape-traits-more {
+      list-style: none;
+      padding-left: 0;
+      font-style: italic;
+      color: color-mix(in srgb, var(--muted) 90%, transparent 10%);
+    }
+
+    .wildshape-tracked {
+      align-content: start;
+    }
+
+    .wildshape-tracked h4 {
+      margin: 0;
+      font-size: 0.9rem;
+    }
+
+    .wildshape-tracked-empty {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .wildshape-tracked-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .wildshape-tracked-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.45rem 0.6rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .wildshape-tracked-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      align-items: flex-start;
+    }
+
+    .wildshape-tracked-main small {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    .wildshape-tracked-name {
+      border: none;
+      background: none;
+      color: var(--fg);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      padding: 0;
+      text-align: left;
+    }
+
+    .wildshape-tracked-name:hover,
+    .wildshape-tracked-name:focus-visible {
+      color: var(--accent);
+      outline: none;
+    }
+
+    .wildshape-tracked-name[data-active="true"] {
+      color: var(--accent);
+    }
+
+    .wildshape-tracked button[data-wildshape-action="remove"] {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted-strong);
+      font-size: 0.72rem;
+      padding: 0.25rem 0.6rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .wildshape-tracked button[data-wildshape-action="remove"]:hover,
+    .wildshape-tracked button[data-wildshape-action="remove"]:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 45%, transparent 55%);
+      color: var(--accent);
+      outline: none;
+    }
+
+    @media (max-width: 1080px) {
+      .wildshape-body {
+        grid-template-columns: minmax(220px, 1fr) minmax(280px, 1fr);
+      }
+      .wildshape-tracked {
+        order: 3;
+      }
+    }
+
+    @media (max-width: 840px) {
+      .wildshape-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
     .companion-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -992,6 +1315,84 @@
     .summary-companion-card header span {
       font-size: 0.72rem;
       color: var(--muted);
+    }
+
+    .wildshape-selector {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      max-width: 280px;
+    }
+
+    .wildshape-selector select {
+      appearance: none;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 0.5rem 0.7rem;
+      background: rgba(20, 27, 43, 0.78);
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
+
+    .wildshape-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.3rem;
+    }
+
+    .wildshape-controls button {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.45rem 0.75rem;
+      cursor: pointer;
+      transition: background var(--transition-base), border-color var(--transition-base);
+    }
+
+    .wildshape-controls button:hover,
+    .wildshape-controls button:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent 45%);
+      background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.05) 78%);
+      outline: none;
+    }
+
+    .wildshape-controls button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .wildshape-hp-controls {
+      display: grid;
+      gap: 0.55rem;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      margin-top: 0.4rem;
+    }
+
+    .wildshape-hp-controls label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .wildshape-hp-controls input {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      padding: 0.5rem 0.7rem;
+      background: rgba(20, 27, 43, 0.78);
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
+
+    .wildshape-card {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
     }
     .summary-companion-summary {
       margin: 0;
@@ -2052,6 +2453,37 @@
             </div>
             <div class="companion-detail" data-familiar-detail>
               <p>Select a companion to view its statistics and description.</p>
+            </div>
+          </div>
+        </div>
+        <div class="wildshape-manager" data-wildshape-root>
+          <header class="wildshape-header">
+            <div>
+              <h3>Wild Shape Forms</h3>
+              <p>Track beast forms you can assume, filter them by challenge rating, and store their core statistics.</p>
+            </div>
+          </header>
+          <div class="wildshape-toolbar">
+            <label>Search beasts
+              <input type="search" data-wildshape-search placeholder="Search beasts" autocomplete="off" />
+            </label>
+            <label>Max CR
+              <select data-wildshape-filter="cr">
+                <option value="">Any CR</option>
+              </select>
+            </label>
+          </div>
+          <div class="wildshape-body">
+            <div class="wildshape-list" data-wildshape-list role="listbox" aria-label="Available beasts">
+              <p class="wildshape-empty" data-wildshape-empty>No beast forms loaded yet.</p>
+            </div>
+            <div class="wildshape-detail" data-wildshape-detail>
+              <p>Select a beast to review its statistics. Add tracked forms for quick access in the summary.</p>
+            </div>
+            <div class="wildshape-tracked" data-wildshape-tracked>
+              <h4>Tracked forms</h4>
+              <p class="wildshape-tracked-empty" data-wildshape-tracked-empty>No forms tracked yet.</p>
+              <ul class="wildshape-tracked-list" data-wildshape-tracked-list></ul>
             </div>
           </div>
         </div>

@@ -253,7 +253,8 @@ let packData = {
   backgrounds: [],
   feats: [],
   items: [],
-  companions: []
+  companions: [],
+  monsters: []
 };
 
 function cloneState(value) {
@@ -563,7 +564,8 @@ function setPackData(data) {
     backgrounds: Array.isArray(data?.backgrounds) ? data.backgrounds : [],
     feats: Array.isArray(data?.feats) ? data.feats : [],
     items: Array.isArray(data?.items) ? data.items : [],
-    companions: Array.isArray(data?.companions) ? data.companions : []
+    companions: Array.isArray(data?.companions) ? data.companions : [],
+    monsters: Array.isArray(data?.monsters) ? data.monsters : []
   };
   window.dndBuilderData = packData;
 }
@@ -4535,6 +4537,16 @@ const familiarModule = (() => {
   const filterNodes = new Map();
   const overrideInputs = new Map();
 
+  let wildshapeRoot = null;
+  let wildshapeListNode = null;
+  let wildshapeDetailNode = null;
+  let wildshapeEmptyState = null;
+  let wildshapeTrackedNode = null;
+  let wildshapeTrackedList = null;
+  let wildshapeTrackedEmpty = null;
+  let wildshapeSearchInput = null;
+  const wildshapeFilterNodes = new Map();
+
   let companions = [];
   let companionMap = new Map();
   let filtered = [];
@@ -4544,10 +4556,56 @@ const familiarModule = (() => {
   let selectedRawId = '';
   let syncing = false;
   let entryOrder = 0;
+  let beastEntryOrder = 0;
   let lastSnapshot = null;
+
+  let beasts = [];
+  let beastMap = new Map();
+  let beastFiltered = [];
+  let beastSearchTerm = '';
+  let beastFilters = { cr: '' };
+  let beastSelectedKey = '';
+  let trackedForms = [];
 
   function normalizeId(value) {
     return value ? String(value).trim().toLowerCase() : '';
+  }
+
+  function formatSkills(value) {
+    if (!value) return '';
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => (entry && typeof entry === 'object' ? `${entry.name || entry.skill || ''} ${entry.value || entry.bonus || ''}` : entry))
+        .filter(Boolean)
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      return Object.entries(value)
+        .map(([key, val]) => `${key} ${val}`)
+        .join(', ');
+    }
+    return String(value);
+  }
+
+  function formatSenses(value) {
+    if (!value) return '';
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => (entry && typeof entry === 'object' ? entry.name || entry.type || entry.value || '' : entry))
+        .filter(Boolean)
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      return Object.values(value)
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    return String(value);
   }
 
   function parseCrValue(value) {
@@ -4754,6 +4812,25 @@ const familiarModule = (() => {
 
   function parseCompanionStat(value) {
     if (Number.isFinite(value)) return value;
+    if (Array.isArray(value)) {
+      for (let i = 0; i < value.length; i += 1) {
+        const parsed = parseCompanionStat(value[i]);
+        if (parsed !== null && parsed !== undefined) {
+          return parsed;
+        }
+      }
+      return null;
+    }
+    if (value && typeof value === 'object') {
+      const candidates = [value.value, value.base, value.amount, value.score, value.max];
+      for (let i = 0; i < candidates.length; i += 1) {
+        const parsed = parseCompanionStat(candidates[i]);
+        if (parsed !== null && parsed !== undefined) {
+          return parsed;
+        }
+      }
+      return null;
+    }
     const parsed = Number.parseInt(value, 10);
     return Number.isFinite(parsed) ? parsed : null;
   }
@@ -4812,6 +4889,158 @@ const familiarModule = (() => {
     });
   }
 
+  function normalizeBeast(entry) {
+    if (!entry) return null;
+    const creatureType = entry.creatureType || entry.creature_type || entry.type || '';
+    if (!creatureType || !/beast/i.test(String(creatureType))) {
+      return null;
+    }
+    const id = entry.slug || entry.id || entry.name;
+    const key = normalizeId(id);
+    if (!key) return null;
+    const name = entry.name ? String(entry.name) : id;
+    const ac = parseCompanionStat(entry.ac ?? entry.armorClass ?? entry.armor_class);
+    const hp = parseCompanionStat(entry.hp ?? entry.hitPoints ?? entry.hit_points);
+    const speed = formatSpeed(entry.speed ?? entry.speeds ?? entry.movement);
+    const crText = entry.cr ?? entry.challengeRating ?? entry.challenge_rating ?? '';
+    const crLabel = crText ? String(crText) : '';
+    const crValue = parseCrValue(crLabel);
+    const size = entry.size ? String(entry.size) : '';
+    const alignment = entry.alignment ? String(entry.alignment) : '';
+    const senses = formatSenses(entry.senses);
+    const skills = formatSkills(entry.skills);
+    const traits = normalizeTraits(entry.traits);
+    const summary = entry.summary || entry.description || '';
+    const source = entry.source && typeof entry.source === 'object'
+      ? entry.source.name || entry.source.title || entry.source.id || ''
+      : entry.sourceId || entry.source || '';
+    const searchTokens = [
+      name,
+      summary,
+      traits.join(' '),
+      senses,
+      skills,
+      size,
+      alignment,
+      creatureType
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    return {
+      id,
+      key,
+      name,
+      summary,
+      ac,
+      hp,
+      speed,
+      crLabel,
+      crValue,
+      size,
+      type: String(creatureType),
+      alignment,
+      senses,
+      skills,
+      traits,
+      source: source ? String(source) : '',
+      searchTokens,
+      order: (beastEntryOrder += 1)
+    };
+  }
+
+  function sanitizeBeastMeta(meta) {
+    if (!meta || typeof meta !== 'object') return null;
+    const id = meta.slug || meta.id || meta.name;
+    const snapshotId = id ? String(id).trim() : '';
+    if (!snapshotId) return null;
+    return {
+      id: snapshotId,
+      name: meta.name ? String(meta.name) : snapshotId,
+      summary: meta.summary ? String(meta.summary) : '',
+      ac: parseCompanionStat(meta.ac ?? meta.armorClass ?? meta.armor_class),
+      hp: parseCompanionStat(meta.hp ?? meta.hitPoints ?? meta.hit_points),
+      speed: formatSpeed(meta.speed ?? meta.speeds ?? meta.movement),
+      cr: meta.crLabel ?? meta.cr ?? meta.challengeRating ?? meta.challenge_rating ?? '',
+      size: meta.size ? String(meta.size) : '',
+      type: meta.type ? String(meta.type) : '',
+      alignment: meta.alignment ? String(meta.alignment) : '',
+      senses: formatSenses(meta.senses),
+      skills: formatSkills(meta.skills),
+      traits: normalizeTraits(meta.traits),
+      source: meta.source ? String(meta.source) : ''
+    };
+  }
+
+  function createBeastSnapshot(entry) {
+    if (!entry) return null;
+    return sanitizeBeastMeta({
+      id: entry.id,
+      name: entry.name,
+      summary: entry.summary,
+      ac: entry.ac,
+      hp: entry.hp,
+      speed: entry.speed,
+      crLabel: entry.crLabel,
+      size: entry.size,
+      type: entry.type,
+      alignment: entry.alignment,
+      senses: entry.senses,
+      skills: entry.skills,
+      traits: entry.traits,
+      source: entry.source
+    });
+  }
+
+  function normalizeTrackedForm(entry) {
+    if (!entry || typeof entry !== 'object') return null;
+    const id = entry.id || entry.slug || entry.name;
+    const key = normalizeId(id);
+    if (!key) return null;
+    const snapshot = sanitizeBeastMeta(entry.meta || entry);
+    if (!snapshot) return null;
+    return {
+      id: snapshot.id,
+      key,
+      name: snapshot.name,
+      summary: snapshot.summary || entry.summary || '',
+      ac: snapshot.ac,
+      hp: snapshot.hp,
+      speed: snapshot.speed,
+      cr: snapshot.cr || entry.cr || '',
+      size: snapshot.size,
+      type: snapshot.type,
+      alignment: snapshot.alignment,
+      senses: snapshot.senses,
+      skills: snapshot.skills,
+      traits: Array.isArray(snapshot.traits) ? snapshot.traits.slice() : [],
+      source: snapshot.source,
+      meta: snapshot
+    };
+  }
+
+  function compareBeasts(a, b) {
+    if (!a && !b) return 0;
+    if (!a) return 1;
+    if (!b) return -1;
+    const aFinite = Number.isFinite(a.crValue);
+    const bFinite = Number.isFinite(b.crValue);
+    if (aFinite && bFinite && a.crValue !== b.crValue) {
+      return a.crValue - b.crValue;
+    }
+    if (aFinite && !bFinite) {
+      return -1;
+    }
+    if (!aFinite && bFinite) {
+      return 1;
+    }
+    const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+    if (nameCompare !== 0) {
+      return nameCompare;
+    }
+    return a.order - b.order;
+  }
+
   function rebuildCompanions() {
     const data = getPackData();
     const entries = Array.isArray(data?.companions) ? data.companions : [];
@@ -4822,6 +5051,20 @@ const familiarModule = (() => {
     companionMap = new Map();
     companions.forEach((entry) => {
       companionMap.set(entry.key, entry);
+    });
+  }
+
+  function rebuildBeasts() {
+    const data = getPackData();
+    const entries = Array.isArray(data?.monsters) ? data.monsters : [];
+    beastEntryOrder = 0;
+    beasts = entries
+      .map(normalizeBeast)
+      .filter(Boolean)
+      .sort(compareBeasts);
+    beastMap = new Map();
+    beasts.forEach((entry) => {
+      beastMap.set(entry.key, entry);
     });
   }
 
@@ -4920,6 +5163,57 @@ const familiarModule = (() => {
       }
       return a.order - b.order;
     });
+  }
+
+  function populateBeastFilterOptions() {
+    const crSelect = wildshapeFilterNodes.get('cr');
+    if (!crSelect) return;
+    const previous = crSelect.value;
+    while (crSelect.options.length > 1) {
+      crSelect.remove(1);
+    }
+    const seen = new Map();
+    beasts.forEach((entry) => {
+      if (!Number.isFinite(entry.crValue)) return;
+      const key = entry.crValue;
+      if (!seen.has(key)) {
+        seen.set(key, { value: key, label: entry.crLabel || String(entry.crValue) });
+      }
+    });
+    Array.from(seen.values())
+      .sort((a, b) => a.value - b.value)
+      .forEach((meta) => {
+        const option = document.createElement('option');
+        option.value = String(meta.value);
+        option.textContent = meta.label;
+        crSelect.appendChild(option);
+      });
+    if (previous && seen.has(Number.parseFloat(previous))) {
+      crSelect.value = previous;
+    } else {
+      crSelect.value = '';
+      beastFilters.cr = '';
+    }
+  }
+
+  function applyBeastFilters() {
+    const search = beastSearchTerm.trim().toLowerCase();
+    const crFilter = beastFilters.cr ? Number.parseFloat(beastFilters.cr) : null;
+    beastFiltered = beasts.filter((entry) => {
+      if (Number.isFinite(crFilter) && entry.crValue > crFilter) {
+        return false;
+      }
+      if (search) {
+        if (!entry.searchTokens.includes(search)) {
+          const haystack = `${entry.name} ${entry.summary}`.toLowerCase();
+          if (!haystack.includes(search)) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    beastFiltered.sort(compareBeasts);
   }
 
   function renderList() {
@@ -5026,6 +5320,193 @@ const familiarModule = (() => {
     `;
   }
 
+  function ensureBeastSelection({ notify = false } = {}) {
+    const previousKey = beastSelectedKey;
+    const hasInFiltered = beastSelectedKey
+      ? beastFiltered.some((entry) => entry.key === beastSelectedKey)
+      : false;
+    if (!hasInFiltered) {
+      if (beastFiltered.length) {
+        beastSelectedKey = beastFiltered[0].key;
+      } else {
+        beastSelectedKey = '';
+      }
+    }
+    const changed = previousKey !== beastSelectedKey;
+    if (changed && notify) {
+      syncHiddenField(true);
+    }
+    return changed;
+  }
+
+  function setBeastSelection(id, { userTriggered = false } = {}) {
+    const key = normalizeId(id);
+    if (key && (beastMap.has(key) || trackedForms.some((form) => form.key === key))) {
+      beastSelectedKey = key;
+    } else if (key === '') {
+      beastSelectedKey = '';
+    } else {
+      ensureBeastSelection();
+    }
+    renderWildshapeList();
+    renderWildshapeDetail();
+    renderTrackedForms();
+    if (userTriggered) {
+      syncHiddenField(true);
+    }
+  }
+
+  function renderWildshapeList() {
+    if (!wildshapeListNode) return;
+    wildshapeListNode.innerHTML = '';
+    if (!beastFiltered.length) {
+      if (wildshapeEmptyState) {
+        wildshapeEmptyState.hidden = false;
+        wildshapeListNode.appendChild(wildshapeEmptyState);
+      }
+      return;
+    }
+    if (wildshapeEmptyState) {
+      wildshapeEmptyState.hidden = true;
+    }
+    beastFiltered.forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'wildshape-option';
+      button.dataset.beastId = entry.id;
+      button.dataset.active = entry.key === beastSelectedKey ? 'true' : 'false';
+      button.setAttribute('role', 'option');
+      button.setAttribute('aria-selected', entry.key === beastSelectedKey ? 'true' : 'false');
+      const subtitle = entry.summary ? `<small>${entry.summary}</small>` : '';
+      const tags = [];
+      if (entry.crLabel) tags.push(`CR ${entry.crLabel}`);
+      if (entry.size) tags.push(entry.size);
+      if (entry.type) tags.push(entry.type);
+      const tagMarkup = tags.length
+        ? `<div class="wildshape-tags">${tags.map((tag) => `<span>${tag}</span>`).join('')}</div>`
+        : '';
+      button.innerHTML = `
+        <div>
+          <strong>${entry.name}</strong>
+          ${subtitle}
+        </div>
+        ${tagMarkup}
+      `;
+      wildshapeListNode.appendChild(button);
+    });
+  }
+
+  function renderWildshapeDetail() {
+    if (!wildshapeDetailNode) return;
+    const entry = beastMap.get(beastSelectedKey)
+      || trackedForms.find((form) => form.key === beastSelectedKey)
+      || null;
+    if (!entry) {
+      wildshapeDetailNode.innerHTML = '<p>Select a beast to review its statistics. Add tracked forms for quick access in the summary.</p>';
+      return;
+    }
+    const tracked = trackedForms.some((form) => form.key === beastSelectedKey);
+    const chips = [];
+    if (entry.ac !== null && entry.ac !== undefined) {
+      chips.push(`<span class="companion-chip">AC <strong>${entry.ac}</strong></span>`);
+    }
+    if (entry.hp !== null && entry.hp !== undefined) {
+      chips.push(`<span class="companion-chip">HP <strong>${entry.hp}</strong></span>`);
+    }
+    if (entry.speed) {
+      chips.push(`<span class="companion-chip">Speed <strong>${entry.speed}</strong></span>`);
+    }
+    const details = [];
+    if (entry.crLabel) details.push(`CR ${entry.crLabel}`);
+    else if (entry.cr) details.push(`CR ${entry.cr}`);
+    if (entry.size) details.push(entry.size);
+    if (entry.type) details.push(entry.type);
+    if (entry.alignment) details.push(entry.alignment);
+    const detailLine = details.length ? `<span>${details.join(' · ')}</span>` : '';
+    const traitList = Array.isArray(entry.traits) ? entry.traits : [];
+    const visibleTraits = traitList.slice(0, 8);
+    const extraCount = Math.max(0, traitList.length - visibleTraits.length);
+    const traitsMarkup = visibleTraits.length
+      ? `<ul class="companion-traits">${visibleTraits.map((trait) => `<li>${trait}</li>`).join('')}${extraCount ? `<li class="wildshape-traits-more">+${extraCount} more trait${extraCount === 1 ? '' : 's'} not shown</li>` : ''}</ul>`
+      : '';
+    const metaParts = [];
+    if (entry.senses) metaParts.push(`<p class="summary-companion-meta">Senses: ${entry.senses}</p>`);
+    if (entry.skills) metaParts.push(`<p class="summary-companion-meta">Skills: ${entry.skills}</p>`);
+    if (entry.source) metaParts.push(`<p class="summary-companion-meta">Source: ${entry.source}</p>`);
+    const buttonLabel = tracked ? 'Tracked' : 'Track form';
+    const disabledAttr = tracked ? 'disabled' : '';
+    wildshapeDetailNode.innerHTML = `
+      <header>
+        <h4>${entry.name}</h4>
+        ${detailLine}
+      </header>
+      ${entry.summary ? `<p class="summary-companion-summary">${entry.summary}</p>` : ''}
+      ${chips.length ? `<div class="summary-companion-stats">${chips.join('')}</div>` : ''}
+      <div class="wildshape-actions">
+        <button type="button" data-wildshape-action="track" data-beast-id="${entry.id}" ${disabledAttr}>${buttonLabel}</button>
+      </div>
+      ${metaParts.join('')}
+      ${traitsMarkup}
+    `;
+  }
+
+  function renderTrackedForms() {
+    if (!wildshapeTrackedList) return;
+    wildshapeTrackedList.innerHTML = '';
+    if (!trackedForms.length) {
+      if (wildshapeTrackedEmpty) {
+        wildshapeTrackedEmpty.hidden = false;
+      }
+      return;
+    }
+    if (wildshapeTrackedEmpty) {
+      wildshapeTrackedEmpty.hidden = true;
+    }
+    trackedForms.forEach((form) => {
+      const item = document.createElement('li');
+      item.dataset.trackedKey = form.key;
+      item.dataset.active = form.key === beastSelectedKey ? 'true' : 'false';
+      const detailParts = [];
+      if (form.cr) detailParts.push(`CR ${form.cr}`);
+      if (form.size) detailParts.push(form.size);
+      if (form.type) detailParts.push(form.type);
+      const meta = detailParts.length ? `<small>${detailParts.join(' · ')}</small>` : '';
+      item.innerHTML = `
+        <div class="wildshape-tracked-main">
+          <button type="button" data-wildshape-select="${form.id}" class="wildshape-tracked-name" data-active="${form.key === beastSelectedKey ? 'true' : 'false'}">${form.name}</button>
+          ${meta}
+        </div>
+        <button type="button" data-wildshape-action="remove" data-tracked-key="${form.key}">Remove</button>
+      `;
+      wildshapeTrackedList.appendChild(item);
+    });
+  }
+
+  function addTrackedForm(entry) {
+    const normalized = normalizeTrackedForm(entry);
+    if (!normalized) return;
+    if (trackedForms.some((form) => form.key === normalized.key)) return;
+    trackedForms.push(normalized);
+    renderTrackedForms();
+    renderWildshapeDetail();
+    syncHiddenField(true);
+  }
+
+  function removeTrackedForm(key) {
+    const normalizedKey = normalizeId(key);
+    const beforeLength = trackedForms.length;
+    trackedForms = trackedForms.filter((form) => form.key !== normalizedKey);
+    if (trackedForms.length !== beforeLength) {
+      const selectionAdjusted = ensureBeastSelection({ notify: true });
+      renderTrackedForms();
+      renderWildshapeList();
+      renderWildshapeDetail();
+      if (!selectionAdjusted) {
+        syncHiddenField(true);
+      }
+    }
+  }
+
   function getOverrides() {
     const overrides = {};
     const acInput = overrideInputs.get('ac');
@@ -5107,6 +5588,69 @@ const familiarModule = (() => {
     renderList();
   }
 
+  function handleWildshapeListClick(event) {
+    const target = event.target.closest('[data-beast-id]');
+    if (!target) return;
+    const { beastId } = target.dataset;
+    if (!beastId) return;
+    if (normalizeId(beastId) === beastSelectedKey) return;
+    setBeastSelection(beastId, { userTriggered: true });
+  }
+
+  function handleWildshapeSearchInput(event) {
+    beastSearchTerm = event.target.value || '';
+    applyBeastFilters();
+    const selectionChanged = ensureBeastSelection({ notify: true });
+    renderWildshapeList();
+    renderWildshapeDetail();
+    if (selectionChanged) {
+      renderTrackedForms();
+    }
+  }
+
+  function handleWildshapeFilterChange(event) {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
+    const key = select.dataset.wildshapeFilter;
+    if (!key) return;
+    beastFilters = { ...beastFilters, [key]: select.value };
+    applyBeastFilters();
+    const selectionChanged = ensureBeastSelection({ notify: true });
+    renderWildshapeList();
+    renderWildshapeDetail();
+    if (selectionChanged) {
+      renderTrackedForms();
+    }
+  }
+
+  function handleWildshapeClick(event) {
+    const actionTarget = event.target.closest('[data-wildshape-action]');
+    if (actionTarget) {
+      const action = actionTarget.dataset.wildshapeAction;
+      if (action === 'track') {
+        const beastId = actionTarget.dataset.beastId || beastSelectedKey;
+        const entry = beastId ? beastMap.get(normalizeId(beastId)) : null;
+        if (entry) {
+          addTrackedForm({ ...entry, meta: createBeastSnapshot(entry) });
+        }
+      }
+      if (action === 'remove') {
+        const key = actionTarget.dataset.trackedKey;
+        if (key) {
+          removeTrackedForm(key);
+        }
+      }
+      return;
+    }
+    const selectTarget = event.target.closest('[data-wildshape-select]');
+    if (selectTarget) {
+      const beastId = selectTarget.dataset.wildshapeSelect;
+      if (beastId) {
+        setBeastSelection(beastId, { userTriggered: true });
+      }
+    }
+  }
+
   function handleOverrideInput() {
     if (syncing) return;
     syncHiddenField(true);
@@ -5150,6 +5694,15 @@ const familiarModule = (() => {
       }
     });
     syncing = false;
+    const wildShapeState = familiar.wildShape || familiar.wildshape || {};
+    trackedForms = Array.isArray(wildShapeState.forms)
+      ? wildShapeState.forms.map((form) => normalizeTrackedForm(form)).filter(Boolean)
+      : [];
+    beastSelectedKey = normalizeId(wildShapeState.selected);
+    ensureBeastSelection();
+    renderTrackedForms();
+    renderWildshapeList();
+    renderWildshapeDetail();
     setSelection(selectedRawId, { userTriggered: false });
     syncHiddenField(false);
   }
@@ -5158,6 +5711,13 @@ const familiarModule = (() => {
     rebuildCompanions();
     populateFilterOptions();
     applyFilters();
+    rebuildBeasts();
+    populateBeastFilterOptions();
+    applyBeastFilters();
+    ensureBeastSelection();
+    renderWildshapeList();
+    renderWildshapeDetail();
+    renderTrackedForms();
     setSelection(selectedRawId, { userTriggered: false });
   }
 
@@ -5179,11 +5739,38 @@ const familiarModule = (() => {
       snapshot = { ...snapshot, id: id.trim() };
     }
     lastSnapshot = id && snapshot ? snapshot : (!id ? null : lastSnapshot);
+    ensureBeastSelection();
+    const selectedBeastEntry = beastMap.get(beastSelectedKey) || trackedForms.find((form) => form.key === beastSelectedKey);
     const payload = {
       id,
       name,
       notes,
-      overrides
+      overrides,
+      wildShape: {
+        forms: trackedForms.map((form) => {
+          const formPayload = {
+            id: form.id,
+            name: form.name,
+            summary: form.summary,
+            ac: form.ac,
+            hp: form.hp,
+            speed: form.speed,
+            cr: form.cr,
+            size: form.size,
+            type: form.type,
+            alignment: form.alignment,
+            senses: form.senses,
+            skills: form.skills,
+            traits: Array.isArray(form.traits) ? form.traits.slice() : [],
+            source: form.source
+          };
+          if (form.meta) {
+            formPayload.meta = { ...form.meta };
+          }
+          return formPayload;
+        }),
+        selected: selectedBeastEntry ? selectedBeastEntry.id : ''
+      }
     };
     if (snapshot && id) {
       payload.meta = snapshot;
@@ -5201,6 +5788,14 @@ const familiarModule = (() => {
       hiddenField = section.querySelector('[data-familiar-field]') || form?.elements?.namedItem('familiarData');
       nameField = section.querySelector('[data-familiar-name]') || form?.elements?.namedItem('familiarName');
       notesField = section.querySelector('[data-familiar-notes]') || form?.elements?.namedItem('familiarNotes');
+      wildshapeRoot = section.querySelector('[data-wildshape-root]');
+      wildshapeListNode = section.querySelector('[data-wildshape-list]');
+      wildshapeDetailNode = section.querySelector('[data-wildshape-detail]');
+      wildshapeEmptyState = section.querySelector('[data-wildshape-empty]');
+      wildshapeTrackedNode = section.querySelector('[data-wildshape-tracked]');
+      wildshapeTrackedList = section.querySelector('[data-wildshape-tracked-list]');
+      wildshapeTrackedEmpty = section.querySelector('[data-wildshape-tracked-empty]');
+      wildshapeSearchInput = section.querySelector('[data-wildshape-search]');
       filterNodes.clear();
       section.querySelectorAll('[data-familiar-filter]').forEach((select) => {
         if (select instanceof HTMLSelectElement) {
@@ -5211,6 +5806,12 @@ const familiarModule = (() => {
       section.querySelectorAll('[data-familiar-override]').forEach((input) => {
         if (input instanceof HTMLInputElement) {
           overrideInputs.set(input.dataset.familiarOverride, input);
+        }
+      });
+      wildshapeFilterNodes.clear();
+      section.querySelectorAll('[data-wildshape-filter]').forEach((select) => {
+        if (select instanceof HTMLSelectElement) {
+          wildshapeFilterNodes.set(select.dataset.wildshapeFilter, select);
         }
       });
       if (listNode) {
@@ -5225,6 +5826,18 @@ const familiarModule = (() => {
       overrideInputs.forEach((input) => {
         input.addEventListener('input', handleOverrideInput);
       });
+      if (wildshapeListNode) {
+        wildshapeListNode.addEventListener('click', handleWildshapeListClick);
+      }
+      if (wildshapeSearchInput) {
+        wildshapeSearchInput.addEventListener('input', handleWildshapeSearchInput);
+      }
+      wildshapeFilterNodes.forEach((select) => {
+        select.addEventListener('change', handleWildshapeFilterChange);
+      });
+      if (wildshapeRoot) {
+        wildshapeRoot.addEventListener('click', handleWildshapeClick);
+      }
       if (nameField) {
         if (!nameField.dataset.familiarAutofill) {
           nameField.dataset.familiarAutofill = nameField.value ? 'false' : 'true';

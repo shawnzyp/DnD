@@ -370,6 +370,30 @@ function normalizeCompanionSnapshot(meta) {
   };
 }
 
+function normalizeWildShapeForm(entry) {
+  if (!entry || typeof entry !== 'object') return null;
+  const snapshot = normalizeCompanionSnapshot(entry.meta || entry);
+  if (!snapshot) return null;
+  const traits = Array.isArray(snapshot.traits) ? snapshot.traits.slice() : [];
+  return {
+    id: snapshot.id,
+    name: entry.name || snapshot.name,
+    summary: entry.summary || snapshot.summary || '',
+    ac: snapshot.ac,
+    hp: snapshot.hp,
+    speed: snapshot.speed,
+    cr: entry.cr || snapshot.cr || '',
+    size: snapshot.size,
+    type: snapshot.type,
+    alignment: snapshot.alignment,
+    senses: snapshot.senses,
+    skills: snapshot.skills,
+    traits,
+    source: entry.source || snapshot.source || '',
+    meta: snapshot
+  };
+}
+
 function findCompanion(identifier) {
   if (!identifier && identifier !== 0) return null;
   const key = String(identifier).trim().toLowerCase();
@@ -674,7 +698,16 @@ class SummaryUI {
       hp: { current: 10, max: 10, temp: 0, log: [] },
       hitDice: { total: 1, available: 1, die: 'd8' },
       classCounters: [],
-      wildShape: { max: 0, remaining: 0 },
+      wildShape: {
+        max: 0,
+        remaining: 0,
+        selectedFormId: '',
+        activeFormId: '',
+        activeFormMeta: null,
+        resumeFormId: '',
+        resumeFormMeta: null,
+        beastHp: { current: 0, max: 0 }
+      },
       arcaneRecovery: { max: 0, remaining: 0, slotLevelCap: 5 },
       channelDivinity: {
         cleric: { max: 0, remaining: 0 },
@@ -911,9 +944,7 @@ class SummaryUI {
         this.playState.hitDice.die = classMeta.hit_die;
       }
     }
-    if (!this.playState.wildShape || typeof this.playState.wildShape !== 'object') {
-      this.playState.wildShape = { max: 0, remaining: 0 };
-    }
+    this.ensureWildShapeState();
     ['rage', 'bardicInspiration', 'ki', 'sorceryPoints', 'actionSurge', 'secondWind', 'indomitable'].forEach((key) => {
       if (!this.playState[key] || typeof this.playState[key] !== 'object') {
         this.playState[key] = { max: 0, remaining: 0 };
@@ -1372,8 +1403,13 @@ class SummaryUI {
       this.playState.hp.temp = Math.max(0, this.playState.hp.temp);
     }
     if (path.startsWith('wildShape.')) {
-      this.playState.wildShape.max = Math.max(0, this.playState.wildShape.max);
-      this.playState.wildShape.remaining = Math.max(0, Math.min(this.playState.wildShape.max, this.playState.wildShape.remaining));
+      const wildShape = this.ensureWildShapeState();
+      wildShape.max = Math.max(0, wildShape.max);
+      wildShape.remaining = Math.max(0, Math.min(wildShape.max, wildShape.remaining));
+      if (path.startsWith('wildShape.beastHp.')) {
+        wildShape.beastHp.max = Math.max(0, wildShape.beastHp.max);
+        wildShape.beastHp.current = clamp(wildShape.beastHp.current, 0, wildShape.beastHp.max);
+      }
     }
     if (path.startsWith('arcaneRecovery.')) {
       this.playState.arcaneRecovery.max = Math.max(0, this.playState.arcaneRecovery.max);
@@ -1777,6 +1813,10 @@ class SummaryUI {
         this.render();
       }
     }
+    if (action && action.startsWith('wildshape-')) {
+      const subtype = action.replace('wildshape-', '');
+      this.handleWildShapeControl(subtype);
+    }
   }
 
   handleCounterAction(action, id) {
@@ -1878,6 +1918,180 @@ class SummaryUI {
     return hp;
   }
 
+  ensureWildShapeState() {
+    if (!this.playState.wildShape || typeof this.playState.wildShape !== 'object') {
+      this.playState.wildShape = {
+        max: 0,
+        remaining: 0,
+        selectedFormId: '',
+        activeFormId: '',
+        activeFormMeta: null,
+        resumeFormId: '',
+        resumeFormMeta: null,
+        beastHp: { current: 0, max: 0 }
+      };
+    }
+    const wildShape = this.playState.wildShape;
+    wildShape.max = Math.max(0, parseNumber(wildShape.max, 0));
+    wildShape.remaining = clamp(parseNumber(wildShape.remaining, wildShape.max), 0, wildShape.max);
+    if (typeof wildShape.selectedFormId !== 'string') {
+      wildShape.selectedFormId = '';
+    }
+    if (typeof wildShape.activeFormId !== 'string') {
+      wildShape.activeFormId = '';
+    }
+    if (typeof wildShape.resumeFormId !== 'string') {
+      wildShape.resumeFormId = '';
+    }
+    if (!wildShape.beastHp || typeof wildShape.beastHp !== 'object') {
+      wildShape.beastHp = { current: 0, max: 0 };
+    }
+    wildShape.beastHp.max = Math.max(0, parseNumber(wildShape.beastHp.max, 0));
+    wildShape.beastHp.current = clamp(parseNumber(wildShape.beastHp.current, wildShape.beastHp.max), 0, wildShape.beastHp.max);
+    if (wildShape.activeFormMeta && typeof wildShape.activeFormMeta !== 'object') {
+      wildShape.activeFormMeta = null;
+    }
+    if (wildShape.resumeFormMeta && typeof wildShape.resumeFormMeta !== 'object') {
+      wildShape.resumeFormMeta = null;
+    }
+    return wildShape;
+  }
+
+  captureWildShapeSnapshot() {
+    const wildShape = this.ensureWildShapeState();
+    return {
+      activeFormId: wildShape.activeFormId,
+      activeFormMeta: wildShape.activeFormMeta ? { ...wildShape.activeFormMeta } : null,
+      resumeFormId: wildShape.resumeFormId,
+      resumeFormMeta: wildShape.resumeFormMeta ? { ...wildShape.resumeFormMeta } : null,
+      beastHp: { current: wildShape.beastHp.current, max: wildShape.beastHp.max }
+    };
+  }
+
+  restoreWildShapeSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return;
+    const wildShape = this.ensureWildShapeState();
+    wildShape.activeFormId = snapshot.activeFormId || '';
+    wildShape.activeFormMeta = snapshot.activeFormMeta ? { ...snapshot.activeFormMeta } : null;
+    wildShape.resumeFormId = snapshot.resumeFormId || '';
+    wildShape.resumeFormMeta = snapshot.resumeFormMeta ? { ...snapshot.resumeFormMeta } : null;
+    if (!wildShape.beastHp || typeof wildShape.beastHp !== 'object') {
+      wildShape.beastHp = { current: 0, max: 0 };
+    }
+    const beastHp = snapshot.beastHp || {};
+    wildShape.beastHp.max = Math.max(0, parseNumber(beastHp.max, wildShape.beastHp.max));
+    wildShape.beastHp.current = clamp(parseNumber(beastHp.current, wildShape.beastHp.current), 0, wildShape.beastHp.max);
+  }
+
+  getWildShapeForms() {
+    const forms = this.builderState?.data?.familiar?.wildShape?.forms;
+    if (!Array.isArray(forms)) return [];
+    return forms.map((form) => normalizeWildShapeForm(form)).filter(Boolean);
+  }
+
+  getActiveWildShapeForm(forms = null) {
+    const availableForms = Array.isArray(forms) ? forms : this.getWildShapeForms();
+    const wildShape = this.ensureWildShapeState();
+    if (wildShape.activeFormId) {
+      const fromList = availableForms.find((form) => form.id === wildShape.activeFormId);
+      if (fromList) {
+        return fromList;
+      }
+    }
+    if (wildShape.activeFormMeta) {
+      return normalizeWildShapeForm(wildShape.activeFormMeta);
+    }
+    return null;
+  }
+
+  handleWildShapeControl(action) {
+    const forms = this.getWildShapeForms();
+    const wildShape = this.ensureWildShapeState();
+    if (action === 'assume') {
+      if (!forms.length) {
+        this.toast('Add wild shape forms in the builder before assuming a form.');
+        return;
+      }
+      const selectedId = wildShape.selectedFormId && forms.some((form) => form.id === wildShape.selectedFormId)
+        ? wildShape.selectedFormId
+        : forms[0].id;
+      const form = forms.find((item) => item.id === selectedId) || forms[0];
+      wildShape.selectedFormId = form.id;
+      wildShape.activeFormId = form.id;
+      wildShape.activeFormMeta = { ...form };
+      wildShape.resumeFormId = '';
+      wildShape.resumeFormMeta = null;
+      if (Number.isFinite(form.hp) && form.hp > 0) {
+        wildShape.beastHp.max = form.hp;
+        wildShape.beastHp.current = form.hp;
+      } else if (!Number.isFinite(wildShape.beastHp.max) || wildShape.beastHp.max <= 0) {
+        wildShape.beastHp.max = 0;
+        wildShape.beastHp.current = 0;
+      } else {
+        wildShape.beastHp.current = clamp(wildShape.beastHp.current, 0, wildShape.beastHp.max);
+      }
+      savePlayState(this.playState);
+      this.render();
+      const hpLabel = wildShape.beastHp.max > 0
+        ? `${this.formatHpAmount(wildShape.beastHp.current)}/${this.formatHpAmount(wildShape.beastHp.max)} HP`
+        : '0 HP';
+      this.toast(`Assumed ${form.name}. Beast pool at ${hpLabel}.`);
+      return;
+    }
+    if (action === 'revert') {
+      if (!wildShape.activeFormId) {
+        this.toast('No active wild shape form to revert.');
+        return;
+      }
+      if (wildShape.beastHp.current > 0) {
+        wildShape.resumeFormId = wildShape.activeFormId;
+        wildShape.resumeFormMeta = wildShape.activeFormMeta ? { ...wildShape.activeFormMeta } : null;
+      } else {
+        wildShape.resumeFormId = '';
+        wildShape.resumeFormMeta = null;
+      }
+      const name = wildShape.activeFormMeta?.name || 'your beast form';
+      wildShape.activeFormId = '';
+      wildShape.activeFormMeta = null;
+      savePlayState(this.playState);
+      this.render();
+      this.toast(`Reverted from ${name}.`);
+      return;
+    }
+    if (action === 'resume') {
+      if (!wildShape.resumeFormId && !wildShape.resumeFormMeta) {
+        this.toast('No wild shape form is ready to resume.');
+        return;
+      }
+      const resumeSource = wildShape.resumeFormMeta || forms.find((item) => item.id === wildShape.resumeFormId);
+      const form = resumeSource ? normalizeWildShapeForm(resumeSource) : null;
+      if (!form) {
+        this.toast('The stored wild shape form is no longer available.');
+        wildShape.resumeFormId = '';
+        wildShape.resumeFormMeta = null;
+        savePlayState(this.playState);
+        this.render();
+        return;
+      }
+      wildShape.activeFormId = form.id;
+      wildShape.activeFormMeta = { ...form };
+      wildShape.selectedFormId = form.id;
+      wildShape.resumeFormId = '';
+      wildShape.resumeFormMeta = null;
+      wildShape.beastHp.current = clamp(wildShape.beastHp.current, 0, wildShape.beastHp.max);
+      savePlayState(this.playState);
+      this.render();
+      this.toast(`Resumed ${form.name}.`);
+      return;
+    }
+    if (action === 'reset-hp') {
+      wildShape.beastHp.current = wildShape.beastHp.max;
+      savePlayState(this.playState);
+      this.render();
+      this.toast('Beast hit points reset to maximum.');
+    }
+  }
+
   pushHpLog(entry) {
     const hp = this.ensureHpState();
     const record = {
@@ -1934,8 +2148,26 @@ class SummaryUI {
     if (hp.current <= 0 && hp.temp <= 0) {
       return { changed: false, message: 'Already at 0 hit points.' };
     }
+    const wildShape = this.ensureWildShapeState();
+    const wildShapeBefore = this.captureWildShapeSnapshot();
+    const activeForm = this.getActiveWildShapeForm();
+    const activeFormName = activeForm?.name || wildShape.activeFormMeta?.name || '';
     const previous = { current: hp.current, temp: hp.temp, max: hp.max };
     let remaining = numeric;
+    let beastDamage = 0;
+    let beastDropped = false;
+    if (activeForm && wildShape.activeFormId && wildShape.beastHp.current > 0) {
+      beastDamage = Math.min(wildShape.beastHp.current, remaining);
+      wildShape.beastHp.current = clamp(wildShape.beastHp.current - beastDamage, 0, wildShape.beastHp.max);
+      remaining -= beastDamage;
+      if (wildShape.beastHp.current <= 0) {
+        beastDropped = true;
+        wildShape.activeFormId = '';
+        wildShape.activeFormMeta = null;
+        wildShape.resumeFormId = '';
+        wildShape.resumeFormMeta = null;
+      }
+    }
     let tempSpent = 0;
     if (hp.temp > 0) {
       tempSpent = Math.min(hp.temp, remaining);
@@ -1945,29 +2177,69 @@ class SummaryUI {
     const hpLost = Math.min(hp.current, remaining);
     hp.current = clamp(hp.current - hpLost, 0, hp.max);
     const applied = tempSpent + hpLost;
-    if (applied <= 0) {
+    if (applied <= 0 && beastDamage <= 0) {
+      this.restoreWildShapeSnapshot(wildShapeBefore);
       return { changed: false, message: 'No damage to apply.' };
     }
     const after = { current: hp.current, temp: hp.temp, max: hp.max };
-    this.pushHpLog({
-      type: 'damage',
-      source: source || 'manual',
-      amount: applied,
-      rawAmount: numeric,
-      tempSpent,
-      hpLost,
-      before: previous,
-      after
-    });
-    const parts = [];
-    if (tempSpent) parts.push(`${this.formatHpAmount(tempSpent)} temp`);
-    if (hpLost) parts.push(`${this.formatHpAmount(hpLost)} HP`);
-    const detail = parts.length ? ` (${parts.join(', ')})` : '';
-    const message = `Took ${this.formatHpAmount(applied)} damage${detail}. Now at ${this.getHpStatusText()}.`;
+    if (applied > 0) {
+      this.pushHpLog({
+        type: 'damage',
+        source: source || 'manual',
+        amount: applied,
+        rawAmount: numeric,
+        tempSpent,
+        hpLost,
+        before: previous,
+        after
+      });
+    }
+    const messages = [];
+    if (beastDamage > 0) {
+      const beastHpLabel = `${this.formatHpAmount(wildShape.beastHp.current)}/${this.formatHpAmount(wildShape.beastHp.max)}`;
+      if (beastDropped) {
+        const formLabel = activeFormName || 'your beast form';
+        if (applied > 0) {
+          messages.push(`${formLabel} drops to 0 HP.`);
+        } else {
+          messages.push(`${formLabel} drops to 0 HP. No damage carried over.`);
+        }
+      } else {
+        const formLabel = activeFormName || 'Beast form';
+        messages.push(`${formLabel} takes ${this.formatHpAmount(beastDamage)} damage (${beastHpLabel} beast HP remaining).`);
+      }
+    }
+    if (applied > 0) {
+      const parts = [];
+      if (tempSpent) parts.push(`${this.formatHpAmount(tempSpent)} temp`);
+      if (hpLost) parts.push(`${this.formatHpAmount(hpLost)} HP`);
+      const detail = parts.length ? ` (${parts.join(', ')})` : '';
+      messages.push(`You take ${this.formatHpAmount(applied)} damage${detail}. Now at ${this.getHpStatusText()}.`);
+    } else if (beastDamage > 0) {
+      messages.push('No damage to your hit points.');
+    }
+    const message = messages.join(' ');
     return {
       changed: true,
       message,
-      undo: this.createHpUndo(previous, 'Damage undone.'),
+      undo: () => {
+        const hpState = this.ensureHpState();
+        const targetCurrent = Number.isFinite(previous.current) ? previous.current : hpState.current;
+        const targetTemp = Number.isFinite(previous.temp) ? previous.temp : 0;
+        const beforeHp = { current: hpState.current, temp: hpState.temp, max: hpState.max };
+        hpState.current = clamp(targetCurrent, 0, hpState.max);
+        hpState.temp = Math.max(0, targetTemp);
+        this.pushHpLog({
+          type: 'undo',
+          source: 'undo',
+          before: beforeHp,
+          after: { current: hpState.current, temp: hpState.temp, max: hpState.max }
+        });
+        this.restoreWildShapeSnapshot(wildShapeBefore);
+        savePlayState(this.playState);
+        this.render();
+        this.toast('Damage undone.');
+      },
       undoLabel: 'Undo'
     };
   }
@@ -2426,6 +2698,17 @@ class SummaryUI {
       }
       this.toast('Long rest complete. Fully restore hit points and resources.');
     }
+    if (type === 'short' || type === 'long') {
+      const wildShapeState = this.ensureWildShapeState();
+      wildShapeState.activeFormId = '';
+      wildShapeState.activeFormMeta = null;
+      wildShapeState.resumeFormId = '';
+      wildShapeState.resumeFormMeta = null;
+      wildShapeState.beastHp.current = 0;
+      if (type === 'long') {
+        wildShapeState.beastHp.max = 0;
+      }
+    }
     this.applyRestToClassResources(type, resourceDefs);
     this.playState.restLog.unshift(logEntry);
     this.playState.restLog = this.playState.restLog.slice(0, 10);
@@ -2508,6 +2791,7 @@ class SummaryUI {
     this.renderAbilities();
     this.renderSkills();
     this.renderResources();
+    this.renderWildShape();
     this.renderSpellcasting();
     this.renderEquipment();
     this.renderCompanion();
@@ -2652,6 +2936,10 @@ class SummaryUI {
       <details open>
         <summary>Resources</summary>
         <div class="section-body" data-summary-section="resources"></div>
+      </details>
+      <details>
+        <summary>Wild Shape</summary>
+        <div class="section-body" data-summary-section="wildshape"></div>
       </details>
       <details>
         <summary>Spellcasting</summary>
@@ -2974,6 +3262,154 @@ class SummaryUI {
     });
 
     container.appendChild(resourceGrid);
+  }
+
+  renderWildShape() {
+    const container = this.root.querySelector('[data-summary-section="wildshape"]');
+    if (!container) return;
+    container.innerHTML = '';
+    const wildShape = this.ensureWildShapeState();
+    const forms = this.getWildShapeForms();
+
+    const usesLabel = createElement('p', 'summary-subtle', `Uses remaining: ${wildShape.remaining}/${wildShape.max}`);
+    container.appendChild(usesLabel);
+
+    if (!forms.length) {
+      container.appendChild(createElement('p', 'summary-empty', 'Track beast forms in the builder to manage wild shape here.'));
+      return;
+    }
+
+    let selectedId = wildShape.selectedFormId;
+    let selectionAutoUpdated = false;
+    if (!selectedId || !forms.some((form) => form.id === selectedId)) {
+      selectedId = forms[0].id;
+      if (wildShape.selectedFormId !== selectedId) {
+        wildShape.selectedFormId = selectedId;
+        selectionAutoUpdated = true;
+      }
+    }
+    const selectedForm = forms.find((form) => form.id === selectedId) || forms[0];
+
+    const selectorLabel = document.createElement('label');
+    selectorLabel.className = 'wildshape-selector';
+    selectorLabel.textContent = 'Available forms';
+    const select = document.createElement('select');
+    select.dataset.track = 'wildShape.selectedFormId';
+    forms.forEach((form) => {
+      const option = document.createElement('option');
+      option.value = form.id;
+      option.textContent = form.name;
+      select.appendChild(option);
+    });
+    select.value = selectedId;
+    selectorLabel.appendChild(select);
+    container.appendChild(selectorLabel);
+
+    const controls = createElement('div', 'wildshape-controls');
+    const assumeButton = createElement('button', null, 'Assume form');
+    assumeButton.type = 'button';
+    assumeButton.dataset.summaryAction = 'wildshape-assume';
+    controls.appendChild(assumeButton);
+
+    if (wildShape.activeFormId) {
+      const revertButton = createElement('button', null, 'Revert');
+      revertButton.type = 'button';
+      revertButton.dataset.summaryAction = 'wildshape-revert';
+      controls.appendChild(revertButton);
+    } else if (wildShape.resumeFormId || wildShape.resumeFormMeta) {
+      const resumeButton = createElement('button', null, 'Resume');
+      resumeButton.type = 'button';
+      resumeButton.dataset.summaryAction = 'wildshape-resume';
+      controls.appendChild(resumeButton);
+    }
+
+    const resetButton = createElement('button', null, 'Reset beast HP');
+    resetButton.type = 'button';
+    resetButton.dataset.summaryAction = 'wildshape-reset-hp';
+    resetButton.disabled = wildShape.beastHp.max <= 0;
+    controls.appendChild(resetButton);
+
+    container.appendChild(controls);
+
+    const activeForm = this.getActiveWildShapeForm(forms);
+    const buildStatsChips = (form) => {
+      const chips = [];
+      if (Number.isFinite(form.ac)) {
+        chips.push(`<span class="companion-chip">AC <strong>${form.ac}</strong></span>`);
+      }
+      if (Number.isFinite(form.hp)) {
+        chips.push(`<span class="companion-chip">HP <strong>${form.hp}</strong></span>`);
+      }
+      if (form.speed) {
+        chips.push(`<span class="companion-chip">Speed <strong>${form.speed}</strong></span>`);
+      }
+      return chips.length ? `<div class="summary-companion-stats">${chips.join('')}</div>` : '';
+    };
+
+    if (activeForm) {
+      const beastHpLabel = `${this.formatHpAmount(wildShape.beastHp.current)}/${this.formatHpAmount(wildShape.beastHp.max)}`;
+      const card = createElement('div', 'summary-companion-card wildshape-card');
+      card.innerHTML = `
+        <header>
+          <h4>${activeForm.name}</h4>
+          <span>Active form</span>
+        </header>
+        ${buildStatsChips(activeForm)}
+        <div class="summary-companion-stats">
+          <span class="companion-chip">Beast HP <strong>${beastHpLabel}</strong></span>
+        </div>
+        ${activeForm.summary ? `<p class="summary-companion-summary">${activeForm.summary}</p>` : ''}
+      `;
+      container.appendChild(card);
+    } else {
+      container.appendChild(createElement('p', 'summary-empty', 'No active wild shape form. Assume one to start tracking beast hit points.'));
+    }
+
+    const hpControls = createElement('div', 'wildshape-hp-controls');
+    const currentLabel = document.createElement('label');
+    currentLabel.textContent = 'Beast HP';
+    const currentInput = document.createElement('input');
+    currentInput.type = 'number';
+    currentInput.min = '0';
+    currentInput.dataset.type = 'number';
+    currentInput.dataset.track = 'wildShape.beastHp.current';
+    currentInput.value = wildShape.beastHp.current;
+    currentLabel.appendChild(currentInput);
+    hpControls.appendChild(currentLabel);
+
+    const maxLabel = document.createElement('label');
+    maxLabel.textContent = 'Beast HP max';
+    const maxInput = document.createElement('input');
+    maxInput.type = 'number';
+    maxInput.min = '0';
+    maxInput.dataset.type = 'number';
+    maxInput.dataset.track = 'wildShape.beastHp.max';
+    maxInput.value = wildShape.beastHp.max;
+    maxLabel.appendChild(maxInput);
+    hpControls.appendChild(maxLabel);
+
+    container.appendChild(hpControls);
+
+    const baseCard = createElement('div', 'summary-companion-card wildshape-card');
+    const subtitleParts = [];
+    if (selectedForm.cr) subtitleParts.push(`CR ${selectedForm.cr}`);
+    if (selectedForm.size) subtitleParts.push(selectedForm.size);
+    if (selectedForm.type) subtitleParts.push(selectedForm.type);
+    baseCard.innerHTML = `
+      <header>
+        <h4>${selectedForm.name}</h4>
+        ${subtitleParts.length ? `<span>${subtitleParts.join(' · ')}</span>` : ''}
+      </header>
+      ${buildStatsChips(selectedForm)}
+      ${selectedForm.summary ? `<p class="summary-companion-summary">${selectedForm.summary}</p>` : ''}
+    `;
+    container.appendChild(baseCard);
+
+    container.appendChild(createElement('p', 'summary-subtle', 'Damage taken while wild shaped reduces beast HP first. When the pool is depleted, remaining damage applies to your hit points.'));
+
+    if (selectionAutoUpdated) {
+      savePlayState(this.playState);
+    }
   }
 
   getTrackedClassResources() {
