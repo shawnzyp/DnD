@@ -1,3 +1,5 @@
+import { summariseValidationIssues } from '../js/pack-validation.js';
+
 const STORAGE_KEY = 'dndBuilderState';
 const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
 const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
@@ -187,6 +189,8 @@ const stateFileInput = document.getElementById('builder-state-file');
 const packStatusNode = document.getElementById('builder-pack-status');
 
 let currentStep = 0;
+let packStatusPermanent = '';
+let packStatusTimer = null;
 
 function createBaseState() {
   return {
@@ -570,7 +574,47 @@ function getPackData() {
 
 function setPackStatus(message) {
   if (!packStatusNode) return;
+  if (packStatusTimer) {
+    window.clearTimeout(packStatusTimer);
+    packStatusTimer = null;
+  }
+  packStatusPermanent = message || '';
+  packStatusNode.textContent = packStatusPermanent;
+}
+
+function flashPackStatus(message, duration = 4000) {
+  if (!packStatusNode) return;
+  if (packStatusTimer) {
+    window.clearTimeout(packStatusTimer);
+    packStatusTimer = null;
+  }
   packStatusNode.textContent = message || '';
+  if (duration > 0) {
+    packStatusTimer = window.setTimeout(() => {
+      packStatusTimer = null;
+      packStatusNode.textContent = packStatusPermanent;
+    }, duration);
+  }
+}
+
+function setBaselinePackStatus(message) {
+  packStatusPermanent = message || '';
+  if (packStatusTimer) {
+    return;
+  }
+  if (packStatusNode) {
+    packStatusNode.textContent = packStatusPermanent;
+  }
+}
+
+function updatePackStatusFromDetail(detail) {
+  const packs = Array.isArray(detail?.availablePacks) ? detail.availablePacks : [];
+  const summary = summariseValidationIssues(packs);
+  if (summary.message) {
+    setBaselinePackStatus(summary.message);
+  } else {
+    setBaselinePackStatus('');
+  }
 }
 
 function abilityNameToId(name) {
@@ -1397,19 +1441,37 @@ function populateDynamicOptions() {
 }
 
 async function hydratePackData() {
+  let detail = null;
   if (window.dnd && typeof window.dnd.getBuilderData === 'function') {
     try {
       const data = await window.dnd.getBuilderData();
       setPackData(data);
+      if (typeof window.dnd.ready === 'function') {
+        detail = await window.dnd.ready();
+      }
     } catch (error) {
       console.warn('Failed to load builder packs', error);
       const fallback = window.dndBuilderData || window.dndData || packData;
       setPackData(fallback);
+      if (!detail && (window.dndData || fallback)) {
+        detail = window.dndData || { availablePacks: [] };
+      }
     }
   } else if (window.dndData) {
     setPackData(window.dndData);
+    detail = window.dndData;
   }
   populateDynamicOptions();
+  if (detail) {
+    updatePackStatusFromDetail(detail);
+  } else if (window.dnd && typeof window.dnd.ready === 'function') {
+    try {
+      const readyDetail = await window.dnd.ready();
+      updatePackStatusFromDetail(readyDetail);
+    } catch (error) {
+      console.warn('Failed to read pack validation status', error);
+    }
+  }
 }
 
 function subscribeToPackChanges() {
@@ -1418,6 +1480,7 @@ function subscribeToPackChanges() {
       if (detail && detail.builder) {
         setPackData(detail.builder);
         populateDynamicOptions();
+        updatePackStatusFromDetail(detail);
       }
     });
   } else {
@@ -1425,6 +1488,10 @@ function subscribeToPackChanges() {
       const fallback = window.dndBuilderData || window.dndData || packData;
       setPackData(fallback);
       populateDynamicOptions();
+      const detail = window.dndData ? { availablePacks: window.dndData.availablePacks || [] } : null;
+      if (detail) {
+        updatePackStatusFromDetail(detail);
+      }
     });
   }
 }
@@ -1445,14 +1512,23 @@ function wirePackControls() {
       }
       setPackStatus(`Importing ${file.name}…`);
       try {
-        await window.dnd.importPackFile(file);
-        setPackStatus(`Imported ${file.name}`);
+        const detail = await window.dnd.importPackFile(file);
+        updatePackStatusFromDetail(detail);
+        const packs = Array.isArray(detail?.availablePacks) ? detail.availablePacks : [];
+        const scoped = packs.filter((pack) => pack && pack.origin === 'file' && pack.filename === file.name);
+        const scopedSummary = summariseValidationIssues(scoped);
+        const overallSummary = summariseValidationIssues(packs);
+        if (scopedSummary.hasErrors || scopedSummary.hasWarnings) {
+          const message = scopedSummary.message || overallSummary.message || 'Imported pack requires attention.';
+          flashPackStatus(message, 6000);
+        } else if (!overallSummary.hasErrors && !overallSummary.hasWarnings) {
+          flashPackStatus(`Imported ${file.name}`, 4000);
+        }
       } catch (error) {
         console.error('Failed to import pack', error);
         setPackStatus('Import failed. Check console for details.');
       } finally {
         fileInput.value = '';
-        setTimeout(() => setPackStatus(''), 4000);
       }
     });
   }
@@ -1465,15 +1541,25 @@ function wirePackControls() {
       }
       const url = window.prompt('Enter the URL of a pack manifest JSON file:');
       if (!url) return;
+      const trimmed = url.trim();
+      if (!trimmed) return;
       setPackStatus('Fetching pack…');
       try {
-        await window.dnd.importPackFromUrl(url);
-        setPackStatus('Pack added from URL.');
+        const detail = await window.dnd.importPackFromUrl(trimmed);
+        updatePackStatusFromDetail(detail);
+        const packs = Array.isArray(detail?.availablePacks) ? detail.availablePacks : [];
+        const scoped = packs.filter((pack) => pack && pack.origin === 'url' && pack.url === trimmed);
+        const scopedSummary = summariseValidationIssues(scoped);
+        const overallSummary = summariseValidationIssues(packs);
+        if (scopedSummary.hasErrors || scopedSummary.hasWarnings) {
+          const message = scopedSummary.message || overallSummary.message || 'Imported pack requires attention.';
+          flashPackStatus(message, 6000);
+        } else if (!overallSummary.hasErrors && !overallSummary.hasWarnings) {
+          flashPackStatus('Pack added from URL.', 4000);
+        }
       } catch (error) {
         console.error('Failed to import pack from URL', error);
         setPackStatus('Import failed. Check console for details.');
-      } finally {
-        setTimeout(() => setPackStatus(''), 4000);
       }
     });
   }
@@ -1486,13 +1572,15 @@ function wirePackControls() {
       }
       setPackStatus('Reloading packs…');
       try {
-        await window.dnd.reload();
-        setPackStatus('Packs reloaded.');
+        const detail = await window.dnd.reload();
+        updatePackStatusFromDetail(detail);
+        const summary = summariseValidationIssues(Array.isArray(detail?.availablePacks) ? detail.availablePacks : []);
+        if (!summary.hasErrors && !summary.hasWarnings) {
+          flashPackStatus('Packs reloaded.', 3000);
+        }
       } catch (error) {
         console.error('Failed to reload packs', error);
         setPackStatus('Reload failed.');
-      } finally {
-        setTimeout(() => setPackStatus(''), 3000);
       }
     });
   }

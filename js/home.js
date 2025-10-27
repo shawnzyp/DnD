@@ -1,3 +1,5 @@
+import { getValidationBadge, getValidationForPack, summariseValidationIssues } from './pack-validation.js';
+
 const DEFAULT_FILES = [
   'classes',
   'races',
@@ -75,6 +77,11 @@ function buildDatasetStatus(mergedData, packs) {
   const datasetKeys = new Set();
   packs.forEach((pack) => {
     if (!pack) return;
+    const validation = getValidationForPack(pack);
+    const isActive = validation.status !== 'error' && pack.active !== false && pack.enabled !== false;
+    if (!isActive) {
+      return;
+    }
     const files = Array.isArray(pack.files) && pack.files.length ? pack.files : DEFAULT_FILES;
     files.forEach((file) => datasetKeys.add(file));
   });
@@ -152,7 +159,17 @@ function updatePackMeter(detail) {
   const mergedData = merged.data || {};
   const packSummaries = Array.isArray(merged.packSummaries) ? merged.packSummaries : [];
   const available = Array.isArray(detail?.availablePacks) ? detail.availablePacks : [];
-  const activeAvailable = available.filter((pack) => pack && pack.enabled !== false);
+  const validationSummary = summariseValidationIssues(available);
+  const activeAvailable = available.filter((pack) => {
+    if (!pack || pack.enabled === false) {
+      return false;
+    }
+    if (pack.active === false) {
+      return false;
+    }
+    const validation = getValidationForPack(pack);
+    return validation.status !== 'error';
+  });
   const datasets = buildDatasetStatus(mergedData, activeAvailable.length ? activeAvailable : available);
   const total = datasets.length;
   const loaded = datasets.filter((dataset) => dataset.loaded).length;
@@ -175,19 +192,37 @@ function updatePackMeter(detail) {
     countLabel.textContent = valueText;
   }
   if (summaryLabel) {
+    let summaryText;
     if (packCount === 0) {
-      summaryLabel.textContent = 'No active packs';
+      summaryText = 'No active packs';
     } else if (packCount === 1) {
-      summaryLabel.textContent = '1 active pack';
+      summaryText = '1 active pack';
     } else {
-      summaryLabel.textContent = `${packCount} active packs`;
+      summaryText = `${packCount} active packs`;
     }
+    if (validationSummary.message) {
+      summaryText = `${summaryText}. ${validationSummary.message}`;
+    }
+    summaryLabel.textContent = summaryText;
   }
   if (statusChip) {
     statusChip.classList.remove('chip-warning', 'chip-positive', 'chip-muted', 'chip-strong');
+    statusChip.removeAttribute('title');
     if (!packCount) {
       statusChip.classList.add('chip-warning');
       statusChip.textContent = 'Add a content pack';
+    } else if (validationSummary.hasErrors) {
+      statusChip.classList.add('chip-warning');
+      statusChip.textContent = 'Fix pack issues';
+      if (validationSummary.message) {
+        statusChip.title = validationSummary.message;
+      }
+    } else if (validationSummary.hasWarnings) {
+      statusChip.classList.add('chip-warning');
+      statusChip.textContent = 'Review pack warnings';
+      if (validationSummary.message) {
+        statusChip.title = validationSummary.message;
+      }
     } else if (percentage === 100) {
       statusChip.classList.add('chip-positive');
       statusChip.textContent = 'All packs ready';
@@ -449,12 +484,16 @@ function renderPackManagerList() {
     if (!pack) return;
     totalCount += 1;
     const enabled = packManagerState.enabled[id] !== false;
-    if (enabled) activeCount += 1;
+    const validation = getValidationForPack(pack);
+    const isActive = enabled && pack.active !== false && validation.status !== 'error';
+    if (isActive) activeCount += 1;
 
     const item = document.createElement('li');
     item.className = 'pack-manager__item';
     item.dataset.packId = id;
     item.setAttribute('data-enabled', enabled ? 'true' : 'false');
+    item.setAttribute('data-active', isActive ? 'true' : 'false');
+    item.setAttribute('data-validation', validation.status || 'ok');
     item.setAttribute('draggable', 'false');
 
     const handle = document.createElement('button');
@@ -469,6 +508,16 @@ function renderPackManagerList() {
     name.className = 'pack-manager__name';
     name.textContent = pack.name;
     info.appendChild(name);
+    const badge = getValidationBadge(pack);
+    if (badge && badge.status !== 'ok') {
+      const status = document.createElement('span');
+      status.className = `pack-manager__status pack-manager__status--${badge.status}`;
+      status.textContent = badge.label;
+      if (badge.title) {
+        status.title = badge.title;
+      }
+      info.appendChild(status);
+    }
     const metaText = buildPackMeta(pack);
     if (metaText) {
       const meta = document.createElement('span');
@@ -483,7 +532,22 @@ function renderPackManagerList() {
     toggle.type = 'button';
     toggle.className = 'pack-manager__toggle';
     toggle.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    toggle.textContent = enabled ? 'Enabled' : 'Disabled';
+    let toggleLabel = 'Disabled';
+    if (enabled) {
+      if (validation.status === 'error') {
+        toggleLabel = 'Needs fixes';
+      } else if (validation.status === 'warning') {
+        toggleLabel = 'Enabled (warnings)';
+      } else {
+        toggleLabel = 'Enabled';
+      }
+    }
+    toggle.textContent = toggleLabel;
+    if (validation.message) {
+      toggle.title = validation.message;
+    } else {
+      toggle.removeAttribute('title');
+    }
     toggle.addEventListener('click', () => {
       const nextEnabled = !enabled;
       packManagerState.enabled[id] = nextEnabled;
@@ -512,9 +576,17 @@ function renderPackManagerList() {
     packManagerElements.empty.hidden = list.children.length > 0;
   }
   if (packManagerElements.summary) {
-    packManagerElements.summary.textContent = totalCount
-      ? `${activeCount} of ${totalCount} packs active.`
-      : 'No packs available.';
+    const issueSummary = summariseValidationIssues(Array.from(packManagerLookup.values()));
+    let summaryText;
+    if (totalCount) {
+      summaryText = `${activeCount} of ${totalCount} packs active.`;
+    } else {
+      summaryText = 'No packs available.';
+    }
+    if (issueSummary.message) {
+      summaryText = `${summaryText} ${issueSummary.message}`;
+    }
+    packManagerElements.summary.textContent = summaryText;
   }
 }
 
@@ -627,7 +699,8 @@ function createFallbackDetailFromWindowData() {
     },
     availablePacks: Array.isArray(data.availablePacks) ? data.availablePacks : [],
     packSettings: data.packSettings || { order: [], enabled: {} },
-    manifest: data.manifest || { packs: [] }
+    manifest: data.manifest || { packs: [] },
+    validation: data.validation || {}
   };
 }
 

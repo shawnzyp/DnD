@@ -7,6 +7,7 @@ const APP_SHELL = [
   '/js/app.js',
   '/js/loader.js',
   '/js/home.js',
+  '/js/pack-validation.js',
   '/js/compendium.js',
   '/js/compendium-worker.js',
   '/builder/wizard.js',

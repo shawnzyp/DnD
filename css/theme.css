@@ -843,6 +843,22 @@ button {
   box-shadow: var(--shadow-soft);
 }
 
+.pack-manager__item[data-validation='error'] {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--surface-border) 55%);
+}
+
+.pack-manager__item[data-validation='warning'] {
+  border-color: color-mix(in srgb, var(--warning) 45%, var(--surface-border) 55%);
+}
+
+.pack-manager__item[data-validation='error'] .pack-manager__name {
+  color: color-mix(in srgb, var(--danger) 70%, var(--fg) 30%);
+}
+
+.pack-manager__item[data-validation='warning'] .pack-manager__name {
+  color: color-mix(in srgb, var(--warning) 70%, var(--fg) 30%);
+}
+
 .pack-manager__handle {
   width: 36px;
   height: 36px;
@@ -882,6 +898,31 @@ button {
 .pack-manager__meta {
   font-size: 0.85rem;
   color: var(--muted);
+}
+
+.pack-manager__status {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border: 1px solid transparent;
+}
+
+.pack-manager__status--error {
+  background: color-mix(in srgb, var(--danger) 20%, var(--surface) 80%);
+  color: color-mix(in srgb, var(--danger) 65%, var(--fg) 35%);
+  border-color: color-mix(in srgb, var(--danger) 55%, transparent 45%);
+}
+
+.pack-manager__status--warning {
+  background: color-mix(in srgb, var(--warning) 18%, var(--surface) 82%);
+  color: color-mix(in srgb, var(--warning) 65%, var(--fg) 35%);
+  border-color: color-mix(in srgb, var(--warning) 55%, transparent 45%);
 }
 
 .pack-manager__actions {
