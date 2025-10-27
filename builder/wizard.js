@@ -2105,6 +2105,8 @@ const classModule = (() => {
   let activeStep = false;
   let nextLocked = false;
   const rows = [];
+  let pendingAutoBalance = null;
+  let autoBalanceMessage = '';
 
   function setSummaryText(message) {
     const target = summaryTextNode || summaryNode;
@@ -2181,6 +2183,21 @@ const classModule = (() => {
     });
   }
 
+  function readRowLevel(ref) {
+    if (!ref) return 0;
+    const raw = Number.parseInt(ref.level.value, 10);
+    if (!Number.isFinite(raw)) return 0;
+    return Math.min(Math.max(raw, 0), MAX_CHARACTER_LEVEL);
+  }
+
+  function getCurrentTotalLevel({ exclude } = {}) {
+    if (!rows.length) return 0;
+    return rows.reduce((sum, ref) => {
+      if (!ref || ref === exclude) return sum;
+      return sum + readRowLevel(ref);
+    }, 0);
+  }
+
   function updateRowLabels() {
     rows.forEach((ref, index) => {
       if (ref.label) {
@@ -2203,6 +2220,41 @@ const classModule = (() => {
       totalField.value = String(Math.max(total || 1, 1));
     }
     return total;
+  }
+
+  function requestAutoBalance(totalLevel) {
+    if (!rows.length) return;
+    const minimumTotal = rows.length;
+    const maximumTotal = rows.length * MAX_CHARACTER_LEVEL;
+    const normalized = Number.isFinite(totalLevel) ? Math.floor(totalLevel) : 0;
+    const bounded = Math.min(Math.max(normalized, minimumTotal), maximumTotal);
+    pendingAutoBalance = { total: bounded };
+    autoBalanceMessage = 'Levels automatically balanced across classes.';
+  }
+
+  function applyPendingAutoBalance() {
+    if (!pendingAutoBalance || !rows.length) return;
+    const total = pendingAutoBalance.total;
+    const count = rows.length;
+    const base = Math.floor(total / count);
+    let remainder = total - base * count;
+    rows.forEach((ref) => {
+      if (!ref?.level) return;
+      let assigned = base;
+      if (remainder > 0) {
+        assigned += 1;
+        remainder -= 1;
+      }
+      if (assigned < 1) assigned = 1;
+      if (assigned > MAX_CHARACTER_LEVEL) assigned = MAX_CHARACTER_LEVEL;
+      ref.level.value = String(assigned);
+    });
+    pendingAutoBalance = null;
+  }
+
+  function clearAutoBalanceNotice() {
+    pendingAutoBalance = null;
+    autoBalanceMessage = '';
   }
 
   function updateAddButton(rowData, total) {
@@ -2233,15 +2285,21 @@ const classModule = (() => {
     const entries = derivedClasses?.entries || [];
     const hasClass = entries.some((entry) => entry.class);
     const rowWarnings = extractRowWarnings(warnings);
+    if (autoBalanceMessage) {
+      rowWarnings.unshift({ message: autoBalanceMessage, severity: 'info' });
+    }
     if (!hasClass) {
       setSummaryText('Pick a class to view hit die and proficiencies.');
       updateSummaryWarningsList(rowWarnings);
       const hasErrors = warnings.some((warning) => warning.severity === 'error');
       const hasWarns = warnings.some((warning) => warning.severity === 'warn');
+      const infoOnly = rowWarnings.length > 0 && rowWarnings.every((warning) => (warning.severity || '').toLowerCase() === 'info');
       if (hasErrors) {
         summaryNode.dataset.state = 'error';
-      } else if (hasWarns || rowWarnings.length) {
+      } else if (hasWarns) {
         summaryNode.dataset.state = 'warn';
+      } else if (rowWarnings.length) {
+        summaryNode.dataset.state = infoOnly ? 'info' : 'warn';
       } else {
         summaryNode.dataset.state = '';
       }
@@ -2276,11 +2334,14 @@ const classModule = (() => {
     updateSummaryWarningsList(rowWarnings);
     const hasErrors = warnings.some((warning) => warning.severity === 'error');
     const hasWarns = warnings.some((warning) => warning.severity === 'warn');
+    const infoOnly = rowWarnings.length > 0 && rowWarnings.every((warning) => (warning.severity || '').toLowerCase() === 'info');
     let state = '';
     if (hasErrors) {
       state = 'error';
-    } else if (hasWarns || rowWarnings.length) {
+    } else if (hasWarns) {
       state = 'warn';
+    } else if (rowWarnings.length) {
+      state = infoOnly ? 'info' : 'warn';
     } else {
       state = 'ok';
     }
@@ -2512,6 +2573,7 @@ const classModule = (() => {
 
   function updateAll({ useSnapshot = false } = {}) {
     if (!rows.length) return;
+    applyPendingAutoBalance();
     const rowData = collectRowData();
     updateRowLabels();
     const total = updateTotals(rowData);
@@ -2520,17 +2582,26 @@ const classModule = (() => {
   }
 
   function handleRowChange() {
+    clearAutoBalanceNotice();
     updateAll({ useSnapshot: true });
   }
 
   function removeRow(ref) {
     if (rows.length <= 1) return;
     const index = rows.indexOf(ref);
+    const totalBefore = getCurrentTotalLevel();
+    const removedLevel = readRowLevel(ref);
     if (index !== -1) {
       rows.splice(index, 1);
     }
     if (ref.row && ref.row.parentNode) {
       ref.row.parentNode.removeChild(ref.row);
+    }
+    const targetTotal = Math.max(0, totalBefore - removedLevel);
+    if (rows.length) {
+      requestAutoBalance(targetTotal);
+    } else {
+      clearAutoBalanceNotice();
     }
     updateAll({ useSnapshot: true });
     handleInput();
@@ -2601,7 +2672,11 @@ const classModule = (() => {
   }
 
   function addRow(initialData = {}) {
+    const totalBefore = getCurrentTotalLevel();
     createRow(initialData);
+    if (rows.length) {
+      requestAutoBalance(totalBefore);
+    }
     updateRowLabels();
     updateAll({ useSnapshot: true });
     handleInput();
@@ -2609,6 +2684,7 @@ const classModule = (() => {
 
   function populateRowsFromState(data) {
     if (!rowsContainer) return;
+    clearAutoBalanceNotice();
     while (rows.length) {
       const ref = rows.pop();
       if (ref?.row?.parentNode) {
