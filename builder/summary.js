@@ -867,7 +867,7 @@ class SummaryUI {
       this.playState.channelDivinity.paladin.remaining = clamp(this.playState.channelDivinity.paladin.remaining, 0, paladinUses);
     }
 
-    const layOnHandsMax = paladinLevel >= 2 ? paladinLevel * 5 : 0;
+    const layOnHandsMax = paladinLevel >= 1 ? paladinLevel * 5 : 0;
     this.playState.layOnHands.max = layOnHandsMax;
     if (!Number.isFinite(this.playState.layOnHands.remaining) || this.playState.layOnHands.remaining > layOnHandsMax || layOnHandsMax === 0) {
       this.playState.layOnHands.remaining = layOnHandsMax;
