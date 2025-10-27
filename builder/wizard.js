@@ -2106,6 +2106,7 @@ const classModule = (() => {
   let nextLocked = false;
   const rows = [];
   let pendingAutoBalance = null;
+  let manualLevelRows = new WeakSet();
   let autoBalanceMessage = '';
 
   function setSummaryText(message) {
@@ -2235,10 +2236,62 @@ const classModule = (() => {
   function applyPendingAutoBalance() {
     if (!pendingAutoBalance || !rows.length) return;
     const total = pendingAutoBalance.total;
-    const count = rows.length;
-    const base = Math.floor(total / count);
-    let remainder = total - base * count;
-    rows.forEach((ref) => {
+    let manualRows = rows.filter((ref) => manualLevelRows.has(ref));
+    let manualTotal = manualRows.reduce((sum, ref) => sum + readRowLevel(ref), 0);
+    let adjustableRows = rows.filter((ref) => !manualLevelRows.has(ref));
+    let adjustableTotal = total - manualTotal;
+
+    if (!adjustableRows.length || adjustableTotal <= 0) {
+      pendingAutoBalance = null;
+      autoBalanceMessage = '';
+      return;
+    }
+
+    let deficit = adjustableRows.length - adjustableTotal;
+    if (deficit > 0) {
+      if (manualRows.length) {
+        const donors = manualRows
+          .map((ref) => ({ ref, level: readRowLevel(ref) }))
+          .sort((a, b) => b.level - a.level);
+        donors.forEach((entry) => {
+          if (deficit <= 0) return;
+          const available = Math.max(0, entry.level - 1);
+          if (!available) return;
+          const take = Math.min(available, deficit);
+          const newLevel = entry.level - take;
+          entry.ref.level.value = String(newLevel);
+          manualLevelRows.delete(entry.ref);
+          deficit -= take;
+        });
+
+        if (deficit > 0) {
+          manualRows.forEach((ref) => manualLevelRows.delete(ref));
+          adjustableRows = rows.slice();
+          adjustableTotal = total;
+        } else {
+          manualRows = rows.filter((ref) => manualLevelRows.has(ref));
+          manualTotal = manualRows.reduce((sum, ref) => sum + readRowLevel(ref), 0);
+          adjustableRows = rows.filter((ref) => !manualLevelRows.has(ref));
+          adjustableTotal = total - manualTotal;
+        }
+      } else {
+        pendingAutoBalance = null;
+        autoBalanceMessage = '';
+        return;
+      }
+    }
+
+    if (!adjustableRows.length || adjustableTotal <= 0) {
+      pendingAutoBalance = null;
+      autoBalanceMessage = '';
+      return;
+    }
+
+    const count = adjustableRows.length;
+    const base = Math.floor(adjustableTotal / count);
+    let remainder = adjustableTotal - base * count;
+
+    adjustableRows.forEach((ref) => {
       if (!ref?.level) return;
       let assigned = base;
       if (remainder > 0) {
@@ -2249,6 +2302,7 @@ const classModule = (() => {
       if (assigned > MAX_CHARACTER_LEVEL) assigned = MAX_CHARACTER_LEVEL;
       ref.level.value = String(assigned);
     });
+
     pendingAutoBalance = null;
   }
 
@@ -2581,7 +2635,10 @@ const classModule = (() => {
     refreshSummary(rowData, { useSnapshot });
   }
 
-  function handleRowChange() {
+  function handleRowChange(ref, { isLevelChange = false } = {}) {
+    if (isLevelChange && ref) {
+      manualLevelRows.add(ref);
+    }
     clearAutoBalanceNotice();
     updateAll({ useSnapshot: true });
   }
@@ -2594,6 +2651,7 @@ const classModule = (() => {
     if (index !== -1) {
       rows.splice(index, 1);
     }
+    manualLevelRows.delete(ref);
     if (ref.row && ref.row.parentNode) {
       ref.row.parentNode.removeChild(ref.row);
     }
@@ -2663,8 +2721,8 @@ const classModule = (() => {
     hidden.value = JSON.stringify({ class: initialClass, level: initialLevel, name: initialName || undefined });
 
     select.addEventListener('change', () => handleRowChange(ref));
-    levelInput.addEventListener('input', () => handleRowChange(ref));
-    levelInput.addEventListener('change', () => handleRowChange(ref));
+    levelInput.addEventListener('input', () => handleRowChange(ref, { isLevelChange: true }));
+    levelInput.addEventListener('change', () => handleRowChange(ref, { isLevelChange: true }));
     removeButton.addEventListener('click', () => removeRow(ref));
 
     rows.push(ref);
