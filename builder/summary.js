@@ -704,34 +704,36 @@ class SummaryUI {
         this.handleSpellSlotAction(parseInt(target.dataset.spellSlotLevel, 10), slotAction);
         return;
       }
-      const rollerAction = target.dataset.rollerAction;
-      if (rollerAction) {
-        const expression = target.dataset.diceExpression || target.dataset.rollerExpression || '';
+      const rollerTarget = target.closest('[data-roller-action]');
+      const rollerAction = rollerTarget?.dataset.rollerAction;
+      if (rollerAction && rollerTarget) {
+        const expression = rollerTarget.dataset.diceExpression || rollerTarget.dataset.rollerExpression || '';
         const options = {};
-        if (target.dataset.diceDetail !== undefined) {
-          options.detail = target.dataset.diceDetail;
+        if (rollerTarget.dataset.diceDetail !== undefined) {
+          options.detail = rollerTarget.dataset.diceDetail;
         }
-        if (target.dataset.diceLabel !== undefined) {
-          options.label = target.dataset.diceLabel;
+        if (rollerTarget.dataset.diceLabel !== undefined) {
+          options.label = rollerTarget.dataset.diceLabel;
         }
-        if (target.dataset.diceContext !== undefined) {
-          options.context = decodeDataAttribute(target.dataset.diceContext);
+        if (rollerTarget.dataset.diceContext !== undefined) {
+          options.context = decodeDataAttribute(rollerTarget.dataset.diceContext);
         }
         this.handleDiceAction(rollerAction, expression, options);
         return;
       }
-      if (target.dataset.diceExpression && !target.dataset.rollerAction) {
+      const quickTarget = target.closest('[data-dice-expression]');
+      if (quickTarget?.dataset.diceExpression && !quickTarget.dataset.rollerAction) {
         const options = {};
-        if (target.dataset.diceDetail !== undefined) {
-          options.detail = target.dataset.diceDetail;
+        if (quickTarget.dataset.diceDetail !== undefined) {
+          options.detail = quickTarget.dataset.diceDetail;
         }
-        if (target.dataset.diceLabel !== undefined) {
-          options.label = target.dataset.diceLabel;
+        if (quickTarget.dataset.diceLabel !== undefined) {
+          options.label = quickTarget.dataset.diceLabel;
         }
-        if (target.dataset.diceContext !== undefined) {
-          options.context = decodeDataAttribute(target.dataset.diceContext);
+        if (quickTarget.dataset.diceContext !== undefined) {
+          options.context = decodeDataAttribute(quickTarget.dataset.diceContext);
         }
-        this.handleDiceAction('quick', target.dataset.diceExpression, options);
+        this.handleDiceAction('quick', quickTarget.dataset.diceExpression, options);
         return;
       }
       const attackAction = target.dataset.attackAction;
