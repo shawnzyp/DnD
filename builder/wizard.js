@@ -1577,6 +1577,7 @@ const classModule = (() => {
       }
       let matched = false;
       let match;
+      ABILITY_REGEX.lastIndex = 0;
       while ((match = ABILITY_REGEX.exec(text))) {
         matched = true;
         const score = Number.parseInt(match[2], 10);
