@@ -24,7 +24,7 @@ test.describe('Builder mobile journey', () => {
         // ignore storage issues in headless browsers
       }
     });
-    await page.goto('/builder/');
+    await page.goto('builder/');
     await page.waitForLoadState('networkidle');
     await waitForBuilderData(page);
     const overlay = page.locator('#coachmark-overlay[aria-hidden="false"]');

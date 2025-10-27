@@ -1,7 +1,79 @@
 (function () {
   'use strict';
 
-  const MANIFEST_URL = '/packs/manifest.json';
+  const ABSOLUTE_URL = /^https?:\/\//i;
+
+  function normaliseBasePath(input) {
+    if (!input) return '';
+    const trimmed = String(input).trim();
+    if (!trimmed) return '';
+    const withoutTrailing = trimmed.replace(/\/+$/, '');
+    if (!withoutTrailing) {
+      return '';
+    }
+    return withoutTrailing.startsWith('/') ? withoutTrailing : `/${withoutTrailing}`;
+  }
+
+  function computeBasePath() {
+    if (typeof window === 'undefined') {
+      return '';
+    }
+    if (window.questKitBasePath?.basePath !== undefined) {
+      return normaliseBasePath(window.questKitBasePath.basePath);
+    }
+    const script = document.currentScript;
+    if (script && script.src) {
+      try {
+        const url = new URL(script.src, window.location.href);
+        const pathname = url.pathname || '';
+        const base = pathname.replace(/\/js\/loader\.js$/i, '');
+        return normaliseBasePath(base);
+      } catch (error) {
+        console.warn('Unable to derive base path from loader script', error);
+      }
+    }
+    return '';
+  }
+
+  const BASE_PATH = computeBasePath();
+
+  function withBase(path) {
+    if (!path) {
+      return BASE_PATH || '/';
+    }
+    if (ABSOLUTE_URL.test(path)) {
+      return path;
+    }
+    let target = path;
+    if (!target.startsWith('/')) {
+      target = `/${target}`;
+    }
+    return `${BASE_PATH}${target}` || target;
+  }
+
+  function stripBase(pathname) {
+    if (!pathname) return '/';
+    if (!BASE_PATH) {
+      return pathname;
+    }
+    if (pathname === BASE_PATH) {
+      return '/';
+    }
+    if (pathname.startsWith(`${BASE_PATH}/`)) {
+      const remainder = pathname.slice(BASE_PATH.length);
+      return remainder || '/';
+    }
+    return pathname;
+  }
+
+  if (typeof window !== 'undefined') {
+    window.questKitBasePath = window.questKitBasePath || {};
+    window.questKitBasePath.basePath = BASE_PATH;
+    window.questKitBasePath.withBase = withBase;
+    window.questKitBasePath.stripBase = stripBase;
+  }
+
+  const MANIFEST_URL = withBase('/packs/manifest.json');
   const DEFAULT_FILES = [
     'classes',
     'races',
@@ -34,7 +106,7 @@
   const SETTINGS_STORE = 'settings';
   const PACK_SETTINGS_ID = 'pack-state';
   const PACK_STATE_STORAGE_KEY = 'quest-kit:pack-state';
-  const SERVICE_WORKER_URL = '/sw.js';
+  const SERVICE_WORKER_URL = withBase('/sw.js');
 
   function createEmptyData() {
     return {
@@ -718,6 +790,23 @@
     });
   }
 
+  function resolvePackPath(value) {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (ABSOLUTE_URL.test(trimmed)) {
+      return trimmed.replace(/\/+$/, '');
+    }
+    const withoutTrailing = trimmed.replace(/\/+$/, '');
+    if (!withoutTrailing) {
+      return '';
+    }
+    if (withoutTrailing.startsWith('/')) {
+      return withBase(withoutTrailing);
+    }
+    return withBase(`/${withoutTrailing}`);
+  }
+
   function normalizeDefinition(definition) {
     if (!definition || typeof definition !== 'object') return null;
     const id = typeof definition.id === 'string' ? definition.id.trim() : '';
@@ -742,7 +831,7 @@
       description: typeof definition.description === 'string' ? definition.description : '',
       license: typeof definition.license === 'string' ? definition.license : '',
       priority: Number.isFinite(priority) ? priority : 50,
-      path: typeof definition.path === 'string' ? definition.path : '',
+      path: resolvePackPath(definition.path),
       files: Array.from(new Set(cleanedFiles)),
       data,
       origin: definition.origin || null,

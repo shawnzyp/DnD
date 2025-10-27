@@ -1,4 +1,5 @@
 import { getValidationBadge, getValidationForPack, summariseValidationIssues } from './pack-validation.js';
+import { removeBase } from './url-helpers.js';
 
 const DEFAULT_FILES = [
   'classes',
@@ -40,12 +41,29 @@ let packManagerSaveTimer = null;
 let packManagerFocusReturn = null;
 let packManagerDragItem = null;
 
-function normalisePath(pathname) {
+function ensureLeadingSlash(pathname) {
   if (!pathname) return '/';
-  if (pathname !== '/' && pathname.endsWith('/')) {
-    return pathname;
-  }
+  return pathname.startsWith('/') ? pathname : `/${pathname}`;
+}
+
+function ensureTrailingSlash(pathname) {
+  if (!pathname) return '/';
+  if (pathname === '/') return '/';
   return pathname.endsWith('/') ? pathname : `${pathname}/`;
+}
+
+function normalisePath(pathname) {
+  const stripped = removeBase(pathname || '/');
+  const withLeading = ensureLeadingSlash(stripped || '/');
+  return ensureTrailingSlash(withLeading);
+}
+
+function normaliseRoute(route) {
+  if (!route) return '/';
+  if (/^https?:/i.test(route) || route.startsWith('#')) {
+    return route;
+  }
+  return ensureTrailingSlash(ensureLeadingSlash(route));
 }
 
 function markActiveNavigation() {
@@ -53,7 +71,7 @@ function markActiveNavigation() {
   if (!navItems.length) return;
   const currentPath = normalisePath(window.location.pathname);
   navItems.forEach((item) => {
-    const target = normalisePath(item.dataset.route || item.getAttribute('href') || '/');
+    const target = normaliseRoute(item.dataset.route || item.getAttribute('href') || '/');
     const isActive = target === currentPath;
     item.classList.toggle('is-active', isActive);
     if (isActive) {

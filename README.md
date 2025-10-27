@@ -10,7 +10,7 @@ Quest Kit is a browser-based companion for tabletop role-playing games. It bundl
 
 ## Deployment
 
-The project deploys automatically to GitHub Pages after the Playwright test suite succeeds on the `main` branch. Visit `https://<your-github-username>.github.io/DnD/` (replace `<your-github-username>` with the account or organization that owns this repository) to view the published site, or open the **github-pages** environment in the repository to follow the latest release.
+The project deploys automatically to GitHub Pages after the Playwright test suite succeeds on the `main` branch. Visit `https://<your-github-username>.github.io/DnD/` (replace `<your-github-username>` with the account or organization that owns this repository) to view the published site, or open the **github-pages** environment in the repository to follow the latest release. The deployment pipeline rewrites asset URLs so the published build serves correctly from the repository subdirectory on GitHub Pages.
 
 ## Development
 
