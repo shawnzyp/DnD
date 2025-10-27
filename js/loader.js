@@ -28,9 +28,12 @@
   };
 
   const DB_NAME = 'dnd-packs';
-  const DB_VERSION = 1;
+  const DB_VERSION = 2;
   const PACK_STORE = 'packs';
   const USER_STORE = 'userPacks';
+  const SETTINGS_STORE = 'settings';
+  const PACK_SETTINGS_ID = 'pack-state';
+  const PACK_STATE_STORAGE_KEY = 'quest-kit:pack-state';
   const SERVICE_WORKER_URL = '/sw.js';
 
   function createEmptyData() {
@@ -78,7 +81,9 @@
         skills: [],
         monsters: []
       },
-      loadedPacks: []
+      loadedPacks: [],
+      availablePacks: [],
+      packSettings: { order: [], enabled: {} }
     };
   }
 
@@ -113,6 +118,164 @@
       }
     });
     return clone;
+  }
+
+  function readLocalPackSettings() {
+    if (!('localStorage' in window)) {
+      return null;
+    }
+    try {
+      const raw = window.localStorage.getItem(PACK_STATE_STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      return normalisePackSettings(parsed);
+    } catch (error) {
+      console.warn('Unable to read stored pack settings from localStorage', error);
+      return null;
+    }
+  }
+
+  function writeLocalPackSettings(settings) {
+    if (!('localStorage' in window)) {
+      return;
+    }
+    try {
+      window.localStorage.setItem(PACK_STATE_STORAGE_KEY, JSON.stringify(settings));
+    } catch (error) {
+      console.warn('Unable to persist pack settings to localStorage', error);
+    }
+  }
+
+  function normalisePackSettings(value) {
+    const settings = { order: [], enabled: {} };
+    if (!value || typeof value !== 'object') {
+      return settings;
+    }
+
+    const seen = new Set();
+    if (Array.isArray(value.order)) {
+      value.order.forEach((id) => {
+        if (typeof id !== 'string') return;
+        const trimmed = id.trim();
+        if (!trimmed || seen.has(trimmed)) return;
+        seen.add(trimmed);
+        settings.order.push(trimmed);
+      });
+    }
+
+    if (value.enabled && typeof value.enabled === 'object') {
+      Object.entries(value.enabled).forEach(([id, state]) => {
+        if (typeof id !== 'string') return;
+        const trimmed = id.trim();
+        if (!trimmed) return;
+        if (state === true) {
+          settings.enabled[trimmed] = true;
+        } else if (state === false) {
+          settings.enabled[trimmed] = false;
+        }
+      });
+    } else if (Array.isArray(value.disabled)) {
+      value.disabled.forEach((id) => {
+        if (typeof id !== 'string') return;
+        const trimmed = id.trim();
+        if (!trimmed) return;
+        settings.enabled[trimmed] = false;
+      });
+    }
+
+    return settings;
+  }
+
+  function arePackSettingsEqual(a, b) {
+    if (!a || !b) return false;
+    if (a.order.length !== b.order.length) return false;
+    for (let index = 0; index < a.order.length; index += 1) {
+      if (a.order[index] !== b.order[index]) {
+        return false;
+      }
+    }
+    const keysA = Object.keys(a.enabled).sort();
+    const keysB = Object.keys(b.enabled).sort();
+    if (keysA.length !== keysB.length) return false;
+    for (let index = 0; index < keysA.length; index += 1) {
+      const key = keysA[index];
+      if (key !== keysB[index]) return false;
+      if (a.enabled[key] !== b.enabled[key]) return false;
+    }
+    return true;
+  }
+
+  function buildPackOrder(definitions, storedOrder) {
+    const availableIds = new Set(definitions.map((definition) => definition.id));
+    const order = [];
+    const seen = new Set();
+    if (Array.isArray(storedOrder)) {
+      storedOrder.forEach((id) => {
+        if (typeof id !== 'string') return;
+        const trimmed = id.trim();
+        if (!trimmed || seen.has(trimmed) || !availableIds.has(trimmed)) return;
+        seen.add(trimmed);
+        order.push(trimmed);
+      });
+    }
+    definitions.forEach((definition) => {
+      if (seen.has(definition.id)) return;
+      seen.add(definition.id);
+      order.push(definition.id);
+    });
+    return order;
+  }
+
+  function applyPackSettings(definitions, settings) {
+    const normalised = normalisePackSettings(settings);
+    const clones = definitions.map((definition) => ({ ...definition }));
+    clones.sort((a, b) => {
+      const priorityDelta = (a.priority || 0) - (b.priority || 0);
+      if (priorityDelta !== 0) return priorityDelta;
+      return a.id.localeCompare(b.id, 'en', { sensitivity: 'base' });
+    });
+
+    const order = buildPackOrder(clones, normalised.order);
+    const orderIndex = new Map();
+    order.forEach((id, index) => {
+      orderIndex.set(id, index);
+    });
+
+    clones.sort((a, b) => {
+      const indexA = orderIndex.has(a.id) ? orderIndex.get(a.id) : Number.MAX_SAFE_INTEGER;
+      const indexB = orderIndex.has(b.id) ? orderIndex.get(b.id) : Number.MAX_SAFE_INTEGER;
+      if (indexA !== indexB) return indexA - indexB;
+      const priorityDelta = (a.priority || 0) - (b.priority || 0);
+      if (priorityDelta !== 0) return priorityDelta;
+      return a.id.localeCompare(b.id, 'en', { sensitivity: 'base' });
+    });
+
+    const total = clones.length;
+    const basePriority = 1000 + total;
+    clones.forEach((definition, index) => {
+      definition.priority = basePriority - index;
+    });
+
+    const filteredEnabled = {};
+    Object.entries(normalised.enabled).forEach(([id, state]) => {
+      if (!orderIndex.has(id)) return;
+      if (state === false) {
+        filteredEnabled[id] = false;
+      } else if (state === true) {
+        filteredEnabled[id] = true;
+      }
+    });
+
+    return { definitions: clones, order, enabled: filteredEnabled };
+  }
+
+  function isPackEnabled(id, enabledMap) {
+    if (!id) return true;
+    if (!enabledMap || typeof enabledMap !== 'object') return true;
+    if (Object.prototype.hasOwnProperty.call(enabledMap, id)) {
+      return enabledMap[id] !== false;
+    }
+    return true;
   }
 
   function buildPackCacheEntries(loadedPacks) {
@@ -199,6 +362,9 @@
           if (!db.objectStoreNames.contains(USER_STORE)) {
             db.createObjectStore(USER_STORE, { keyPath: 'id' });
           }
+          if (!db.objectStoreNames.contains(SETTINGS_STORE)) {
+            db.createObjectStore(SETTINGS_STORE, { keyPath: 'id' });
+          }
         };
         request.onsuccess = () => resolve(request.result);
         request.onerror = () => {
@@ -282,6 +448,63 @@
     });
   }
 
+  async function persistPackSettings(settings) {
+    const normalised = normalisePackSettings(settings);
+    const order = normalised.order.slice();
+    const enabled = {};
+    const orderSet = new Set(order);
+    Object.entries(normalised.enabled).forEach(([id, state]) => {
+      if (!orderSet.has(id)) return;
+      if (state === false) {
+        enabled[id] = false;
+      } else if (state === true) {
+        enabled[id] = true;
+      }
+    });
+    const payload = { order, enabled };
+    await writeEntry(SETTINGS_STORE, {
+      id: PACK_SETTINGS_ID,
+      value: payload,
+      updatedAt: Date.now()
+    });
+    writeLocalPackSettings(payload);
+    return payload;
+  }
+
+  async function readPackSettings() {
+    const entry = await readEntry(SETTINGS_STORE, PACK_SETTINGS_ID);
+    if (entry && entry.value) {
+      return normalisePackSettings(entry.value);
+    }
+    const local = readLocalPackSettings();
+    if (local) {
+      return await persistPackSettings(local);
+    }
+    return { order: [], enabled: {} };
+  }
+
+  async function prunePackSettings(ids) {
+    if (!Array.isArray(ids) || !ids.length) {
+      return;
+    }
+    const current = await readPackSettings();
+    if (!current.order.length && !Object.keys(current.enabled).length) {
+      return;
+    }
+    const removeSet = new Set(ids);
+    const nextOrder = current.order.filter((id) => !removeSet.has(id));
+    const nextEnabled = {};
+    Object.entries(current.enabled).forEach(([id, state]) => {
+      if (!removeSet.has(id)) {
+        nextEnabled[id] = state;
+      }
+    });
+    const nextSettings = { order: nextOrder, enabled: nextEnabled };
+    if (!arePackSettingsEqual(current, nextSettings)) {
+      await persistPackSettings(nextSettings);
+    }
+  }
+
   async function getUserDefinitions() {
     const entries = await readAll(USER_STORE);
     return entries.map((entry) => ({
@@ -313,6 +536,7 @@
     const definitions = await getUserDefinitions();
     await clearStore(USER_STORE);
     await Promise.all(definitions.map((entry) => deleteEntry(PACK_STORE, entry.id)));
+    await prunePackSettings(definitions.map((entry) => entry.id).filter(Boolean));
   }
 
   async function getCachedPack(id) {
@@ -604,16 +828,46 @@
       .map((entry) => normalizeDefinition({ ...entry.definition, addedAt: entry.addedAt }))
       .filter(Boolean);
 
-    const definitions = [...builtin, ...userDefs].sort((a, b) => {
-      const priorityDelta = (a.priority || 0) - (b.priority || 0);
-      if (priorityDelta !== 0) return priorityDelta;
-      return a.id.localeCompare(b.id, 'en', { sensitivity: 'base' });
-    });
+    const combined = [...builtin, ...userDefs].map((definition) => ({ ...definition }));
+    const packSettings = await readPackSettings();
+    const applied = applyPackSettings(combined, packSettings);
+    const orderedDefinitions = applied.definitions;
+    const enabledMap = applied.enabled;
+    const order = applied.order;
+    const canonicalSettings = { order, enabled: enabledMap };
+    if (!arePackSettingsEqual(packSettings, canonicalSettings)) {
+      await persistPackSettings(canonicalSettings);
+    }
 
     const packs = [];
-    for (const definition of definitions) {
+    const availablePacks = [];
+
+    for (const definition of orderedDefinitions) {
+      const enabled = isPackEnabled(definition.id, enabledMap);
+      const summary = {
+        id: definition.id,
+        name: definition.name,
+        edition: definition.edition || '',
+        version: definition.version || '',
+        description: definition.description || '',
+        license: definition.license || '',
+        origin: definition.origin || null,
+        url: definition.url || null,
+        filename: definition.filename || null,
+        addedAt: definition.addedAt || null,
+        path: definition.path || '',
+        files: Array.isArray(definition.files) ? definition.files.slice() : [],
+        priority: Number.isFinite(definition.priority) ? definition.priority : 0,
+        enabled
+      };
+      availablePacks.push(summary);
+      if (!enabled) {
+        continue;
+      }
       try {
         const pack = await loadPack(definition);
+        summary.files = Array.isArray(pack.files) ? pack.files.slice() : summary.files;
+        summary.priority = Number.isFinite(pack.priority) ? pack.priority : summary.priority;
         packs.push(pack);
       } catch (error) {
         console.error(`Failed to load pack ${definition.id}`, error);
@@ -626,8 +880,20 @@
     const merged = mergePacks(packs);
     const builder = createBuilderView(merged);
     const compendium = createCompendiumView(merged);
+    const packSettingsDetail = {
+      order: order.slice(),
+      enabled: { ...enabledMap }
+    };
 
-    return { manifest, merged, builder, compendium, loadedPacks: packs };
+    return {
+      manifest,
+      merged,
+      builder,
+      compendium,
+      loadedPacks: packs,
+      availablePacks,
+      packSettings: packSettingsDetail
+    };
   }
 
   function applyState(detail) {
@@ -646,7 +912,10 @@
       spells: detail.compendium.spells,
       rules: detail.compendium.rules,
       sources: detail.merged.sources,
-      sourceIndex: detail.merged.sourceIndex
+      sourceIndex: detail.merged.sourceIndex,
+      availablePacks: Array.isArray(detail.availablePacks) ? detail.availablePacks : [],
+      packSettings: detail.packSettings || { order: [], enabled: {} },
+      manifest: detail.manifest
     };
     if (!initialised) {
       window.dispatchEvent(new CustomEvent('dnd-data-ready', { detail }));
@@ -780,12 +1049,46 @@
   async function removeUserPack(id) {
     if (!id) return ensureReady();
     await deleteUserDefinition(id);
+    await prunePackSettings([id]);
     readyPromise = null;
     return ensureReady();
   }
 
   async function resetPacks() {
     await clearUserDefinitions();
+    await persistPackSettings({ order: [], enabled: {} });
+    readyPromise = null;
+    return ensureReady();
+  }
+
+  async function updatePackSettings(nextSettings) {
+    const current = await readPackSettings();
+    const patch = normalisePackSettings(nextSettings);
+    const merged = {
+      order: patch.order.length ? patch.order : current.order.slice(),
+      enabled: { ...current.enabled }
+    };
+    if (patch.order.length) {
+      const orderSet = new Set(patch.order);
+      Object.keys(merged.enabled).forEach((id) => {
+        if (!orderSet.has(id)) {
+          delete merged.enabled[id];
+        }
+      });
+      merged.order = patch.order;
+    }
+    Object.entries(patch.enabled).forEach(([id, state]) => {
+      if (state === false) {
+        merged.enabled[id] = false;
+      } else if (state === true) {
+        delete merged.enabled[id];
+      }
+    });
+    const normalised = normalisePackSettings(merged);
+    if (arePackSettingsEqual(current, normalised)) {
+      return ensureReady();
+    }
+    await persistPackSettings(normalised);
     readyPromise = null;
     return ensureReady();
   }
@@ -800,6 +1103,8 @@
     listUserPacks,
     removeUserPack,
     resetPacks,
+    getPackSettings: readPackSettings,
+    updatePackSettings,
     reload: async () => {
       readyPromise = null;
       return ensureReady();

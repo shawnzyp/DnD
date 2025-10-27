@@ -27,8 +27,11 @@
   <main class="app-main" id="main-content" aria-live="polite" tabindex="-1">
     <section class="card pack-card">
       <div class="card-header">
-        <h2 class="card-title">Content completeness</h2>
-        <span class="card-meta" data-pack-summary>Checking active packs&hellip;</span>
+        <div class="card-header__group">
+          <h2 class="card-title">Content completeness</h2>
+          <span class="card-meta" data-pack-summary>Checking active packs&hellip;</span>
+        </div>
+        <button class="button button-ghost" type="button" data-pack-manager-open>Manage packs</button>
       </div>
       <p class="muted" id="pack-meter-description">Your compendium automatically merges every enabled content pack. The meter below tracks how much of the expected data is available.</p>
       <div
@@ -108,5 +111,35 @@
     <span class="fab__icon" aria-hidden="true">✦</span>
     <span class="sr-only">Create or manage a build</span>
   </a>
+
+  <div class="pack-manager" data-pack-manager hidden aria-hidden="true">
+    <div class="pack-manager__scrim" data-pack-manager-scrim></div>
+    <section
+      class="pack-manager__panel surface-blur"
+      data-pack-manager-panel
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="pack-manager-title"
+      tabindex="-1"
+    >
+      <header class="pack-manager__header">
+        <div class="pack-manager__header-text">
+          <h2 class="pack-manager__title" id="pack-manager-title">Manage content packs</h2>
+          <p class="pack-manager__summary muted" data-pack-manager-summary>Loading packs&hellip;</p>
+        </div>
+        <button type="button" class="pack-manager__close" data-pack-manager-close>Close</button>
+      </header>
+      <div class="pack-manager__body">
+        <p class="pack-manager__hint muted">Drag the handle to reorder packs. Higher packs override lower ones.</p>
+        <ul class="pack-manager__list" data-pack-manager-list></ul>
+        <p class="pack-manager__empty muted" data-pack-manager-empty hidden>
+          No packs available yet. Import or enable packs to get started.
+        </p>
+      </div>
+      <footer class="pack-manager__footer">
+        <button type="button" class="button button-secondary" data-pack-manager-close>Done</button>
+      </footer>
+    </section>
+  </div>
 </body>
 </html>
