@@ -198,6 +198,92 @@
     .grid.two {
       grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     }
+    .class-rows {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .class-row {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      align-items: end;
+      position: relative;
+    }
+    .class-row-label {
+      font-weight: 600;
+      color: var(--fg);
+    }
+    .class-remove {
+      justify-self: flex-start;
+      align-self: center;
+      border: 1px solid var(--surface-border);
+      background: transparent;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 0.35rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    .class-remove:hover,
+    .class-remove:focus-visible {
+      background: color-mix(in srgb, var(--accent) 18%, transparent 82%);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-border) 55%);
+      color: var(--fg);
+    }
+    .class-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .class-add {
+      border: 1px solid var(--surface-border);
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--fg);
+      border-radius: 999px;
+      padding: 0.45rem 0.9rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+    }
+    .class-add:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+    .class-add:not(:disabled):hover,
+    .class-add:not(:disabled):focus-visible {
+      background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.1) 78%);
+      border-color: color-mix(in srgb, var(--accent) 45%, var(--surface-border) 55%);
+      transform: translateY(-1px);
+    }
+    .class-total {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .class-total strong {
+      color: var(--muted-strong);
+    }
+    .class-warnings {
+      margin: 0;
+      padding-left: 1.1rem;
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--muted-strong);
+      list-style: disc;
+    }
+    .class-warnings[hidden] {
+      display: none;
+    }
+    .class-warnings li[data-state="error"] {
+      color: #f87171;
+    }
+    .class-warnings li[data-state="warn"] {
+      color: #facc15;
+    }
     .equipment-grid {
       display: grid;
       gap: 0.85rem;
@@ -1062,20 +1148,32 @@
       </section>
       <section class="step" data-step="classLevel">
         <h2>Class &amp; Level</h2>
-        <div class="grid two">
-          <label>Primary class
-            <select name="class">
-              <option value="">Choose a class</option>
-            </select>
-          </label>
-          <label>Level
-            <input type="number" min="1" max="20" name="level" value="1" />
-          </label>
+        <div class="class-rows" data-class-rows>
+          <div class="class-row" data-class-row>
+            <label>
+              <span class="class-row-label">Primary class</span>
+              <select data-class-select>
+                <option value="">Choose a class</option>
+              </select>
+            </label>
+            <label>
+              <span class="class-row-label">Level</span>
+              <input type="number" min="1" max="20" value="1" data-class-level />
+            </label>
+            <button type="button" data-class-remove class="class-remove" hidden aria-label="Remove class">Remove</button>
+            <input type="hidden" name="classes[]" value='{"class":"","level":1}' />
+          </div>
+        </div>
+        <div class="class-actions">
+          <button type="button" data-class-add class="class-add" disabled>Add another class</button>
+          <span class="class-total" aria-live="polite">Total level <strong data-class-total>1</strong></span>
         </div>
         <label>Subclass focus
           <input type="text" name="subclass" placeholder="Circle of Stars" />
         </label>
+        <ul class="class-warnings" data-class-warnings aria-live="polite"></ul>
         <p class="step-hint" data-class-summary aria-live="polite">Pick a class to view hit die and proficiencies.</p>
+        <input type="hidden" name="level" value="1" data-class-total-field />
       </section>
       <section class="step" data-step="abilities">
         <h2>Ability Scores</h2>
