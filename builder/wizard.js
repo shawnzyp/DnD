@@ -671,6 +671,101 @@ function formatList(values, { conjunction = 'and' } = {}) {
   return `${head}, ${conjunction} ${tail}`;
 }
 
+function createFocusTrap(container, { returnFocus = true } = {}) {
+  if (!container) {
+    return {
+      activate() {},
+      deactivate() {}
+    };
+  }
+
+  const focusableSelector =
+    'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+  let active = false;
+  let previousFocus = null;
+
+  function isVisible(element) {
+    return !(
+      element.offsetParent === null &&
+      element !== document.activeElement &&
+      element.getClientRects().length === 0
+    );
+  }
+
+  function getFocusableElements() {
+    return Array.from(container.querySelectorAll(focusableSelector)).filter((element) => {
+      if (element.hasAttribute('disabled')) return false;
+      if (element.getAttribute('aria-hidden') === 'true') return false;
+      const tabIndex = element.getAttribute('tabindex');
+      if (tabIndex && Number(tabIndex) < 0) return false;
+      return isVisible(element);
+    });
+  }
+
+  function focusFirst() {
+    const [first] = getFocusableElements();
+    const target = first || container;
+    if (target && typeof target.focus === 'function') {
+      target.focus({ preventScroll: true });
+    }
+    return target;
+  }
+
+  function handleKeydown(event) {
+    if (!active || event.key !== 'Tab') return;
+    const focusable = getFocusableElements();
+    if (!focusable.length) {
+      event.preventDefault();
+      focusFirst();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const current = document.activeElement;
+    if (event.shiftKey) {
+      if (current === first || !container.contains(current)) {
+        event.preventDefault();
+        last.focus({ preventScroll: true });
+      }
+    } else if (current === last) {
+      event.preventDefault();
+      first.focus({ preventScroll: true });
+    }
+  }
+
+  function handleFocusIn(event) {
+    if (!active) return;
+    if (!container.contains(event.target)) {
+      focusFirst();
+    }
+  }
+
+  return {
+    activate(initialFocus) {
+      if (active) return;
+      active = true;
+      previousFocus = document.activeElement;
+      document.addEventListener('focusin', handleFocusIn, true);
+      document.addEventListener('keydown', handleKeydown, true);
+      const target = initialFocus || focusFirst();
+      if (target && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+      }
+    },
+    deactivate() {
+      if (!active) return;
+      document.removeEventListener('focusin', handleFocusIn, true);
+      document.removeEventListener('keydown', handleKeydown, true);
+      active = false;
+      const returnTarget = returnFocus ? previousFocus : null;
+      if (returnTarget && typeof returnTarget.focus === 'function') {
+        returnTarget.focus({ preventScroll: true });
+      }
+      previousFocus = null;
+    }
+  };
+}
+
 function slugifyLoose(value) {
   if (!value && value !== 0) return '';
   return String(value)
@@ -1418,11 +1513,6 @@ function updatePackMeta() {
 
 function populateDynamicOptions() {
   const data = getPackData();
-  if (form && form.elements) {
-    const raceField = form.elements.namedItem('race');
-    populateSelectOptions(raceField, data.races || [], 'Choose a race');
-  }
-  populateDatalist('background-options', data.backgrounds || []);
   populateDatalist('item-options', data.items || [], (entry) => {
     const category = entry.category ? ` (${entry.category})` : '';
     return `${entry.name}${category}`;
@@ -2045,49 +2135,722 @@ if (stateFileInput) {
     }
   });
 }
+function createBottomSheetPicker({
+  id,
+  title,
+  trigger,
+  placeholder,
+  confirmLabel = 'Use selection',
+  emptyOptionLabel = 'No selection',
+  emptyConfirmLabel = 'Clear selection',
+  searchPlaceholder = 'Search options',
+  noResultsText = 'No options found.',
+  getOptions = () => [],
+  getOptionValue,
+  getOptionLabel,
+  getOptionDetail,
+  getOptionKeywords,
+  resolveEntry,
+  allowEmpty = true,
+  allowCustomValue = false,
+  onChange
+} = {}) {
+  if (!trigger) {
+    return {
+      open() {},
+      close() {},
+      setValue() {},
+      getValue() {
+        return '';
+      },
+      getEntry() {
+        return null;
+      },
+      isCustom() {
+        return false;
+      },
+      refresh() {}
+    };
+  }
+
+  const triggerNode = trigger;
+  const valueNode = triggerNode.querySelector('[data-picker-value]');
+  const detailNode = triggerNode.querySelector('[data-picker-detail]');
+  const placeholderText = placeholder || triggerNode.dataset.placeholder || 'Choose an option';
+  const allowCustom = allowCustomValue || triggerNode.dataset.allowCustom === 'true';
+  const allowNone = allowEmpty !== false;
+  const confirmText = confirmLabel || 'Use selection';
+  const emptyLabel = emptyOptionLabel || 'No selection';
+  const emptyConfirmText = emptyConfirmLabel || 'Clear selection';
+  const searchLabel = searchPlaceholder || 'Search options';
+  const noResultsLabel = noResultsText || 'No options found.';
+  const computedId = id || `${triggerNode.id || `picker-${Math.random().toString(36).slice(2, 8)}`}-sheet`;
+  const titleText = title || triggerNode.getAttribute('aria-label') || placeholderText;
+  const titleId = `${computedId}-title`;
+
+  const host = document.createElement('div');
+  host.className = 'picker-sheet';
+  host.setAttribute('aria-hidden', 'true');
+
+  const panel = document.createElement('div');
+  panel.className = 'picker-sheet-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.id = computedId;
+  panel.setAttribute('aria-labelledby', titleId);
+
+  const header = document.createElement('div');
+  header.className = 'picker-sheet-header';
+
+  const titleNode = document.createElement('h2');
+  titleNode.className = 'picker-sheet-title';
+  titleNode.id = titleId;
+  titleNode.textContent = titleText;
+  header.appendChild(titleNode);
+
+  const searchInput = document.createElement('input');
+  searchInput.type = 'search';
+  searchInput.className = 'picker-search';
+  searchInput.placeholder = searchLabel;
+  searchInput.setAttribute('aria-label', searchLabel);
+  searchInput.autocomplete = 'off';
+  header.appendChild(searchInput);
+
+  panel.appendChild(header);
+
+  const list = document.createElement('div');
+  list.className = 'picker-options';
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-labelledby', titleId);
+  panel.appendChild(list);
+
+  const emptyMessage = document.createElement('p');
+  emptyMessage.className = 'picker-empty';
+  emptyMessage.textContent = noResultsLabel;
+  emptyMessage.hidden = true;
+  panel.appendChild(emptyMessage);
+
+  const actions = document.createElement('div');
+  actions.className = 'picker-actions';
+
+  const cancelButton = document.createElement('button');
+  cancelButton.type = 'button';
+  cancelButton.textContent = 'Cancel';
+
+  const confirmButton = document.createElement('button');
+  confirmButton.type = 'button';
+  confirmButton.dataset.primary = 'true';
+  confirmButton.textContent = confirmText;
+  confirmButton.disabled = true;
+
+  actions.appendChild(cancelButton);
+  actions.appendChild(confirmButton);
+  panel.appendChild(actions);
+
+  host.appendChild(panel);
+  document.body.appendChild(host);
+
+  triggerNode.setAttribute('aria-controls', computedId);
+  triggerNode.setAttribute('aria-expanded', 'false');
+
+  let currentValue = '';
+  let currentEntry = null;
+  let currentIsCustom = false;
+  let open = false;
+  let lastFocus = null;
+  let options = [];
+  let visibleOptions = [];
+  let selectedOption = null;
+  let customValue = '';
+  const optionButtons = new Map();
+  const focusTrap = createFocusTrap(panel, { returnFocus: false });
+
+  function normalizeValue(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).trim();
+  }
+
+  function buildOptions() {
+    const source = typeof getOptions === 'function' ? getOptions() : [];
+    const records = Array.isArray(source)
+      ? source.map((entry) => {
+          const rawValue =
+            (typeof getOptionValue === 'function'
+              ? getOptionValue(entry)
+              : entry?.slug || entry?.id || entry?.name) || '';
+          const value = normalizeValue(rawValue || entry?.name || '');
+          const label =
+            (typeof getOptionLabel === 'function'
+              ? getOptionLabel(entry)
+              : entry?.name || entry?.title || value || '') || value || 'Unnamed';
+          const detail =
+            (typeof getOptionDetail === 'function'
+              ? getOptionDetail(entry)
+              : entry?.source?.name || entry?.source || '') || '';
+          const keywordSource =
+            typeof getOptionKeywords === 'function'
+              ? getOptionKeywords(entry)
+              : [
+                  entry?.name,
+                  entry?.title,
+                  entry?.slug,
+                  entry?.id,
+                  entry?.summary,
+                  ...(Array.isArray(entry?.aliases) ? entry.aliases : []),
+                  ...(Array.isArray(entry?.traits) ? entry.traits : [])
+                ];
+          const searchText = [label, detail, value, ...keywordSource.filter(Boolean).map((token) => String(token))]
+            .join(' ')
+            .toLowerCase();
+          return {
+            value,
+            label,
+            detail,
+            entry,
+            search: searchText,
+            isEmpty: false
+          };
+        })
+      : [];
+    if (allowNone) {
+      records.unshift({
+        value: '',
+        label: emptyLabel,
+        detail: '',
+        entry: null,
+        search: 'none clear remove empty',
+        isEmpty: true
+      });
+    }
+    return records;
+  }
+
+  function updateTriggerDisplay(entry, { custom = false } = {}) {
+    const hasValue = Boolean(currentValue);
+    if (valueNode) {
+      if (custom) {
+        valueNode.textContent = hasValue ? currentValue : placeholderText;
+      } else if (entry) {
+        const label =
+          (typeof getOptionLabel === 'function'
+            ? getOptionLabel(entry)
+            : entry?.name || entry?.title || currentValue) ||
+          currentValue ||
+          placeholderText;
+        valueNode.textContent = label;
+      } else if (hasValue) {
+        valueNode.textContent = currentValue;
+      } else {
+        valueNode.textContent = placeholderText;
+      }
+    } else {
+      triggerNode.textContent = hasValue ? currentValue : placeholderText;
+    }
+    if (detailNode) {
+      const detail = !custom && entry
+        ? (typeof getOptionDetail === 'function' ? getOptionDetail(entry) : entry?.source?.name || entry?.source || '')
+        : '';
+      detailNode.textContent = detail || '';
+      detailNode.hidden = !detail;
+    }
+    triggerNode.dataset.hasValue = hasValue ? 'true' : 'false';
+    if (custom && hasValue) {
+      triggerNode.dataset.customValue = 'true';
+    } else {
+      triggerNode.removeAttribute('data-custom-value');
+    }
+  }
+
+  function setValueInternal(value, entry = null, { custom = false } = {}) {
+    const normalized = normalizeValue(value);
+    let resolvedEntry = entry || null;
+    let customFlag = Boolean(custom);
+    if (!resolvedEntry && normalized && !customFlag && typeof resolveEntry === 'function') {
+      resolvedEntry = resolveEntry(normalized);
+    }
+    if (!resolvedEntry && normalized && !customFlag) {
+      const dataset = typeof getOptions === 'function' ? getOptions() : [];
+      if (Array.isArray(dataset)) {
+        resolvedEntry =
+          dataset.find((candidate) => {
+            const candidateValue =
+              normalizeValue(
+                (typeof getOptionValue === 'function'
+                  ? getOptionValue(candidate)
+                  : candidate?.slug || candidate?.id || candidate?.name) || candidate?.name || ''
+              ) || '';
+            if (!candidateValue) return false;
+            if (candidateValue.toLowerCase() === normalized.toLowerCase()) return true;
+            if (candidate?.name && normalizeValue(candidate.name).toLowerCase() === normalized.toLowerCase()) return true;
+            return false;
+          }) || null;
+      }
+    }
+    if (!resolvedEntry && normalized) {
+      customFlag = allowCustom;
+    }
+    currentValue = normalized;
+    currentEntry = resolvedEntry;
+    currentIsCustom = customFlag && Boolean(normalized) && !resolvedEntry;
+    updateTriggerDisplay(currentEntry, { custom: currentIsCustom });
+  }
+
+  function resetSearch() {
+    searchInput.value = '';
+    customValue = '';
+  }
+
+  function updateOptionSelectionUI() {
+    optionButtons.forEach((button, option) => {
+      const selected = selectedOption === option;
+      button.dataset.selected = selected ? 'true' : 'false';
+      button.setAttribute('aria-selected', selected ? 'true' : 'false');
+    });
+  }
+
+  function renderOptions(query, { focusOption = null, resetScroll = false } = {}) {
+    const normalized = normalizeValue(query).toLowerCase();
+    const results = options.filter((option) => {
+      if (option.isEmpty) {
+        return normalized ? option.search.includes(normalized) : true;
+      }
+      if (!normalized) return true;
+      return option.search.includes(normalized);
+    });
+    visibleOptions = results;
+    optionButtons.clear();
+    list.innerHTML = '';
+    if (results.length) {
+      list.hidden = false;
+      emptyMessage.hidden = true;
+      results.forEach((option) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'picker-option';
+        button.setAttribute('role', 'option');
+        button.setAttribute('data-picker-option', '');
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'picker-option-label';
+        labelSpan.textContent = option.label;
+        button.appendChild(labelSpan);
+        const detailSpan = document.createElement('span');
+        detailSpan.className = 'picker-option-detail';
+        detailSpan.textContent = option.detail || '';
+        detailSpan.hidden = !option.detail;
+        button.appendChild(detailSpan);
+        button.addEventListener('click', () => {
+          selectOption(option);
+        });
+        button.addEventListener('dblclick', () => {
+          selectOption(option);
+          window.setTimeout(() => {
+            if (!confirmButton.disabled) {
+              confirmSelection();
+            }
+          }, 0);
+        });
+        list.appendChild(button);
+        optionButtons.set(option, button);
+      });
+    } else {
+      list.hidden = true;
+      emptyMessage.hidden = false;
+      emptyMessage.textContent = noResultsLabel;
+    }
+    if (resetScroll) {
+      list.scrollTop = 0;
+    }
+    updateOptionSelectionUI();
+    if (focusOption && optionButtons.has(focusOption)) {
+      const targetButton = optionButtons.get(focusOption);
+      targetButton.focus({ preventScroll: true });
+    }
+  }
+
+  function focusOptionAt(index) {
+    if (!visibleOptions.length) return;
+    const bounded = Math.max(0, Math.min(index, visibleOptions.length - 1));
+    const option = visibleOptions[bounded];
+    const button = optionButtons.get(option);
+    if (button) {
+      button.focus({ preventScroll: true });
+    }
+  }
+
+  function getFocusedOptionIndex() {
+    if (!visibleOptions.length) return -1;
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement)) return -1;
+    for (let index = 0; index < visibleOptions.length; index += 1) {
+      const option = visibleOptions[index];
+      if (optionButtons.get(option) === active) {
+        return index;
+      }
+    }
+    return -1;
+  }
+
+  function updateConfirmState() {
+    const query = normalizeValue(searchInput.value);
+    if (selectedOption) {
+      const isEmpty = Boolean(selectedOption.isEmpty);
+      const selectionValue = normalizeValue(selectedOption.value);
+      const sameAsCurrent =
+        selectionValue === normalizeValue(currentValue) && !currentIsCustom && query === '';
+      confirmButton.disabled = sameAsCurrent;
+      confirmButton.textContent = isEmpty ? emptyConfirmText : confirmText;
+      confirmButton.dataset.mode = 'option';
+      return;
+    }
+    if (allowCustom && query) {
+      const sameAsCurrent = normalizeValue(currentValue).toLowerCase() === query.toLowerCase();
+      confirmButton.disabled = sameAsCurrent;
+      confirmButton.textContent = `Use “${query}”`;
+      confirmButton.dataset.mode = 'custom';
+      return;
+    }
+    confirmButton.disabled = true;
+    confirmButton.textContent = confirmText;
+    confirmButton.dataset.mode = '';
+  }
+
+  function selectOption(option) {
+    if (selectedOption === option && !option.isEmpty) {
+      selectedOption = null;
+    } else {
+      selectedOption = option;
+    }
+    if (!option.isEmpty) {
+      resetSearch();
+      renderOptions('', { focusOption: option, resetScroll: true });
+    } else {
+      renderOptions(searchInput.value, { focusOption: option, resetScroll: false });
+    }
+    updateConfirmState();
+  }
+
+  function clearSelection() {
+    selectedOption = null;
+    updateOptionSelectionUI();
+    updateConfirmState();
+  }
+
+  function openSheet() {
+    if (open) return;
+    open = true;
+    lastFocus = document.activeElement instanceof HTMLElement ? document.activeElement : triggerNode;
+    options = buildOptions();
+    selectedOption = null;
+    customValue = '';
+    if (currentValue) {
+      const normalizedValue = normalizeValue(currentValue).toLowerCase();
+      selectedOption =
+        options.find((option) => !option.isEmpty && normalizeValue(option.value).toLowerCase() === normalizedValue) ||
+        null;
+    }
+    if (!selectedOption && allowNone && !currentValue) {
+      selectedOption = options.find((option) => option.isEmpty) || null;
+    }
+    if (currentIsCustom && currentValue) {
+      searchInput.value = currentValue;
+      customValue = currentValue;
+    } else {
+      resetSearch();
+    }
+    renderOptions(searchInput.value, { resetScroll: true, focusOption: selectedOption || null });
+    updateConfirmState();
+    host.classList.add('visible');
+    host.setAttribute('aria-hidden', 'false');
+    triggerNode.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('picker-open');
+    requestAnimationFrame(() => {
+      focusTrap.activate(searchInput);
+      searchInput.select();
+    });
+  }
+
+  function closeSheet({ restoreFocus = true } = {}) {
+    if (!open) return;
+    open = false;
+    host.classList.remove('visible');
+    host.setAttribute('aria-hidden', 'true');
+    triggerNode.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('picker-open');
+    focusTrap.deactivate();
+    if (restoreFocus) {
+      const target = lastFocus || triggerNode;
+      if (target && typeof target.focus === 'function') {
+        target.focus({ preventScroll: true });
+      }
+    }
+    lastFocus = null;
+    resetSearch();
+    clearSelection();
+  }
+
+  function confirmSelection() {
+    const mode = confirmButton.dataset.mode;
+    if (mode === 'option' && selectedOption) {
+      const option = selectedOption;
+      const value = normalizeValue(option.value);
+      setValueInternal(value, option.entry, { custom: false });
+      if (typeof onChange === 'function') {
+        onChange(value, option.entry || null, { option });
+      }
+      closeSheet();
+      return;
+    }
+    if (mode === 'custom' && allowCustom) {
+      const value = normalizeValue(searchInput.value);
+      if (!value) return;
+      setValueInternal(value, null, { custom: true });
+      if (typeof onChange === 'function') {
+        onChange(value, null, { custom: true });
+      }
+      closeSheet();
+    }
+  }
+
+  triggerNode.addEventListener('click', (event) => {
+    event.preventDefault();
+    openSheet();
+  });
+
+  host.addEventListener('click', (event) => {
+    if (event.target === host) {
+      closeSheet();
+    }
+  });
+
+  panel.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+
+  cancelButton.addEventListener('click', () => {
+    closeSheet();
+  });
+
+  confirmButton.addEventListener('click', () => {
+    confirmSelection();
+  });
+
+  searchInput.addEventListener('input', () => {
+    const query = searchInput.value;
+    if (query.trim()) {
+      selectedOption = null;
+    }
+    customValue = query;
+    renderOptions(query, { resetScroll: true });
+    updateConfirmState();
+  });
+
+  panel.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSheet();
+      return;
+    }
+    if (event.key === 'ArrowDown') {
+      if (event.target === searchInput) {
+        event.preventDefault();
+        focusOptionAt(0);
+      } else if (event.target instanceof HTMLElement && event.target.hasAttribute('data-picker-option')) {
+        event.preventDefault();
+        const index = getFocusedOptionIndex();
+        focusOptionAt(index + 1);
+      }
+    }
+    if (event.key === 'ArrowUp') {
+      if (event.target instanceof HTMLElement && event.target.hasAttribute('data-picker-option')) {
+        event.preventDefault();
+        const index = getFocusedOptionIndex();
+        if (index <= 0) {
+          searchInput.focus({ preventScroll: true });
+        } else {
+          focusOptionAt(index - 1);
+        }
+      }
+    }
+    if (event.key === 'Home') {
+      if (event.target instanceof HTMLElement && event.target.hasAttribute('data-picker-option')) {
+        event.preventDefault();
+        focusOptionAt(0);
+      }
+    }
+    if (event.key === 'End') {
+      if (event.target instanceof HTMLElement && event.target.hasAttribute('data-picker-option')) {
+        event.preventDefault();
+        focusOptionAt(visibleOptions.length - 1);
+      }
+    }
+    if (event.key === 'Enter' && event.target === searchInput) {
+      if (!confirmButton.disabled) {
+        event.preventDefault();
+        confirmSelection();
+      }
+    }
+  });
+
+  setValueInternal('', null, { custom: false });
+
+  return {
+    open: openSheet,
+    close: closeSheet,
+    setValue(value, entry = null, options = {}) {
+      setValueInternal(value, entry, options);
+    },
+    getValue() {
+      return currentValue;
+    },
+    getEntry() {
+      return currentEntry;
+    },
+    isCustom() {
+      return currentIsCustom;
+    },
+    refresh() {
+      setValueInternal(currentValue, currentEntry, { custom: currentIsCustom });
+    }
+  };
+}
+
 const identityModule = (() => {
   let summaryNode = null;
-  let raceSelect = null;
+  let raceInput = null;
+  let backgroundInput = null;
+  let racePicker = null;
+  let backgroundPicker = null;
+
+  function resolveRace(value) {
+    return findEntry(getPackData().races || [], value);
+  }
+
+  function resolveBackground(value) {
+    return findEntry(getPackData().backgrounds || [], value);
+  }
+
+  function updatePickerDisplays(data) {
+    if (!data) return;
+    const raceValue = typeof data?.race === 'string' ? data.race : raceInput?.value || '';
+    if (racePicker) {
+      const raceEntry = resolveRace(raceValue);
+      racePicker.setValue(raceValue, raceEntry);
+    }
+    const backgroundValue = typeof data?.background === 'string' ? data.background : backgroundInput?.value || '';
+    if (backgroundPicker) {
+      const backgroundEntry = resolveBackground(backgroundValue);
+      backgroundPicker.setValue(backgroundValue, backgroundEntry, {
+        custom: Boolean(backgroundValue && !backgroundEntry)
+      });
+    }
+  }
 
   function render(data) {
     if (!summaryNode) return;
-    const raceValue = data?.race || (raceSelect ? raceSelect.value : '');
+    const raceValue = typeof data?.race === 'string' ? data.race : raceInput?.value || '';
     if (!raceValue) {
       summaryNode.textContent = 'Choose a race to see ability score bonuses.';
       summaryNode.dataset.state = '';
       return;
     }
-    const raceEntry = findEntry(getPackData().races || [], raceValue);
+    const raceEntry = resolveRace(raceValue);
     const derived = computeDerivedState(data);
-    const parts = abilityFields.map((field) => {
-      const bonus = derived.abilities[field.id]?.bonus || 0;
-      if (!bonus) return null;
-      return `${field.label} ${bonus >= 0 ? '+' : ''}${bonus}`;
-    }).filter(Boolean);
+    const parts = abilityFields
+      .map((field) => {
+        const bonus = derived.abilities[field.id]?.bonus || 0;
+        if (!bonus) return null;
+        return `${field.label} ${bonus >= 0 ? '+' : ''}${bonus}`;
+      })
+      .filter(Boolean);
     if (!raceEntry) {
       summaryNode.textContent = parts.length ? `Bonuses: ${parts.join(', ')}` : 'No ability bonuses applied.';
       summaryNode.dataset.state = 'warn';
       return;
     }
-    summaryNode.textContent = parts.length ? `${raceEntry.name}: ${parts.join(', ')}` : `${raceEntry.name}: No ability bonuses`;
+    summaryNode.textContent = parts.length
+      ? `${raceEntry.name}: ${parts.join(', ')}`
+      : `${raceEntry.name}: No ability bonuses`;
     summaryNode.dataset.state = parts.length ? 'ok' : '';
   }
 
   return {
     setup(section) {
       summaryNode = section.querySelector('[data-race-summary]');
-      raceSelect = section.querySelector('select[name="race"]');
+      raceInput = section.querySelector('input[name="race"]');
+      backgroundInput = section.querySelector('input[name="background"]');
+      const raceTrigger = section.querySelector('[data-picker-trigger="race"]');
+      const backgroundTrigger = section.querySelector('[data-picker-trigger="background"]');
+
+      racePicker = createBottomSheetPicker({
+        id: 'race-picker-sheet',
+        title: 'Choose a race or ancestry',
+        trigger: raceTrigger,
+        placeholder: raceTrigger?.dataset.placeholder || 'Choose a race',
+        confirmLabel: 'Use race',
+        emptyOptionLabel: 'No race selected',
+        emptyConfirmLabel: 'Clear race',
+        searchPlaceholder: 'Search races',
+        allowEmpty: true,
+        allowCustomValue: false,
+        getOptions: () => getPackData().races || [],
+        getOptionValue: (entry) => entry?.slug || entry?.id || entry?.name || '',
+        getOptionLabel: (entry) => entry?.name || entry?.title || entry?.slug || '',
+        getOptionDetail: (entry) => entry?.source?.name || entry?.source || '',
+        resolveEntry: (value) => resolveRace(value),
+        onChange(value) {
+          if (raceInput) {
+            raceInput.value = value || '';
+            raceInput.dispatchEvent(new Event('input', { bubbles: true }));
+            raceInput.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+
+      backgroundPicker = createBottomSheetPicker({
+        id: 'background-picker-sheet',
+        title: 'Choose a background',
+        trigger: backgroundTrigger,
+        placeholder: backgroundTrigger?.dataset.placeholder || 'Choose a background',
+        confirmLabel: 'Use background',
+        emptyOptionLabel: 'No background selected',
+        emptyConfirmLabel: 'Clear background',
+        searchPlaceholder: 'Search backgrounds or add custom',
+        allowEmpty: true,
+        allowCustomValue: true,
+        getOptions: () => getPackData().backgrounds || [],
+        getOptionValue: (entry) => entry?.slug || entry?.id || entry?.name || '',
+        getOptionLabel: (entry) => entry?.name || entry?.title || entry?.slug || '',
+        getOptionDetail: (entry) => entry?.source?.name || entry?.source || '',
+        resolveEntry: (value) => resolveBackground(value),
+        onChange(value) {
+          if (backgroundInput) {
+            backgroundInput.value = value || '';
+            backgroundInput.dispatchEvent(new Event('input', { bubbles: true }));
+            backgroundInput.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
+      });
+
+      updatePickerDisplays(state.data);
       render(state.data);
     },
     onPackData() {
+      updatePickerDisplays(state.data);
       render(state.data);
     },
     onStateHydrated(currentState) {
-      render(currentState?.data || state.data);
+      const snapshot = currentState?.data || state.data;
+      updatePickerDisplays(snapshot);
+      render(snapshot);
     },
     onFormChange(event) {
-      if (event.target && event.target.name === 'race') {
-        render(serializeForm());
+      if (!event?.target) return;
+      if (event.target.name === 'race' || event.target.name === 'background') {
+        const snapshot = serializeForm();
+        updatePickerDisplays(snapshot);
+        if (event.target.name === 'race') {
+          render(snapshot);
+        }
       }
     }
   };
@@ -6208,101 +6971,6 @@ function setupAboutModal() {
   let loaded = false;
   let lastFocus = null;
   const focusTrap = createFocusTrap(dialog, { returnFocus: false });
-
-  function createFocusTrap(container, { returnFocus = true } = {}) {
-    if (!container) {
-      return {
-        activate() {},
-        deactivate() {}
-      };
-    }
-
-    const focusableSelector =
-      'a[href], area[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-    let active = false;
-    let previousFocus = null;
-
-    function isVisible(element) {
-      return !(
-        element.offsetParent === null &&
-        element !== document.activeElement &&
-        element.getClientRects().length === 0
-      );
-    }
-
-    function getFocusableElements() {
-      return Array.from(container.querySelectorAll(focusableSelector)).filter((element) => {
-        if (element.hasAttribute('disabled')) return false;
-        if (element.getAttribute('aria-hidden') === 'true') return false;
-        const tabIndex = element.getAttribute('tabindex');
-        if (tabIndex && Number(tabIndex) < 0) return false;
-        return isVisible(element);
-      });
-    }
-
-    function focusFirst() {
-      const [first] = getFocusableElements();
-      const target = first || container;
-      if (target && typeof target.focus === 'function') {
-        target.focus({ preventScroll: true });
-      }
-      return target;
-    }
-
-    function handleKeydown(event) {
-      if (!active || event.key !== 'Tab') return;
-      const focusable = getFocusableElements();
-      if (!focusable.length) {
-        event.preventDefault();
-        focusFirst();
-        return;
-      }
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const current = document.activeElement;
-      if (event.shiftKey) {
-        if (current === first || !container.contains(current)) {
-          event.preventDefault();
-          last.focus({ preventScroll: true });
-        }
-      } else if (current === last) {
-        event.preventDefault();
-        first.focus({ preventScroll: true });
-      }
-    }
-
-    function handleFocusIn(event) {
-      if (!active) return;
-      if (!container.contains(event.target)) {
-        focusFirst();
-      }
-    }
-
-    return {
-      activate(initialFocus) {
-        if (active) return;
-        active = true;
-        previousFocus = document.activeElement;
-        document.addEventListener('focusin', handleFocusIn, true);
-        document.addEventListener('keydown', handleKeydown, true);
-        const target = initialFocus || focusFirst();
-        if (target && typeof target.focus === 'function') {
-          target.focus({ preventScroll: true });
-        }
-      },
-      deactivate() {
-        if (!active) return;
-        document.removeEventListener('focusin', handleFocusIn, true);
-        document.removeEventListener('keydown', handleKeydown, true);
-        active = false;
-        const returnTarget = returnFocus ? previousFocus : null;
-        if (returnTarget && typeof returnTarget.focus === 'function') {
-          returnTarget.focus({ preventScroll: true });
-        }
-        previousFocus = null;
-      }
-    };
-  }
 
   async function loadLegalNotice() {
     if (!legalBlock || loaded) return;
