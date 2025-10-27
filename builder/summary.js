@@ -81,6 +81,217 @@ function resolveClassMeta(identifier) {
   return classes.find(entry => entry.slug === identifier || entry.id === identifier || entry.name === identifier) || null;
 }
 
+function formatCompanionSpeed(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => (entry && typeof entry === 'object' && 'label' in entry ? entry.label : entry))
+      .filter(Boolean)
+      .map((entry) => String(entry).trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    const parts = [];
+    Object.entries(value).forEach(([mode, raw]) => {
+      if (raw === null || raw === undefined) return;
+      if (typeof raw === 'object') {
+        const distance = raw.distance || raw.value || raw.speed || raw.amount;
+        if (distance) {
+          parts.push(`${mode.replace(/_/g, ' ')} ${distance}`);
+        }
+      } else {
+        parts.push(`${mode.replace(/_/g, ' ')} ${raw}`);
+      }
+    });
+    return parts.join(', ');
+  }
+  return String(value);
+}
+
+function collectCompanionFeatures(target, value) {
+  if (value === null || value === undefined) return;
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectCompanionFeatures(target, entry));
+    return;
+  }
+  if (typeof value === 'object') {
+    if ('name' in value) collectCompanionFeatures(target, value.name);
+    if ('feature' in value) collectCompanionFeatures(target, value.feature);
+    if ('title' in value) collectCompanionFeatures(target, value.title);
+    if ('label' in value) collectCompanionFeatures(target, value.label);
+    if ('features' in value) collectCompanionFeatures(target, value.features);
+    return;
+  }
+  const text = String(value);
+  text.split(/[;,]/).forEach((part) => {
+    const trimmed = part.trim();
+    if (trimmed) {
+      target.push(trimmed);
+    }
+  });
+}
+
+function extractCompanionFeatures(entry) {
+  const features = [];
+  const candidates = [
+    entry.requiredFeatures,
+    entry.requirements,
+    entry.requirement,
+    entry.prerequisites,
+    entry.requires,
+    entry.featureRequirements,
+    entry.featuresRequired,
+    entry.prerequisiteFeatures
+  ];
+  candidates.forEach((candidate) => collectCompanionFeatures(features, candidate));
+  return Array.from(new Set(features));
+}
+
+function normalizeCompanionEntry(entry) {
+  if (!entry) return null;
+  const id = entry.slug || entry.id || entry.name;
+  if (!id) return null;
+  const name = entry.name || id;
+  const ac = Number.isFinite(entry.armor_class)
+    ? entry.armor_class
+    : Number.isFinite(entry.ac)
+      ? entry.ac
+      : Number.isFinite(entry.armorClass)
+        ? entry.armorClass
+        : null;
+  const hp = Number.isFinite(entry.hit_points)
+    ? entry.hit_points
+    : Number.isFinite(entry.hp)
+      ? entry.hp
+      : Number.isFinite(entry.hitPoints)
+        ? entry.hitPoints
+        : null;
+  const speed = formatCompanionSpeed(entry.speed || entry.speeds || entry.movement || entry.movementModes);
+  const senses = Array.isArray(entry.senses) ? entry.senses.join(', ') : (entry.senses || '');
+  const skills = Array.isArray(entry.skills) ? entry.skills.join(', ') : (entry.skills || '');
+  const traits = Array.isArray(entry.traits)
+    ? entry.traits.map((trait) => {
+        if (!trait && trait !== 0) return null;
+        if (typeof trait === 'string') return trait.trim();
+        if (typeof trait === 'object') {
+          const label = trait.name || trait.title || '';
+          const text = trait.desc || trait.description || trait.text || '';
+          return [label, text].filter(Boolean).join('. ').trim();
+        }
+        return String(trait).trim();
+      }).filter(Boolean)
+    : typeof entry.traits === 'string'
+      ? [entry.traits.trim()]
+      : [];
+  return {
+    id,
+    name,
+    summary: entry.summary || entry.description || '',
+    ac,
+    hp,
+    speed,
+    cr: entry.challenge_rating || entry.challengeRating || entry.cr || '',
+    size: entry.size || '',
+    type: entry.type || entry.creature_type || entry.category || '',
+    alignment: entry.alignment || '',
+    senses,
+    skills,
+    traits,
+    features: extractCompanionFeatures(entry),
+    source: (entry.source && entry.source.name) || entry.sourceId || ''
+  };
+}
+
+function normalizeCompanionSnapshot(meta) {
+  if (!meta || typeof meta !== 'object') return null;
+  const id = meta.id || meta.slug || meta.name;
+  if (!id) return null;
+  const parseStat = (value) => {
+    if (Number.isFinite(value)) return value;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+  const rawCr = meta.cr ?? meta.crLabel ?? meta.challenge_rating ?? meta.challengeRating;
+  const cr = rawCr || rawCr === 0 ? String(rawCr) : '';
+  const size = meta.size ? String(meta.size) : '';
+  const type = (meta.type || meta.creature_type || meta.category)
+    ? String(meta.type || meta.creature_type || meta.category)
+    : '';
+  const alignment = meta.alignment ? String(meta.alignment) : '';
+  const senses = Array.isArray(meta.senses)
+    ? meta.senses.map((entry) => (entry && entry.label ? entry.label : entry)).filter(Boolean).map((entry) => String(entry).trim()).filter(Boolean).join(', ')
+    : meta.senses
+      ? String(meta.senses)
+      : '';
+  const skills = Array.isArray(meta.skills)
+    ? meta.skills.map((entry) => (entry && entry.label ? entry.label : entry)).filter(Boolean).map((entry) => String(entry).trim()).filter(Boolean).join(', ')
+    : meta.skills
+      ? String(meta.skills)
+      : '';
+  const traits = Array.isArray(meta.traits)
+    ? meta.traits
+        .map((trait) => {
+          if (!trait && trait !== 0) return null;
+          if (typeof trait === 'string') return trait.trim();
+          if (typeof trait === 'object') {
+            const name = trait.name || trait.title || '';
+            const text = trait.desc || trait.description || trait.text || '';
+            return [name, text].filter(Boolean).join('. ').trim();
+          }
+          return String(trait).trim();
+        })
+        .filter(Boolean)
+    : typeof meta.traits === 'string'
+      ? [meta.traits.trim()].filter(Boolean)
+      : [];
+  const features = Array.isArray(meta.features)
+    ? meta.features.map((feature) => String(feature).trim()).filter(Boolean)
+    : [];
+  const source = meta.source && typeof meta.source === 'object'
+    ? meta.source.name || meta.source.title || meta.source.id || ''
+    : meta.source || '';
+  const speed = formatCompanionSpeed(
+    meta.speed ?? meta.speeds ?? meta.movement ?? meta.movementModes ?? meta.speedText ?? meta.speedLabel
+  );
+  return {
+    id: String(id),
+    name: meta.name ? String(meta.name) : String(id),
+    summary: meta.summary ? String(meta.summary) : '',
+    ac: parseStat(meta.ac ?? meta.armor_class ?? meta.armorClass),
+    hp: parseStat(meta.hp ?? meta.hit_points ?? meta.hitPoints),
+    speed,
+    cr,
+    size,
+    type,
+    alignment,
+    senses,
+    skills,
+    traits,
+    features,
+    source: source ? String(source) : ''
+  };
+}
+
+function findCompanion(identifier) {
+  if (!identifier && identifier !== 0) return null;
+  const key = String(identifier).trim().toLowerCase();
+  if (!key) return null;
+  const { companions = [] } = getPackData();
+  for (let index = 0; index < companions.length; index += 1) {
+    const entry = companions[index];
+    if (!entry) continue;
+    const slug = entry.slug ? String(entry.slug).toLowerCase() : null;
+    const id = entry.id ? String(entry.id).toLowerCase() : null;
+    const name = entry.name ? String(entry.name).toLowerCase() : null;
+    if (slug === key || id === key || name === key) {
+      return normalizeCompanionEntry(entry);
+    }
+  }
+  return null;
+}
+
 function loadPlayState() {
   try {
     const raw = localStorage.getItem(PLAY_STATE_KEY);
@@ -1327,6 +1538,7 @@ class SummaryUI {
     this.renderResources();
     this.renderSpellcasting();
     this.renderEquipment();
+    this.renderCompanion();
     this.renderCounters();
     this.renderConcentration();
     this.renderConditions();
@@ -1370,6 +1582,10 @@ class SummaryUI {
       <details open>
         <summary>Equipment</summary>
         <div class="section-body" data-summary-section="equipment"></div>
+      </details>
+      <details open>
+        <summary>Companion</summary>
+        <div class="section-body" data-summary-section="companion"></div>
       </details>
       <details>
         <summary>Class Trackers</summary>
@@ -1793,6 +2009,143 @@ class SummaryUI {
       });
       container.appendChild(list);
     });
+  }
+
+  renderCompanion() {
+    const container = this.root.querySelector('[data-summary-section="companion"]');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const familiar = this.builderState?.data?.familiar || {};
+    const snapshot = normalizeCompanionSnapshot(familiar.meta);
+    const fallbackId = familiar.id || this.builderState?.data?.familiarType || '';
+    const resolvedId = fallbackId || (snapshot ? snapshot.id : '');
+    const customName = familiar.name || this.builderState?.data?.familiarName || '';
+    const notes = familiar.notes || this.builderState?.data?.familiarNotes || '';
+    const overrides = familiar.overrides || {};
+
+    if (!resolvedId && !notes) {
+      container.appendChild(createElement('p', 'summary-empty-note', 'No companion selected yet.'));
+      return;
+    }
+
+    let entry = findCompanion(resolvedId);
+    if (!entry && snapshot) {
+      entry = snapshot;
+    }
+
+    if (!entry) {
+      const card = createElement('div', 'summary-companion-card');
+      const label = resolvedId ? `Companion data not found for ${resolvedId}.` : 'Companion data not available.';
+      const info = createElement('p', 'summary-companion-meta');
+      info.textContent = label;
+      card.appendChild(info);
+      if (notes) {
+        const noteEl = createElement('p', 'summary-companion-notes');
+        noteEl.textContent = notes;
+        card.appendChild(noteEl);
+      }
+      container.appendChild(card);
+      return;
+    }
+
+    const card = createElement('div', 'summary-companion-card');
+    const header = document.createElement('header');
+    const title = document.createElement('h4');
+    title.textContent = customName || entry.name;
+    header.appendChild(title);
+    const subtitleParts = [];
+    if (entry.cr) subtitleParts.push(`CR ${entry.cr}`);
+    if (entry.size) subtitleParts.push(entry.size);
+    if (entry.type) subtitleParts.push(entry.type);
+    if (entry.alignment) subtitleParts.push(entry.alignment);
+    if (subtitleParts.length) {
+      const subtitle = document.createElement('span');
+      subtitle.textContent = subtitleParts.join(' · ');
+      header.appendChild(subtitle);
+    }
+    card.appendChild(header);
+
+    if (customName && customName.toLowerCase() !== entry.name.toLowerCase()) {
+      card.appendChild(createElement('p', 'summary-companion-meta', `Base creature: ${entry.name}`));
+    }
+    if (entry.summary) {
+      const summaryEl = createElement('p', 'summary-companion-summary');
+      summaryEl.textContent = entry.summary;
+      card.appendChild(summaryEl);
+    }
+
+    const stats = document.createElement('div');
+    stats.className = 'summary-companion-stats';
+    let hasStats = false;
+    const addChip = (label, value, note) => {
+      const chip = document.createElement('span');
+      chip.className = 'companion-chip';
+      chip.append(document.createTextNode(`${label} `));
+      const strong = document.createElement('strong');
+      strong.textContent = String(value);
+      chip.appendChild(strong);
+      if (note) {
+        const noteEl = document.createElement('span');
+        noteEl.textContent = note;
+        chip.appendChild(noteEl);
+      }
+      stats.appendChild(chip);
+      hasStats = true;
+    };
+
+    const acOverride = Number.isFinite(overrides.ac) ? overrides.ac : null;
+    const hpOverride = Number.isFinite(overrides.hp) ? overrides.hp : null;
+    const speedOverride = overrides.speed ? overrides.speed : '';
+    const acValue = acOverride ?? entry.ac;
+    if (acValue !== null && acValue !== undefined && acValue !== '') {
+      const note = acOverride && entry.ac !== null && entry.ac !== undefined && entry.ac !== '' ? `override · base ${entry.ac}` : (acOverride ? 'override' : '');
+      addChip('AC', acValue, note);
+    }
+    const hpValue = hpOverride ?? entry.hp;
+    if (hpValue !== null && hpValue !== undefined && hpValue !== '') {
+      const note = hpOverride && entry.hp !== null && entry.hp !== undefined && entry.hp !== '' ? `override · base ${entry.hp}` : (hpOverride ? 'override' : '');
+      addChip('HP', hpValue, note);
+    }
+    const speedValue = speedOverride || entry.speed;
+    if (speedValue) {
+      const note = speedOverride && entry.speed ? `override · base ${entry.speed}` : (speedOverride ? 'override' : '');
+      addChip('Speed', speedValue, note);
+    }
+    if (hasStats) {
+      card.appendChild(stats);
+    }
+
+    const appendMeta = (label, value) => {
+      if (!value) return;
+      const meta = createElement('p', 'summary-companion-meta');
+      meta.textContent = `${label}: ${value}`;
+      card.appendChild(meta);
+    };
+
+    if (entry.features.length) {
+      appendMeta('Requires', entry.features.join(', '));
+    }
+    appendMeta('Senses', entry.senses);
+    appendMeta('Skills', entry.skills);
+    if (entry.traits.length) {
+      const traitsList = createElement('ul', 'summary-companion-traits');
+      entry.traits.forEach((trait) => {
+        const item = document.createElement('li');
+        item.textContent = trait;
+        traitsList.appendChild(item);
+      });
+      card.appendChild(traitsList);
+    }
+    appendMeta('Source', entry.source);
+
+    if (notes) {
+      const noteEl = createElement('p', 'summary-companion-notes');
+      noteEl.textContent = notes;
+      card.appendChild(noteEl);
+    }
+
+    container.appendChild(card);
   }
 
   renderCounters() {

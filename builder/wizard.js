@@ -923,8 +923,6 @@ function populateDynamicOptions() {
   if (form && form.elements) {
     const raceField = form.elements.namedItem('race');
     populateSelectOptions(raceField, data.races || [], 'Choose a race');
-    const familiarField = form.elements.namedItem('familiarType');
-    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
   }
   populateDatalist('background-options', data.backgrounds || []);
   populateDatalist('feat-options', data.feats || []);
@@ -1094,6 +1092,17 @@ function serializeForm() {
     : calculateProficiencyBonus(totalLevel);
   data.proficiencyBonus = String(proficiency);
   data.hitDice = derivedClasses.hitDice || {};
+  if (familiarModule && typeof familiarModule.getValue === 'function') {
+    const familiarState = familiarModule.getValue();
+    if (familiarState) {
+      data.familiar = familiarState;
+      data.familiarName = familiarState.name || data.familiarName || '';
+      data.familiarNotes = familiarState.notes || data.familiarNotes || '';
+    }
+  }
+  if (typeof data.familiarData !== 'undefined') {
+    delete data.familiarData;
+  }
   return data;
 }
 
@@ -3066,18 +3075,729 @@ const equipmentModule = (() => {
 
 const familiarModule = (() => {
   let section = null;
-  function render() {
-    if (!section) return;
-    section.dataset.companionCount = String((getPackData().companions || []).length);
+  let listNode = null;
+  let detailNode = null;
+  let searchInput = null;
+  let emptyState = null;
+  let hiddenField = null;
+  let nameField = null;
+  let notesField = null;
+  const filterNodes = new Map();
+  const overrideInputs = new Map();
+
+  let companions = [];
+  let companionMap = new Map();
+  let filtered = [];
+  let searchTerm = '';
+  let activeFilters = { cr: '', feature: '' };
+  let selectedKey = '';
+  let selectedRawId = '';
+  let syncing = false;
+  let entryOrder = 0;
+  let lastSnapshot = null;
+
+  function normalizeId(value) {
+    return value ? String(value).trim().toLowerCase() : '';
   }
+
+  function parseCrValue(value) {
+    if (value === null || value === undefined || value === '') return Number.POSITIVE_INFINITY;
+    if (typeof value === 'number') return Number.isFinite(value) ? value : Number.POSITIVE_INFINITY;
+    const text = String(value).trim();
+    if (!text) return Number.POSITIVE_INFINITY;
+    if (text.includes('/')) {
+      const [num, denom] = text.split('/');
+      const numerator = Number.parseFloat(num);
+      const denominator = Number.parseFloat(denom);
+      if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
+        return numerator / denominator;
+      }
+    }
+    const numeric = Number.parseFloat(text);
+    return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY;
+  }
+
+  function formatSpeed(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') {
+      return value;
+    }
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => (entry && typeof entry === 'object' && 'label' in entry ? entry.label : entry))
+        .filter(Boolean)
+        .map((entry) => String(entry).trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = [];
+      Object.entries(value).forEach(([mode, raw]) => {
+        if (raw === null || raw === undefined) return;
+        if (typeof raw === 'object') {
+          const distance = raw.distance || raw.value || raw.speed || raw.amount;
+          if (distance) {
+            entries.push(`${mode.replace(/_/g, ' ')} ${distance}`);
+          }
+        } else {
+          entries.push(`${mode.replace(/_/g, ' ')} ${raw}`);
+        }
+      });
+      return entries.join(', ');
+    }
+    return String(value);
+  }
+
+  function collectFeatureLabel(target, value) {
+    if (value === null || value === undefined) return;
+    if (Array.isArray(value)) {
+      value.forEach((entry) => collectFeatureLabel(target, entry));
+      return;
+    }
+    if (typeof value === 'object') {
+      if ('name' in value) {
+        collectFeatureLabel(target, value.name);
+      }
+      if ('feature' in value) {
+        collectFeatureLabel(target, value.feature);
+      }
+      if ('title' in value) {
+        collectFeatureLabel(target, value.title);
+      }
+      if ('label' in value) {
+        collectFeatureLabel(target, value.label);
+      }
+      return;
+    }
+    const text = String(value);
+    text.split(/[;,]/).forEach((part) => {
+      const trimmed = part.trim();
+      if (trimmed) {
+        target.push(trimmed);
+      }
+    });
+  }
+
+  function extractFeatures(entry) {
+    const features = [];
+    const candidates = [
+      entry.requiredFeatures,
+      entry.requirements,
+      entry.requirement,
+      entry.requires,
+      entry.prerequisites,
+      entry.featureRequirements,
+      entry.featuresRequired,
+      entry.prerequisiteFeatures
+    ];
+    candidates.forEach((candidate) => collectFeatureLabel(features, candidate));
+    return Array.from(new Set(features));
+  }
+
+  function normalizeTraits(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => {
+          if (!entry && entry !== 0) return null;
+          if (typeof entry === 'string') return entry.trim();
+          if (typeof entry === 'object') {
+            const name = entry.name || entry.title || '';
+            const text = entry.desc || entry.description || entry.text || '';
+            return [name, text].filter(Boolean).join('. ').trim();
+          }
+          return String(entry).trim();
+        })
+        .filter(Boolean);
+    }
+    if (typeof value === 'string') {
+      return [value.trim()].filter(Boolean);
+    }
+    return [];
+  }
+
+  function normalizeCompanion(entry) {
+    if (!entry) return null;
+    const id = entry.slug || entry.id || entry.name;
+    if (!id) return null;
+    const name = entry.name || id;
+    const ac = Number.isFinite(entry.armor_class)
+      ? entry.armor_class
+      : Number.isFinite(entry.ac)
+        ? entry.ac
+        : Number.isFinite(entry.armorClass)
+          ? entry.armorClass
+          : null;
+    const hp = Number.isFinite(entry.hit_points)
+      ? entry.hit_points
+      : Number.isFinite(entry.hp)
+        ? entry.hp
+        : Number.isFinite(entry.hitPoints)
+          ? entry.hitPoints
+          : null;
+    const speed = formatSpeed(entry.speed || entry.speeds || entry.movement || entry.movementModes);
+    const crLabel = entry.challenge_rating || entry.challengeRating || entry.cr || '';
+    const crText = crLabel ? String(crLabel).trim() : '';
+    const crKey = crText.toLowerCase();
+    const crValue = parseCrValue(crLabel);
+    const features = extractFeatures(entry);
+    const featureKeys = features.map((feature) => feature.toLowerCase());
+    const senses = Array.isArray(entry.senses) ? entry.senses.join(', ') : (entry.senses || '');
+    const skills = Array.isArray(entry.skills) ? entry.skills.join(', ') : (entry.skills || '');
+    const traits = normalizeTraits(entry.traits);
+    const size = entry.size || '';
+    const type = entry.type || entry.creature_type || entry.category || '';
+    const alignment = entry.alignment || '';
+    const source = (entry.source && entry.source.name) || entry.sourceId || '';
+    const tags = [];
+    if (size) tags.push(size);
+    if (type) tags.push(type);
+    if (crText) tags.push(`CR ${crText}`);
+    const extraTags = Array.isArray(entry.tags) ? entry.tags : [];
+    extraTags.forEach((tag) => {
+      if (tag) {
+        tags.push(String(tag));
+      }
+    });
+    const searchTokens = [
+      name,
+      entry.summary,
+      entry.description,
+      size,
+      type,
+      alignment,
+      senses,
+      skills,
+      tags.join(' '),
+      traits.join(' '),
+      features.join(' ')
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+    const normalized = {
+      id,
+      key: normalizeId(id),
+      name,
+      summary: entry.summary || entry.description || '',
+      ac,
+      hp,
+      speed,
+      crLabel: crText,
+      crKey,
+      crValue,
+      features,
+      featureKeys,
+      senses,
+      skills,
+      traits,
+      size,
+      type,
+      alignment,
+      source,
+      tags,
+      searchTokens,
+      order: entryOrder += 1
+    };
+    return normalized;
+  }
+
+  function parseCompanionStat(value) {
+    if (Number.isFinite(value)) return value;
+    const parsed = Number.parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  function sanitizeCompanionMeta(meta) {
+    if (!meta || typeof meta !== 'object') return null;
+    const id = meta.slug || meta.id || meta.name;
+    const snapshotId = id ? String(id).trim() : '';
+    if (!snapshotId) return null;
+    const source = meta.source && typeof meta.source === 'object'
+      ? meta.source.name || meta.source.title || meta.source.id || ''
+      : meta.source;
+    const traits = normalizeTraits(meta.traits);
+    const features = Array.isArray(meta.features)
+      ? meta.features.map((entry) => String(entry).trim()).filter(Boolean)
+      : [];
+    return {
+      id: snapshotId,
+      name: meta.name ? String(meta.name) : snapshotId,
+      summary: meta.summary ? String(meta.summary) : '',
+      ac: parseCompanionStat(meta.ac ?? meta.armor_class ?? meta.armorClass),
+      hp: parseCompanionStat(meta.hp ?? meta.hit_points ?? meta.hitPoints),
+      speed: formatSpeed(meta.speed ?? meta.speeds ?? meta.movement ?? meta.movementModes),
+      cr: meta.crLabel ?? meta.cr ?? meta.challenge_rating ?? meta.challengeRating ?? '',
+      size: meta.size ? String(meta.size) : '',
+      type: (meta.type || meta.creature_type || meta.category)
+        ? String(meta.type || meta.creature_type || meta.category)
+        : '',
+      alignment: meta.alignment ? String(meta.alignment) : '',
+      senses: Array.isArray(meta.senses) ? meta.senses.join(', ') : (meta.senses ? String(meta.senses) : ''),
+      skills: Array.isArray(meta.skills) ? meta.skills.join(', ') : (meta.skills ? String(meta.skills) : ''),
+      traits,
+      features,
+      source: source ? String(source) : ''
+    };
+  }
+
+  function createCompanionSnapshot(entry) {
+    if (!entry) return null;
+    return sanitizeCompanionMeta({
+      id: entry.id,
+      name: entry.name,
+      summary: entry.summary,
+      ac: entry.ac,
+      hp: entry.hp,
+      speed: entry.speed,
+      crLabel: entry.crLabel,
+      size: entry.size,
+      type: entry.type,
+      alignment: entry.alignment,
+      senses: entry.senses,
+      skills: entry.skills,
+      traits: entry.traits,
+      features: entry.features,
+      source: entry.source
+    });
+  }
+
+  function rebuildCompanions() {
+    const data = getPackData();
+    const entries = Array.isArray(data?.companions) ? data.companions : [];
+    entryOrder = 0;
+    companions = entries
+      .map(normalizeCompanion)
+      .filter(Boolean);
+    companionMap = new Map();
+    companions.forEach((entry) => {
+      companionMap.set(entry.key, entry);
+    });
+  }
+
+  function populateFilterOptions() {
+    const crSelect = filterNodes.get('cr');
+    if (crSelect) {
+      const previous = crSelect.value;
+      while (crSelect.options.length > 1) {
+        crSelect.remove(1);
+      }
+      const seenCr = new Map();
+      companions.forEach((entry) => {
+        if (!entry.crKey) return;
+        if (!seenCr.has(entry.crKey)) {
+          seenCr.set(entry.crKey, { label: entry.crLabel, sort: entry.crValue });
+        }
+      });
+      Array.from(seenCr.entries())
+        .sort((a, b) => {
+          if (a[1].sort !== b[1].sort) {
+            return a[1].sort - b[1].sort;
+          }
+          return a[1].label.localeCompare(b[1].label, undefined, { sensitivity: 'base' });
+        })
+        .forEach(([key, meta]) => {
+          const option = document.createElement('option');
+          option.value = key;
+          option.textContent = meta.label;
+          crSelect.appendChild(option);
+        });
+      if (previous && seenCr.has(previous)) {
+        crSelect.value = previous;
+      } else {
+        crSelect.value = '';
+        activeFilters.cr = '';
+      }
+    }
+
+    const featureSelect = filterNodes.get('feature');
+    if (featureSelect) {
+      const previous = featureSelect.value;
+      while (featureSelect.options.length > 1) {
+        featureSelect.remove(1);
+      }
+      const seenFeatures = new Map();
+      companions.forEach((entry) => {
+        entry.featureKeys.forEach((key, index) => {
+          if (!key) return;
+          if (!seenFeatures.has(key)) {
+            seenFeatures.set(key, entry.features[index]);
+          }
+        });
+      });
+      Array.from(seenFeatures.entries())
+        .sort((a, b) => a[1].localeCompare(b[1], undefined, { sensitivity: 'base' }))
+        .forEach(([key, label]) => {
+          const option = document.createElement('option');
+          option.value = key;
+          option.textContent = label;
+          featureSelect.appendChild(option);
+        });
+      if (previous && seenFeatures.has(previous)) {
+        featureSelect.value = previous;
+      } else {
+        featureSelect.value = '';
+        activeFilters.feature = '';
+      }
+    }
+  }
+
+  function applyFilters() {
+    const search = searchTerm.trim().toLowerCase();
+    const crFilter = activeFilters.cr;
+    const featureFilter = activeFilters.feature;
+    filtered = companions.filter((entry) => {
+      if (crFilter && entry.crKey !== crFilter) return false;
+      if (featureFilter && !entry.featureKeys.includes(featureFilter)) return false;
+      if (search) {
+        const haystack = entry.searchTokens;
+        if (!haystack.includes(search)) {
+          const partial = haystack.split(/\s+/).some((token) => token.startsWith(search));
+          if (!partial) {
+            return false;
+          }
+        }
+      }
+      return true;
+    });
+    filtered.sort((a, b) => {
+      if (a.crValue !== b.crValue) {
+        return a.crValue - b.crValue;
+      }
+      const nameCompare = a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      if (nameCompare !== 0) {
+        return nameCompare;
+      }
+      return a.order - b.order;
+    });
+  }
+
+  function renderList() {
+    if (!listNode) return;
+    listNode.innerHTML = '';
+    if (!filtered.length) {
+      if (emptyState) {
+        emptyState.hidden = false;
+        listNode.appendChild(emptyState);
+      }
+      section?.setAttribute('data-companion-count', String(companions.length));
+      return;
+    }
+    if (emptyState) {
+      emptyState.hidden = true;
+    }
+    filtered.forEach((entry) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'companion-option';
+      button.dataset.companionId = entry.id;
+      button.dataset.active = entry.key === selectedKey ? 'true' : 'false';
+      button.setAttribute('role', 'option');
+      button.setAttribute('aria-selected', entry.key === selectedKey ? 'true' : 'false');
+      const summary = entry.summary ? `<small>${entry.summary}</small>` : '';
+      const tags = entry.tags.length
+        ? `<div class="companion-tags">${entry.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>`
+        : '';
+      button.innerHTML = `
+        <div>
+          <strong>${entry.name}</strong>
+          ${summary}
+        </div>
+        ${tags}
+      `;
+      listNode.appendChild(button);
+    });
+    section?.setAttribute('data-companion-count', String(companions.length));
+  }
+
+  function formatChip(label, value, override, baseValue) {
+    if (value === null || value === undefined || value === '') return '';
+    const baseNote = override && baseValue !== null && baseValue !== undefined && baseValue !== ''
+      ? ` · base ${baseValue}`
+      : '';
+    const note = override ? `<span>override${baseNote}</span>` : '';
+    return `<span class="companion-chip">${label} <strong>${value}</strong>${note}</span>`;
+  }
+
+  function renderDetail() {
+    if (!detailNode) return;
+    const entry = companionMap.get(selectedKey) || null;
+    const overrides = getOverrides();
+    if (!entry) {
+      detailNode.innerHTML = '<p>Select a companion to view its statistics and description.</p>';
+      return;
+    }
+    const acOverride = Number.isFinite(overrides.ac) ? overrides.ac : null;
+    const hpOverride = Number.isFinite(overrides.hp) ? overrides.hp : null;
+    const speedOverride = overrides.speed ? overrides.speed : '';
+    const acDisplay = acOverride ?? entry.ac;
+    const hpDisplay = hpOverride ?? entry.hp;
+    const speedDisplay = speedOverride || entry.speed;
+    const subtitleParts = [];
+    if (entry.crLabel) subtitleParts.push(`CR ${entry.crLabel}`);
+    if (entry.size) subtitleParts.push(entry.size);
+    if (entry.type) subtitleParts.push(entry.type);
+    if (entry.alignment) subtitleParts.push(entry.alignment);
+    const subtitle = subtitleParts.join(' · ');
+    const customName = nameField ? nameField.value.trim() : '';
+    const chips = [
+      formatChip('AC', acDisplay, Number.isFinite(acOverride), entry.ac),
+      formatChip('HP', hpDisplay, Number.isFinite(hpOverride), entry.hp),
+      formatChip('Speed', speedDisplay, Boolean(speedOverride), entry.speed)
+    ].filter(Boolean).join('');
+    const detailLines = [];
+    if (entry.features.length) {
+      detailLines.push(`<dt>Requires</dt><dd>${entry.features.join(', ')}</dd>`);
+    }
+    if (entry.senses) {
+      detailLines.push(`<dt>Senses</dt><dd>${entry.senses}</dd>`);
+    }
+    if (entry.skills) {
+      detailLines.push(`<dt>Skills</dt><dd>${entry.skills}</dd>`);
+    }
+    if (entry.traits.length) {
+      detailLines.push(`<dt>Traits</dt><dd>${entry.traits.join('<br />')}</dd>`);
+    }
+    if (entry.source) {
+      detailLines.push(`<dt>Source</dt><dd>${entry.source}</dd>`);
+    }
+    const trackingLine = customName && customName.toLowerCase() !== entry.name.toLowerCase()
+      ? `<p>Tracking as <strong>${customName}</strong>.</p>`
+      : '';
+    detailNode.innerHTML = `
+      <header>
+        <h3>${entry.name}</h3>
+        ${subtitle ? `<span>${subtitle}</span>` : ''}
+      </header>
+      ${entry.summary ? `<p>${entry.summary}</p>` : ''}
+      ${chips ? `<div class="companion-stats">${chips}</div>` : ''}
+      ${trackingLine}
+      ${detailLines.length ? `<dl>${detailLines.join('')}</dl>` : ''}
+    `;
+  }
+
+  function getOverrides() {
+    const overrides = {};
+    const acInput = overrideInputs.get('ac');
+    if (acInput) {
+      const value = Number.parseInt(acInput.value, 10);
+      if (Number.isFinite(value) && value >= 0) {
+        overrides.ac = value;
+      }
+    }
+    const hpInput = overrideInputs.get('hp');
+    if (hpInput) {
+      const value = Number.parseInt(hpInput.value, 10);
+      if (Number.isFinite(value) && value >= 0) {
+        overrides.hp = value;
+      }
+    }
+    const speedInput = overrideInputs.get('speed');
+    if (speedInput) {
+      const value = speedInput.value.trim();
+      if (value) {
+        overrides.speed = value;
+      }
+    }
+    return overrides;
+  }
+
+  function syncHiddenField(shouldDispatch = false) {
+    if (!hiddenField) return;
+    const payload = getValue();
+    const serialized = JSON.stringify(payload);
+    if (hiddenField.value !== serialized) {
+      hiddenField.value = serialized;
+    }
+    if (!syncing && shouldDispatch) {
+      hiddenField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function setSelection(id, { userTriggered = false } = {}) {
+    const raw = id !== undefined ? id : selectedRawId;
+    const key = normalizeId(raw);
+    const entry = key ? companionMap.get(key) : null;
+    selectedRawId = raw ? String(raw) : '';
+    selectedKey = entry ? entry.key : key;
+    if (entry && nameField && nameField.dataset.familiarAutofill !== 'false') {
+      syncing = true;
+      if (!nameField.value) {
+        nameField.value = entry.name;
+      }
+      nameField.dataset.familiarAutofill = nameField.value ? 'true' : 'false';
+      syncing = false;
+    }
+    renderList();
+    renderDetail();
+    syncHiddenField(userTriggered);
+  }
+
+  function handleListClick(event) {
+    const target = event.target.closest('[data-companion-id]');
+    if (!target) return;
+    const { companionId } = target.dataset;
+    if (normalizeId(companionId) === selectedKey) return;
+    setSelection(companionId, { userTriggered: true });
+  }
+
+  function handleSearchInput(event) {
+    searchTerm = event.target.value || '';
+    applyFilters();
+    renderList();
+  }
+
+  function handleFilterChange(event) {
+    const select = event.target;
+    if (!(select instanceof HTMLSelectElement)) return;
+    const key = select.dataset.familiarFilter;
+    if (!key) return;
+    activeFilters = { ...activeFilters, [key]: select.value };
+    applyFilters();
+    renderList();
+  }
+
+  function handleOverrideInput() {
+    if (syncing) return;
+    syncHiddenField(true);
+    renderDetail();
+  }
+
+  function handleNameInput() {
+    if (!nameField || syncing) return;
+    nameField.dataset.familiarAutofill = nameField.value ? 'false' : 'true';
+    syncHiddenField(true);
+    renderDetail();
+  }
+
+  function handleNotesInput() {
+    if (syncing) return;
+    syncHiddenField(true);
+  }
+
+  function applyState(currentState) {
+    const data = currentState?.data || currentState || {};
+    const familiar = data.familiar || {};
+    selectedRawId = familiar.id || data.familiarType || '';
+    selectedKey = normalizeId(selectedRawId);
+    lastSnapshot = sanitizeCompanionMeta(familiar.meta) || null;
+    syncing = true;
+    if (nameField) {
+      const value = familiar.name || data.familiarName || '';
+      nameField.value = value;
+      nameField.dataset.familiarAutofill = value ? 'false' : 'true';
+    }
+    if (notesField) {
+      notesField.value = familiar.notes || data.familiarNotes || '';
+    }
+    overrideInputs.forEach((input, key) => {
+      const overrides = familiar.overrides || {};
+      if (key === 'speed') {
+        input.value = typeof overrides[key] === 'string' ? overrides[key] : '';
+      } else {
+        const value = overrides[key];
+        input.value = Number.isFinite(value) ? value : '';
+      }
+    });
+    syncing = false;
+    setSelection(selectedRawId, { userTriggered: false });
+    syncHiddenField(false);
+  }
+
+  function refresh() {
+    rebuildCompanions();
+    populateFilterOptions();
+    applyFilters();
+    setSelection(selectedRawId, { userTriggered: false });
+  }
+
+  function getValue() {
+    const entry = companionMap.get(selectedKey) || null;
+    const overrides = getOverrides();
+    const name = nameField ? nameField.value.trim() : '';
+    const notes = notesField ? notesField.value.trim() : '';
+    const rawId = selectedRawId || (entry ? entry.id : '');
+    const id = rawId ? String(rawId).trim() : '';
+    let snapshot = entry ? createCompanionSnapshot(entry) : null;
+    if (!snapshot && lastSnapshot) {
+      const snapshotKey = normalizeId(lastSnapshot.id);
+      if (!selectedKey || snapshotKey === selectedKey) {
+        snapshot = lastSnapshot;
+      }
+    }
+    if (snapshot && id && snapshot.id !== id) {
+      snapshot = { ...snapshot, id: id.trim() };
+    }
+    lastSnapshot = id && snapshot ? snapshot : (!id ? null : lastSnapshot);
+    const payload = {
+      id,
+      name,
+      notes,
+      overrides
+    };
+    if (snapshot && id) {
+      payload.meta = snapshot;
+    }
+    return payload;
+  }
+
   return {
     setup(node) {
       section = node;
-      render();
+      listNode = section.querySelector('[data-familiar-list]');
+      detailNode = section.querySelector('[data-familiar-detail]');
+      searchInput = section.querySelector('[data-familiar-search]');
+      emptyState = section.querySelector('[data-familiar-empty]');
+      hiddenField = section.querySelector('[data-familiar-field]') || form?.elements?.namedItem('familiarData');
+      nameField = section.querySelector('[data-familiar-name]') || form?.elements?.namedItem('familiarName');
+      notesField = section.querySelector('[data-familiar-notes]') || form?.elements?.namedItem('familiarNotes');
+      filterNodes.clear();
+      section.querySelectorAll('[data-familiar-filter]').forEach((select) => {
+        if (select instanceof HTMLSelectElement) {
+          filterNodes.set(select.dataset.familiarFilter, select);
+        }
+      });
+      overrideInputs.clear();
+      section.querySelectorAll('[data-familiar-override]').forEach((input) => {
+        if (input instanceof HTMLInputElement) {
+          overrideInputs.set(input.dataset.familiarOverride, input);
+        }
+      });
+      if (listNode) {
+        listNode.addEventListener('click', handleListClick);
+      }
+      if (searchInput) {
+        searchInput.addEventListener('input', handleSearchInput);
+      }
+      filterNodes.forEach((select) => {
+        select.addEventListener('change', handleFilterChange);
+      });
+      overrideInputs.forEach((input) => {
+        input.addEventListener('input', handleOverrideInput);
+      });
+      if (nameField) {
+        if (!nameField.dataset.familiarAutofill) {
+          nameField.dataset.familiarAutofill = nameField.value ? 'false' : 'true';
+        }
+        nameField.addEventListener('input', handleNameInput);
+      }
+      if (notesField) {
+        notesField.addEventListener('input', handleNotesInput);
+      }
+      refresh();
+      renderDetail();
+      syncHiddenField(false);
     },
     onPackData() {
-      render();
-    }
+      refresh();
+    },
+    onStateHydrated(currentState) {
+      applyState(currentState || state);
+    },
+    onStatePersisted(currentState) {
+      applyState(currentState || state);
+    },
+    getValue
   };
 })();
 

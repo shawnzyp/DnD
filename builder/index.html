@@ -191,6 +191,232 @@
       min-height: 120px;
       resize: vertical;
     }
+
+    .companion-picker {
+      display: grid;
+      gap: 0.85rem;
+    }
+
+    .companion-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: center;
+    }
+
+    .companion-toolbar label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      min-width: 160px;
+    }
+
+    .companion-toolbar input[type="search"],
+    .companion-toolbar select {
+      appearance: none;
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 0.5rem 0.75rem;
+      background: rgba(20, 27, 43, 0.75);
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
+
+    .companion-toolbar input[type="search"]::placeholder {
+      color: color-mix(in srgb, var(--muted) 75%, transparent 25%);
+    }
+
+    .companion-body {
+      display: grid;
+      gap: 0.85rem;
+      grid-template-columns: minmax(220px, 1fr) minmax(260px, 1.35fr);
+      align-items: stretch;
+    }
+
+    @media (max-width: 880px) {
+      .companion-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .companion-list {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 1rem;
+      background: rgba(20, 27, 43, 0.6);
+      padding: 0.65rem;
+      display: grid;
+      gap: 0.4rem;
+      max-height: clamp(220px, 42vh, 380px);
+      overflow-y: auto;
+    }
+
+    .companion-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.6rem 0.7rem;
+      border-radius: 0.85rem;
+      border: 1px solid transparent;
+      background: rgba(255, 255, 255, 0.05);
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+
+    .companion-option:hover,
+    .companion-option:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 55%, transparent 45%);
+      background: color-mix(in srgb, var(--accent) 18%, rgba(255, 255, 255, 0.08) 82%);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    .companion-option[data-active="true"] {
+      border-color: color-mix(in srgb, var(--accent) 75%, transparent 25%);
+      background: color-mix(in srgb, var(--accent) 28%, rgba(255, 255, 255, 0.08) 72%);
+    }
+
+    .companion-option strong {
+      font-size: 0.9rem;
+    }
+
+    .companion-option small {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .companion-option .companion-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .companion-option .companion-tags span {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      padding: 0.15rem 0.45rem;
+    }
+
+    .companion-empty {
+      margin: 0;
+      padding: 0.6rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .companion-detail {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 1rem;
+      background: rgba(20, 27, 43, 0.6);
+      padding: 0.85rem 1rem;
+      display: grid;
+      gap: 0.65rem;
+      min-height: 240px;
+    }
+
+    .companion-detail header {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      gap: 0.6rem;
+      align-items: baseline;
+    }
+
+    .companion-detail header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .companion-detail header span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .companion-detail p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    .companion-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+
+    .companion-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      border-radius: 999px;
+      padding: 0.35rem 0.65rem;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+    }
+
+    .companion-chip strong {
+      font-size: 0.82rem;
+      color: var(--fg);
+    }
+
+    .companion-chip span {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .companion-detail dl {
+      margin: 0;
+      display: grid;
+      gap: 0.35rem;
+      font-size: 0.8rem;
+    }
+
+    .companion-detail dt {
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    .companion-detail dd {
+      margin: 0;
+      color: var(--muted);
+    }
+
+    .companion-fields {
+      display: grid;
+      gap: 0.65rem;
+    }
+
+    .companion-overrides {
+      display: grid;
+      gap: 0.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    }
+
+    .companion-overrides label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .companion-overrides input {
+      border-radius: 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      padding: 0.5rem 0.7rem;
+      background: rgba(20, 27, 43, 0.75);
+      color: var(--fg);
+      font-size: 0.85rem;
+    }
     .grid {
       display: grid;
       gap: 0.75rem;
@@ -549,6 +775,63 @@
       display: grid;
       gap: 0.6rem;
       font-size: 0.82rem;
+    }
+    .summary-companion-card {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.9rem;
+      padding: 0.75rem 0.9rem;
+      display: grid;
+      gap: 0.45rem;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .summary-companion-card header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+    .summary-companion-card header h4 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+    .summary-companion-card header span {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .summary-companion-summary {
+      margin: 0;
+      color: var(--muted);
+    }
+    .summary-companion-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .summary-companion-meta {
+      margin: 0;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .summary-companion-traits {
+      margin: 0;
+      padding-left: 1.1rem;
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .summary-companion-notes {
+      margin: 0;
+      padding: 0.6rem 0.75rem;
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.78rem;
+      color: var(--muted-strong);
+    }
+    .summary-empty-note {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
     }
     .summary-equipment-status {
       display: flex;
@@ -1289,17 +1572,52 @@
       </section>
       <section class="step" data-step="familiar">
         <h2>Companions &amp; Familiars</h2>
-        <label>Companion name
-          <input type="text" name="familiarName" placeholder="Nimbus" />
-        </label>
-        <label>Creature type
-          <select name="familiarType">
-            <option value="">Select a creature</option>
-          </select>
-        </label>
-        <label>Notes
-          <textarea name="familiarNotes" placeholder="Track hit points, special abilities, and personality"></textarea>
-        </label>
+        <p class="step-hint">Choose a companion to track alongside your character. Filter by challenge rating or prerequisite features, then record overrides and notes for quick reference.</p>
+        <div class="companion-picker" data-familiar-root>
+          <div class="companion-toolbar">
+            <label>Search roster
+              <input type="search" data-familiar-search placeholder="Search companions" autocomplete="off" />
+            </label>
+            <label>Challenge rating
+              <select data-familiar-filter="cr">
+                <option value="">All CR</option>
+              </select>
+            </label>
+            <label>Requires feature
+              <select data-familiar-filter="feature">
+                <option value="">Any feature</option>
+              </select>
+            </label>
+          </div>
+          <div class="companion-body">
+            <div class="companion-list" data-familiar-list role="listbox" aria-label="Available companions">
+              <p class="companion-empty" data-familiar-empty>No companions loaded yet.</p>
+            </div>
+            <div class="companion-detail" data-familiar-detail>
+              <p>Select a companion to view its statistics and description.</p>
+            </div>
+          </div>
+        </div>
+        <div class="companion-fields">
+          <label>Companion name
+            <input type="text" name="familiarName" placeholder="Nimbus" data-familiar-name />
+          </label>
+          <div class="companion-overrides">
+            <label>AC override
+              <input type="number" min="0" step="1" inputmode="numeric" data-familiar-override="ac" placeholder="Use base AC" />
+            </label>
+            <label>HP override
+              <input type="number" min="0" step="1" inputmode="numeric" data-familiar-override="hp" placeholder="Use base HP" />
+            </label>
+            <label>Speed override
+              <input type="text" data-familiar-override="speed" placeholder="e.g. 30 ft., fly 60 ft." />
+            </label>
+          </div>
+          <label>Notes
+            <textarea name="familiarNotes" placeholder="Track hit points, special abilities, and personality" data-familiar-notes></textarea>
+          </label>
+        </div>
+        <input type="hidden" name="familiarData" value="{}" data-familiar-field />
       </section>
       <section class="step" data-step="finalize" id="finalize">
         <h2>Finalize &amp; Export</h2>
