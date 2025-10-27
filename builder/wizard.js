@@ -18,6 +18,15 @@ const abilityNameIndex = abilityFields.reduce((map, field) => {
   return map;
 }, {});
 
+const EQUIPMENT_CATEGORIES = [
+  { key: 'weapons', field: 'equipmentWeapons', datalist: 'weapon-options', legacy: 'weapons', label: 'Weapons', empty: 'No weapons selected.' },
+  { key: 'armor', field: 'equipmentArmor', datalist: 'armor-options', legacy: 'armor', label: 'Armor & Shields', empty: 'No armor selected.' },
+  { key: 'gear', field: 'equipmentGear', datalist: 'gear-options', legacy: 'gear', label: 'Adventuring Gear', empty: 'No gear tracked yet.' },
+  { key: 'attunements', field: 'equipmentAttunements', datalist: 'attunement-options', legacy: null, label: 'Attunements', empty: 'No attuned items.' }
+];
+
+const ATTUNEMENT_LIMIT = 3;
+
 const steps = Array.from(document.querySelectorAll('section.step'));
 const form = document.getElementById('builder-form');
 const indicator = document.getElementById('step-indicator');
@@ -174,6 +183,275 @@ function findEntry(list, value) {
   }) || null;
 }
 
+function slugifyLoose(value) {
+  if (!value && value !== 0) return '';
+  return String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getEquipmentRecordKey(entry) {
+  if (!entry) return '';
+  if (entry.slug) return String(entry.slug);
+  if (entry.id) return String(entry.id);
+  if (entry.name) return `custom-${slugifyLoose(entry.name)}`;
+  return '';
+}
+
+function parseEquipmentList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    } catch (error) {
+      // fall back to comma/semicolon separated parsing
+    }
+    return trimmed
+      .split(/[,;\n]+/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .map((name) => ({ name, custom: true }));
+  }
+  return [];
+}
+
+function normalizeEquipmentEntry(entry) {
+  if (!entry) return null;
+  if (typeof entry === 'string') {
+    const name = entry.trim();
+    if (!name) return null;
+    return { slug: null, id: null, name, quantity: 1, custom: true, notes: '' };
+  }
+  if (typeof entry === 'object') {
+    const slug = typeof entry.slug === 'string' && entry.slug ? entry.slug : null;
+    const id = typeof entry.id === 'string' && entry.id ? entry.id : null;
+    const nameValue = typeof entry.name === 'string' && entry.name ? entry.name.trim() : '';
+    const baseName = nameValue || slug || id;
+    if (!baseName) return null;
+    const quantityValue = Number.parseInt(entry.quantity, 10);
+    const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+    const notes = typeof entry.notes === 'string' ? entry.notes : '';
+    const custom = entry.custom === true || (!slug && !id);
+    return {
+      slug,
+      id,
+      name: baseName,
+      quantity,
+      custom,
+      notes
+    };
+  }
+  return null;
+}
+
+function mergeEquipmentEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+  const map = new Map();
+  entries.forEach((raw) => {
+    const normalized = normalizeEquipmentEntry(raw);
+    if (!normalized) return;
+    const key = getEquipmentRecordKey(normalized);
+    if (!key) return;
+    if (map.has(key)) {
+      const existing = map.get(key);
+      existing.quantity += normalized.quantity;
+      if (!existing.slug && normalized.slug) existing.slug = normalized.slug;
+      if (!existing.id && normalized.id) existing.id = normalized.id;
+      if (!existing.name && normalized.name) existing.name = normalized.name;
+      if (!existing.notes && normalized.notes) existing.notes = normalized.notes;
+      existing.custom = existing.custom && normalized.custom;
+    } else {
+      map.set(key, { ...normalized });
+    }
+  });
+  return Array.from(map.values());
+}
+
+function resolveEquipmentItem(entry) {
+  if (!entry) return null;
+  const items = (getPackData().items || []);
+  if (!items.length) return null;
+  const candidates = [entry.slug, entry.id, entry.name];
+  for (const candidate of candidates) {
+    const item = findEntry(items, candidate);
+    if (item) return item;
+  }
+  return null;
+}
+
+function itemRequiresAttunement(item) {
+  if (!item) return false;
+  if (typeof item.requires_attunement === 'boolean') return item.requires_attunement;
+  if (typeof item.requires_attunement === 'string') {
+    return item.requires_attunement.toLowerCase() !== 'no';
+  }
+  if (item.attunement === true) return true;
+  if (typeof item.attunement === 'string') {
+    return item.attunement.toLowerCase() !== 'no';
+  }
+  const text = `${item.summary || ''} ${item.description || ''}`.toLowerCase();
+  return text.includes('requires attunement');
+}
+
+function getEquipmentRecordsFromFormData(formData) {
+  const records = {};
+  EQUIPMENT_CATEGORIES.forEach(({ key, field, legacy }) => {
+    const raw = formData ? formData[field] : null;
+    let entries = parseEquipmentList(raw);
+    if (!entries.length && legacy && formData && formData[legacy]) {
+      entries = parseEquipmentList(formData[legacy]);
+    }
+    records[key] = mergeEquipmentEntries(entries);
+  });
+  return records;
+}
+
+function getClassProficiencies(formData) {
+  const entry = findEntry(getPackData().classes || [], formData?.class);
+  const weaponProfs = new Set();
+  const armorProfs = new Set();
+  if (entry && Array.isArray(entry.weapon_proficiencies)) {
+    entry.weapon_proficiencies.forEach((value) => {
+      if (!value) return;
+      weaponProfs.add(String(value).toLowerCase());
+    });
+  }
+  if (entry && Array.isArray(entry.armor_proficiencies)) {
+    entry.armor_proficiencies.forEach((value) => {
+      if (!value) return;
+      armorProfs.add(String(value).toLowerCase());
+    });
+  }
+  return { entry, weaponProfs, armorProfs };
+}
+
+function assessWeaponProficiency(item, weaponProfs) {
+  if (!item) return true;
+  if (!weaponProfs || !weaponProfs.size) return true;
+  const name = String(item.name || '').toLowerCase();
+  const category = String(item.category || '').toLowerCase();
+  if (weaponProfs.has(name)) return true;
+  if (category.includes('simple') && weaponProfs.has('simple weapons')) return true;
+  if (category.includes('martial') && weaponProfs.has('martial weapons')) return true;
+  if (category.includes('melee') && weaponProfs.has('melee weapons')) return true;
+  if (category.includes('ranged') && weaponProfs.has('ranged weapons')) return true;
+  for (const prof of weaponProfs) {
+    if (!prof) continue;
+    if (name.includes(prof) || category.includes(prof)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function assessArmorProficiency(item, armorProfs) {
+  if (!item) return true;
+  if (!armorProfs || !armorProfs.size) return true;
+  const name = String(item.name || '').toLowerCase();
+  const category = String(item.category || '').toLowerCase();
+  if (armorProfs.has(name)) return true;
+  if (armorProfs.has('all armor') && category.includes('armor')) return true;
+  if (category.includes('light') && armorProfs.has('light armor')) return true;
+  if (category.includes('medium') && armorProfs.has('medium armor')) return true;
+  if (category.includes('heavy') && armorProfs.has('heavy armor')) return true;
+  if ((category.includes('shield') || name.includes('shield')) && armorProfs.has('shields')) return true;
+  for (const prof of armorProfs) {
+    if (!prof) continue;
+    if (name.includes(prof) || category.includes(prof)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function formatWeight(value) {
+  if (!Number.isFinite(value)) return '0 lb';
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? `${rounded.toFixed(0)} lb` : `${rounded.toFixed(1)} lb`;
+}
+
+function computeEquipmentDerived(formData, abilityDerived = {}) {
+  const derived = {
+    groups: { weapons: [], armor: [], gear: [], attunements: [] },
+    proficiency: { weaponMismatches: [], armorMismatches: [] },
+    attunement: { count: 0, limit: ATTUNEMENT_LIMIT, exceeded: false },
+    encumbrance: { totalWeight: 0, capacity: 0, ratio: 0, nearLimit: false, overLimit: false }
+  };
+  if (!formData) {
+    return derived;
+  }
+  const records = getEquipmentRecordsFromFormData(formData);
+  const { weaponProfs, armorProfs } = getClassProficiencies(formData);
+  EQUIPMENT_CATEGORIES.forEach(({ key }) => {
+    const list = records[key] || [];
+    list.forEach((record) => {
+      const keyId = getEquipmentRecordKey(record);
+      if (!keyId) return;
+      const item = resolveEquipmentItem(record);
+      const quantity = Number.isFinite(record.quantity) ? record.quantity : 1;
+      const baseWeight = Number.isFinite(Number(item?.weight)) ? Number(item.weight) : 0;
+      const totalWeight = Number.parseFloat((baseWeight * quantity).toFixed(2));
+      let proficient = true;
+      if (key === 'weapons') {
+        proficient = assessWeaponProficiency(item, weaponProfs);
+        if (!proficient) {
+          derived.proficiency.weaponMismatches.push(record.name || item?.name || keyId);
+        }
+      } else if (key === 'armor') {
+        proficient = assessArmorProficiency(item, armorProfs);
+        if (!proficient) {
+          derived.proficiency.armorMismatches.push(record.name || item?.name || keyId);
+        }
+      }
+      derived.groups[key].push({
+        key: keyId,
+        slug: record.slug || null,
+        id: record.id || null,
+        name: record.name || item?.name || keyId || 'Item',
+        quantity,
+        custom: Boolean(record.custom && !item),
+        notes: record.notes || '',
+        category: item?.category || '',
+        weightEach: baseWeight ? Number.parseFloat(baseWeight.toFixed(2)) : 0,
+        totalWeight,
+        proficient,
+        source: item?.source?.name || null,
+        requiresAttunement: itemRequiresAttunement(item)
+      });
+      derived.encumbrance.totalWeight += totalWeight;
+    });
+  });
+
+  const attunements = derived.groups.attunements;
+  let attunedCount = 0;
+  attunements.forEach((entry) => {
+    const quantity = Number.isFinite(entry.quantity) ? entry.quantity : 1;
+    attunedCount += Math.max(1, quantity);
+  });
+  derived.attunement.count = attunedCount;
+  derived.attunement.limit = ATTUNEMENT_LIMIT;
+  derived.attunement.exceeded = attunedCount > ATTUNEMENT_LIMIT;
+
+  derived.encumbrance.totalWeight = Number.parseFloat(derived.encumbrance.totalWeight.toFixed(2));
+  const strengthScore = abilityDerived?.str?.total ?? Number.parseInt(formData?.str, 10);
+  const strength = Number.isFinite(strengthScore) ? strengthScore : 10;
+  const capacity = Math.max(0, strength * 15);
+  derived.encumbrance.capacity = capacity;
+  derived.encumbrance.ratio = capacity > 0 ? derived.encumbrance.totalWeight / capacity : 0;
+  derived.encumbrance.overLimit = capacity > 0 && derived.encumbrance.totalWeight > capacity;
+  derived.encumbrance.nearLimit = capacity > 0 && !derived.encumbrance.overLimit && derived.encumbrance.totalWeight > capacity * 0.75;
+
+  return derived;
+}
+
 function formatModifier(score) {
   if (!Number.isFinite(score)) return '+0';
   const mod = Math.floor((score - 10) / 2);
@@ -218,6 +496,7 @@ function computeDerivedState(formData) {
       }))
     };
   });
+  derived.equipment = computeEquipmentDerived(formData, derived.abilities);
   return derived;
 }
 function updateProgressIndicator() {
@@ -337,7 +616,15 @@ function populateDynamicOptions() {
     return `${entry.name}${category}`;
   });
   updatePackMeta();
+  if (state && state.data) {
+    state.derived = computeDerivedState(state.data);
+    window.dndBuilderState = state;
+  }
   notifyModules('onPackData', data);
+  if (state && state.data) {
+    window.dispatchEvent(new CustomEvent('dnd-builder-updated', { detail: state }));
+    window.dispatchEvent(new CustomEvent('dnd-state-changed'));
+  }
 }
 
 async function hydratePackData() {
@@ -1002,17 +1289,462 @@ const featsModule = (() => {
 })();
 
 const equipmentModule = (() => {
+  const equipmentState = EQUIPMENT_CATEGORIES.reduce((acc, { key }) => {
+    acc[key] = [];
+    return acc;
+  }, {});
+  const groupRefs = new Map();
+  const fieldRefs = new Map();
   let section = null;
-  function render() {
+  let summaryNode = null;
+  let attunementFeedback = null;
+
+  function syncStateFromData(data) {
+    const parsed = getEquipmentRecordsFromFormData(data || {});
+    EQUIPMENT_CATEGORIES.forEach(({ key }) => {
+      const list = Array.isArray(parsed[key]) ? parsed[key] : [];
+      equipmentState[key] = list.map((entry) => ({ ...entry }));
+    });
+  }
+
+  function setFieldValue(category, list, { skipEvent = false } = {}) {
+    const field = fieldRefs.get(category);
+    if (!field) return;
+    const payload = JSON.stringify(Array.isArray(list) ? list : []);
+    field.value = payload;
+    if (!skipEvent) {
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function createRecordFromValue(value, quantity, category) {
+    const trimmed = value ? String(value).trim() : '';
+    if (!trimmed) return null;
+    const item = findEntry(getPackData().items || [], trimmed);
+    if (item) {
+      return {
+        slug: item.slug || null,
+        id: item.id || null,
+        name: item.name || trimmed,
+        quantity: category === 'attunements' ? 1 : quantity,
+        custom: false
+      };
+    }
+    return {
+      slug: null,
+      id: null,
+      name: trimmed,
+      quantity: category === 'attunements' ? 1 : quantity,
+      custom: true
+    };
+  }
+
+  function renderOptions() {
+    const items = Array.isArray(getPackData().items) ? getPackData().items : [];
+    const buckets = {
+      weapons: [],
+      armor: [],
+      gear: [],
+      attunements: []
+    };
+    items.forEach((item) => {
+      const name = item?.name;
+      const identifier = item?.slug || item?.id || name;
+      if (!identifier || !name) return;
+      const entry = {
+        value: identifier,
+        label: item.category ? `${name} (${item.category})` : name
+      };
+      const category = String(item.category || '').toLowerCase();
+      if (category.includes('weapon')) {
+        buckets.weapons.push(entry);
+      }
+      if (category.includes('armor') || category.includes('shield')) {
+        buckets.armor.push(entry);
+      }
+      if (!category.includes('weapon') && !category.includes('armor') && !category.includes('shield')) {
+        buckets.gear.push(entry);
+      }
+      if (itemRequiresAttunement(item)) {
+        buckets.attunements.push(entry);
+      }
+    });
+    if (!buckets.attunements.length) {
+      items.forEach((item) => {
+        const name = item?.name;
+        const identifier = item?.slug || item?.id || name;
+        if (!identifier || !name) return;
+        const category = String(item.category || '').toLowerCase();
+        if (/(wondrous|ring|rod|staff|wand)/.test(category)) {
+          buckets.attunements.push({
+            value: identifier,
+            label: item.category ? `${name} (${item.category})` : name
+          });
+        }
+      });
+    }
+    EQUIPMENT_CATEGORIES.forEach(({ key, datalist }) => {
+      const list = document.getElementById(datalist);
+      if (!list) return;
+      list.innerHTML = '';
+      const entries = buckets[key] || [];
+      const seen = new Set();
+      entries
+        .sort((a, b) => a.label.localeCompare(b.label))
+        .forEach(({ value, label }) => {
+          if (!value) return;
+          const uniqueKey = String(value).toLowerCase();
+          if (seen.has(uniqueKey)) return;
+          seen.add(uniqueKey);
+          const option = document.createElement('option');
+          option.value = value;
+          option.label = label;
+          list.appendChild(option);
+        });
+    });
+  }
+
+  function renderGroup(category, derivedEquipment) {
+    const refs = groupRefs.get(category);
+    if (!refs || !refs.list) return;
+    const listNode = refs.list;
+    listNode.innerHTML = '';
+    const entries = equipmentState[category] || [];
+    const derivedGroup = derivedEquipment?.groups?.[category] || [];
+    if (!entries.length) {
+      const empty = document.createElement('li');
+      empty.className = 'equipment-empty';
+      const config = EQUIPMENT_CATEGORIES.find((cfg) => cfg.key === category);
+      empty.textContent = config ? config.empty : 'No items selected.';
+      listNode.appendChild(empty);
+      return;
+    }
+    entries.forEach((record) => {
+      const key = getEquipmentRecordKey(record);
+      const resolved = derivedGroup.find((entry) => entry.key === key) || null;
+      const itemNode = document.createElement('li');
+      itemNode.className = 'equipment-item';
+      itemNode.dataset.key = key;
+      if ((category === 'weapons' || category === 'armor') && resolved && resolved.proficient === false) {
+        itemNode.dataset.state = 'warn';
+      } else {
+        itemNode.removeAttribute('data-state');
+      }
+
+      const main = document.createElement('div');
+      main.className = 'equipment-item-main';
+      const title = document.createElement('strong');
+      title.textContent = resolved?.name || record.name || key || 'Item';
+      main.appendChild(title);
+
+      const metaParts = [];
+      if (resolved?.category) metaParts.push(resolved.category);
+      if (resolved?.weightEach) metaParts.push(`${formatWeight(resolved.weightEach)} each`);
+      if (resolved?.source) metaParts.push(resolved.source);
+      if (metaParts.length) {
+        const meta = document.createElement('span');
+        meta.className = 'equipment-item-meta';
+        meta.textContent = metaParts.join(' · ');
+        main.appendChild(meta);
+      }
+
+      const showProficiency = category === 'weapons' || category === 'armor';
+      if (showProficiency) {
+        const status = document.createElement('span');
+        status.className = 'equipment-item-status';
+        status.textContent = resolved && resolved.proficient === false ? '⚠️ Not proficient' : '✅ Proficient';
+        main.appendChild(status);
+      } else if (resolved && resolved.totalWeight) {
+        const status = document.createElement('span');
+        status.className = 'equipment-item-status';
+        status.textContent = `${formatWeight(resolved.totalWeight)} total`;
+        main.appendChild(status);
+      }
+
+      itemNode.appendChild(main);
+
+      const controls = document.createElement('div');
+      controls.className = 'equipment-item-controls';
+      if (category !== 'attunements') {
+        const label = document.createElement('label');
+        label.textContent = 'Qty';
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.min = '0';
+        input.step = '1';
+        input.value = String(record.quantity || 1);
+        input.dataset.equipmentQuantityControl = 'true';
+        input.dataset.equipmentCategory = category;
+        input.dataset.equipmentKey = key;
+        label.appendChild(input);
+        controls.appendChild(label);
+      }
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Remove';
+      remove.dataset.equipmentRemove = 'true';
+      remove.dataset.equipmentCategory = category;
+      remove.dataset.equipmentKey = key;
+      controls.appendChild(remove);
+      itemNode.appendChild(controls);
+
+      listNode.appendChild(itemNode);
+    });
+  }
+
+  function renderSummary(equipmentDerived) {
+    if (attunementFeedback) {
+      attunementFeedback.dataset.state = '';
+    }
+    if (!summaryNode) return;
+    if (!equipmentDerived) {
+      summaryNode.textContent = 'Add equipment to track proficiency and encumbrance.';
+      summaryNode.dataset.state = '';
+      if (attunementFeedback) {
+        attunementFeedback.textContent = 'Choose up to three magic items requiring attunement.';
+      }
+      return;
+    }
+    const hasEntries = EQUIPMENT_CATEGORIES.some(({ key }) => (equipmentDerived.groups?.[key] || []).length > 0);
+    if (!hasEntries) {
+      summaryNode.textContent = 'Add equipment to track proficiency and encumbrance.';
+      summaryNode.dataset.state = '';
+      const attune = equipmentDerived.attunement || { count: 0, limit: ATTUNEMENT_LIMIT };
+      if (attunementFeedback) {
+        attunementFeedback.textContent = `Choose up to three magic items requiring attunement. (${attune.count}/${attune.limit})`;
+      }
+      return;
+    }
+
+    const weaponMismatches = equipmentDerived.proficiency?.weaponMismatches || [];
+    const armorMismatches = equipmentDerived.proficiency?.armorMismatches || [];
+    const attunement = equipmentDerived.attunement || { count: 0, limit: ATTUNEMENT_LIMIT, exceeded: false };
+    const encumbrance = equipmentDerived.encumbrance || { totalWeight: 0, capacity: 0, nearLimit: false, overLimit: false };
+
+    const statuses = [];
+    if (weaponMismatches.length) {
+      statuses.push(`⚠️ ${weaponMismatches.length} weapon${weaponMismatches.length === 1 ? '' : 's'} without proficiency`);
+    } else {
+      statuses.push('✅ Weapon proficiency');
+    }
+    if (armorMismatches.length) {
+      statuses.push(`⚠️ ${armorMismatches.length} armor item${armorMismatches.length === 1 ? '' : 's'} without proficiency`);
+    } else {
+      statuses.push('✅ Armor proficiency');
+    }
+    const attuneLabel = `${attunement.count}/${attunement.limit} attuned`;
+    if (attunement.exceeded) {
+      statuses.push(`⚠️ Attunement exceeded (${attuneLabel})`);
+    } else {
+      statuses.push(`✅ Attunement ${attuneLabel}`);
+    }
+    if (encumbrance.capacity > 0) {
+      const weightText = formatWeight(encumbrance.totalWeight);
+      const capacityText = formatWeight(encumbrance.capacity);
+      if (encumbrance.overLimit) {
+        statuses.push(`⚠️ Over capacity (${weightText} / ${capacityText})`);
+      } else if (encumbrance.nearLimit) {
+        statuses.push(`⚠️ Near capacity (${weightText} / ${capacityText})`);
+      } else {
+        statuses.push(`✅ Weight ${weightText} of ${capacityText}`);
+      }
+    } else {
+      statuses.push(`Equipment weight ${formatWeight(encumbrance.totalWeight)}`);
+    }
+
+    summaryNode.innerHTML = statuses.join(' · ');
+    const hasWarning = weaponMismatches.length > 0 || armorMismatches.length > 0 || attunement.exceeded || encumbrance.overLimit;
+    summaryNode.dataset.state = hasWarning ? 'warn' : 'ok';
+
+    if (attunementFeedback) {
+      if (attunement.exceeded) {
+        attunementFeedback.textContent = `⚠️ Attunement slots exceeded (${attunement.count}/${attunement.limit}).`;
+        attunementFeedback.dataset.state = 'warn';
+      } else {
+        attunementFeedback.textContent = `Choose up to three magic items requiring attunement. (${attunement.count}/${attunement.limit})`;
+        attunementFeedback.dataset.state = '';
+      }
+    }
+  }
+
+  function render(options = {}) {
     if (!section) return;
+    const useFormValues = options.useFormValues === true;
+    const snapshot = useFormValues ? serializeForm() : state.data;
+    if (!snapshot) return;
+    const baseDerived = useFormValues ? computeDerivedState(snapshot) : state.derived;
+    const equipmentDerived = baseDerived && baseDerived.equipment
+      ? baseDerived.equipment
+      : computeEquipmentDerived(snapshot, baseDerived?.abilities || {});
+    syncStateFromData(snapshot);
+    EQUIPMENT_CATEGORIES.forEach(({ key }) => renderGroup(key, equipmentDerived));
+    renderSummary(equipmentDerived);
     section.dataset.itemCount = String((getPackData().items || []).length);
   }
+
+  function totalAttunementCount() {
+    return (equipmentState.attunements || []).reduce((sum, entry) => {
+      const qty = Number.isFinite(entry.quantity) ? entry.quantity : 1;
+      return sum + Math.max(1, qty);
+    }, 0);
+  }
+
+  function handleAdd(category) {
+    const refs = groupRefs.get(category);
+    if (!refs || !refs.input) return;
+    const rawValue = refs.input.value;
+    const quantityValue = refs.quantity ? Number.parseInt(refs.quantity.value, 10) : 1;
+    const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+    if (category === 'attunements' && totalAttunementCount() >= ATTUNEMENT_LIMIT) {
+      if (attunementFeedback) {
+        attunementFeedback.textContent = `⚠️ Attunement slots are full (${ATTUNEMENT_LIMIT}/${ATTUNEMENT_LIMIT}).`;
+        attunementFeedback.dataset.state = 'warn';
+      }
+      return;
+    }
+    const record = createRecordFromValue(rawValue, quantity, category);
+    if (!record) return;
+    const next = mergeEquipmentEntries([...(equipmentState[category] || []), record]);
+    equipmentState[category] = next;
+    setFieldValue(category, next);
+    refs.input.value = '';
+    if (refs.quantity) {
+      refs.quantity.value = '1';
+    }
+    render({ useFormValues: true });
+  }
+
+  function handleRemove(category, key) {
+    const current = equipmentState[category] || [];
+    const filtered = current.filter((entry) => getEquipmentRecordKey(entry) !== key);
+    equipmentState[category] = filtered;
+    setFieldValue(category, filtered);
+    render({ useFormValues: true });
+  }
+
+  function handleQuantity(category, key, rawValue) {
+    const value = Number.parseInt(rawValue, 10);
+    if (!Number.isFinite(value)) {
+      return;
+    }
+    if (value <= 0) {
+      handleRemove(category, key);
+      return;
+    }
+    const updated = (equipmentState[category] || []).map((entry) => {
+      if (getEquipmentRecordKey(entry) !== key) return entry;
+      return { ...entry, quantity: value };
+    });
+    equipmentState[category] = updated;
+    setFieldValue(category, updated);
+    render({ useFormValues: true });
+  }
+
+  function handleClick(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const action = target.dataset.equipmentAction;
+    if (action === 'add') {
+      event.preventDefault();
+      const category = target.dataset.equipmentCategory;
+      if (category) {
+        handleAdd(category);
+      }
+      return;
+    }
+    if ('equipmentRemove' in target.dataset) {
+      event.preventDefault();
+      const category = target.dataset.equipmentCategory;
+      const key = target.dataset.equipmentKey;
+      if (category && key) {
+        handleRemove(category, key);
+      }
+    }
+  }
+
+  function handleInputEvent(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (target.matches('[data-equipment-field]')) {
+      return;
+    }
+    if (target.dataset.equipmentQuantityControl) {
+      const category = target.dataset.equipmentCategory;
+      const key = target.dataset.equipmentKey;
+      if (category && key) {
+        handleQuantity(category, key, target.value);
+      }
+    }
+  }
+
+  function handleKeydown(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    if (!('equipmentInput' in target.dataset)) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      const group = target.closest('[data-equipment-group]');
+      const category = group ? group.dataset.equipmentGroup : null;
+      if (category) {
+        handleAdd(category);
+      }
+    }
+  }
+
   return {
     setup(node) {
       section = node;
-      render();
+      summaryNode = section.querySelector('[data-equipment-summary]');
+      attunementFeedback = section.querySelector('[data-equipment-feedback]');
+      EQUIPMENT_CATEGORIES.forEach(({ key, field }) => {
+        const groupNode = section.querySelector(`[data-equipment-group="${key}"]`);
+        if (groupNode) {
+          const input = groupNode.querySelector('[data-equipment-input]');
+          const quantity = groupNode.querySelector('[data-equipment-quantity]');
+          const list = groupNode.querySelector('[data-equipment-list]');
+          groupRefs.set(key, { node: groupNode, input, quantity, list });
+          if (input) {
+            input.dataset.equipmentInput = 'true';
+          }
+        }
+        const fieldNode = section.querySelector(`[data-equipment-field="${key}"]`);
+        if (fieldNode) {
+          fieldRefs.set(key, fieldNode);
+          if (!fieldNode.value) {
+            fieldNode.value = '[]';
+          }
+        }
+      });
+      section.addEventListener('click', handleClick);
+      section.addEventListener('input', handleInputEvent);
+      section.addEventListener('keydown', handleKeydown);
+      renderOptions();
+      render({ useFormValues: true });
     },
     onPackData() {
+      renderOptions();
+      render({ useFormValues: true });
+    },
+    onStateHydrated(currentState) {
+      syncStateFromData(currentState?.data || state.data);
+      render();
+    },
+    onFormInput(event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.matches('[data-equipment-field]')) return;
+      if (abilityFields.some((field) => field.id === target.name)) {
+        render({ useFormValues: true });
+      }
+    },
+    onFormChange(event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.name === 'class') {
+        render({ useFormValues: true });
+      }
+    },
+    onStatePersisted() {
       render();
     }
   };
