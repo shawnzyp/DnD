@@ -38,6 +38,13 @@ const SPELLCASTING_CLASS_SLUGS = new Set([
   'wizard'
 ]);
 
+const FEAT_LEVEL_THRESHOLDS = [4, 8, 12, 16, 19];
+
+const CLASS_FEAT_BONUS_LEVELS = {
+  fighter: [6, 14],
+  rogue: [10]
+};
+
 function calculateProficiencyBonus(level) {
   if (!Number.isFinite(level) || level <= 0) return 2;
   const bounded = Math.min(Math.max(1, level), MAX_CHARACTER_LEVEL);
@@ -180,7 +187,7 @@ let currentStep = 0;
 
 function createBaseState() {
   return {
-    data: { classes: [] },
+    data: { classes: [], feats: [], featBonusSlots: '0' },
     completedSteps: [],
     saveCount: 1,
     updatedAt: Date.now(),
@@ -755,6 +762,81 @@ function parseFeatList(value) {
     .filter(Boolean);
 }
 
+function canonicalizeFeatKey(value) {
+  if (value === null || value === undefined) return '';
+  const raw = typeof value === 'string' ? value : String(value);
+  const target = raw.trim();
+  if (!target) return '';
+  const lower = target.toLowerCase();
+  const feats = getPackData().feats || [];
+  for (const feat of feats) {
+    if (!feat) continue;
+    const slug = feat.slug ? String(feat.slug).toLowerCase() : null;
+    const id = feat.id ? String(feat.id).toLowerCase() : null;
+    const name = feat.name ? String(feat.name).toLowerCase() : null;
+    if (lower === slug || lower === id || lower === name) {
+      return feat.slug || feat.id || feat.name || target;
+    }
+  }
+  return target;
+}
+
+function normalizeFeatSelections(source) {
+  const selections = new Set();
+
+  function addValue(raw) {
+    if (raw === null || raw === undefined) return;
+    if (Array.isArray(raw)) {
+      raw.forEach((entry) => addValue(entry));
+      return;
+    }
+    if (typeof raw === 'object') {
+      const candidate = raw.slug || raw.id || raw.value || raw.name || raw.label;
+      if (candidate) {
+        addValue(String(candidate));
+      }
+      return;
+    }
+    const parsed = typeof raw === 'string' ? parseJsonValue(raw) : raw;
+    if (Array.isArray(parsed)) {
+      parsed.forEach((entry) => addValue(entry));
+      return;
+    }
+    if (typeof parsed === 'string') {
+      const trimmed = parsed.trim();
+      if (!trimmed) return;
+      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+        addValue(parseJsonValue(trimmed));
+        return;
+      }
+      if (/[;,\n]/.test(trimmed)) {
+        parseFeatList(trimmed).forEach((entry) => addValue(entry));
+        return;
+      }
+      selections.add(trimmed);
+      return;
+    }
+    if (Number.isFinite(parsed)) {
+      selections.add(String(parsed));
+    }
+  }
+
+  addValue(source && typeof source === 'object' ? source.feats : source);
+  if (source && typeof source === 'object') {
+    if (source.signatureFeat) {
+      addValue(source.signatureFeat);
+    }
+    if (source.bonusFeats) {
+      parseFeatList(source.bonusFeats).forEach((entry) => addValue(entry));
+    }
+  }
+
+  return Array.from(selections)
+    .map((entry) => canonicalizeFeatKey(entry))
+    .map((entry) => String(entry).trim())
+    .filter(Boolean);
+}
+
 function computeAbilityBonuses(formData) {
   const bonuses = {};
   abilityFields.forEach((field) => {
@@ -770,13 +852,7 @@ function computeAbilityBonuses(formData) {
   if (backgroundEntry) {
     applyAbilityEntryBonuses(bonuses, backgroundEntry, backgroundEntry.name || 'Background');
   }
-  const featNames = [];
-  if (formData?.signatureFeat) {
-    featNames.push(formData.signatureFeat);
-  }
-  parseFeatList(formData?.bonusFeats).forEach((feat) => {
-    featNames.push(feat);
-  });
+  const featNames = normalizeFeatSelections(formData);
   const seenFeatIds = new Set();
   featNames.forEach((identifier) => {
     const featKey = typeof identifier === 'string' ? identifier.trim() : identifier;
@@ -925,7 +1001,6 @@ function populateDynamicOptions() {
     populateSelectOptions(raceField, data.races || [], 'Choose a race');
   }
   populateDatalist('background-options', data.backgrounds || []);
-  populateDatalist('feat-options', data.feats || []);
   populateDatalist('item-options', data.items || [], (entry) => {
     const category = entry.category ? ` (${entry.category})` : '';
     return `${entry.name}${category}`;
@@ -1056,7 +1131,7 @@ function serializeForm() {
       }
       arrayFields.get(base).push(value);
     } else {
-      data[key] = value;
+      data[key] = key === 'feats' ? parseJsonValue(value) : value;
     }
   }
   arrayFields.forEach((values, key) => {
@@ -1092,6 +1167,9 @@ function serializeForm() {
     : calculateProficiencyBonus(totalLevel);
   data.proficiencyBonus = String(proficiency);
   data.hitDice = derivedClasses.hitDice || {};
+  if (!Array.isArray(data.feats)) {
+    data.feats = normalizeFeatSelections(data);
+  }
   if (familiarModule && typeof familiarModule.getValue === 'function') {
     const familiarState = familiarModule.getValue();
     if (familiarState) {
@@ -1251,6 +1329,9 @@ function hydrateForm(data) {
   merged.currentStep = incoming.currentStep || (steps[merged.currentStepIndex] ? steps[merged.currentStepIndex].dataset.step : merged.currentStep);
   merged.derived = computeDerivedState(merged.data);
   state = merged;
+  state.data.feats = normalizeFeatSelections(state.data);
+  const bonusSlotsValue = Number.parseInt(state.data.featBonusSlots, 10);
+  state.data.featBonusSlots = Number.isFinite(bonusSlotsValue) && bonusSlotsValue >= 0 ? String(bonusSlotsValue) : '0';
 
   Object.entries(state.data).forEach(([key, value]) => {
     const field = form.elements.namedItem(key);
@@ -1260,7 +1341,15 @@ function hydrateForm(data) {
         radio.checked = radio.value === value;
       });
     } else {
-      field.value = value;
+      if (key === 'feats') {
+        const normalized = Array.isArray(value) ? value : normalizeFeatSelections({ feats: value });
+        field.value = JSON.stringify(normalized);
+      } else if (key === 'featBonusSlots') {
+        const numeric = Number.parseInt(value, 10);
+        field.value = Number.isFinite(numeric) && numeric >= 0 ? String(numeric) : '0';
+      } else {
+        field.value = value;
+      }
     }
   });
 
@@ -2525,87 +2614,544 @@ const abilityModule = (() => {
 })();
 
 const featsModule = (() => {
+  let section = null;
   let summaryNode = null;
-  let featInput = null;
+  let gridNode = null;
+  let searchInput = null;
+  let filterContainer = null;
+  let hiddenField = null;
+  let bonusInput = null;
+  let activeFilter = 'all';
+  let searchQuery = '';
+  let featList = [];
+  let featLookup = new Map();
+  let selected = new Set();
+  let activeStep = false;
+  let nextLocked = false;
 
-  function getPrimaryClassMeta(data) {
-    const classes = Array.isArray(data?.classes) ? data.classes : normalizeClassEntries(data || {});
-    const primary = classes[0];
-    const identifier = primary?.class || primary?.slug || primary?.id || primary;
-    if (!identifier) return null;
-    return findEntry(getPackData().classes || [], identifier);
+  function sanitizeBonusValue(value) {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isFinite(parsed) || parsed < 0) return '0';
+    return String(parsed);
   }
 
-  function hasMartial(meta) {
-    if (!meta) return false;
-    return Array.isArray(meta.weapon_proficiencies) && meta.weapon_proficiencies.some((entry) => /martial/i.test(entry));
+  function resolveFeatKey(value) {
+    if (value === null || value === undefined) return '';
+    const canonical = canonicalizeFeatKey(value);
+    const lower = canonical.toLowerCase();
+    const entry = featLookup.get(lower);
+    return entry ? entry.key : canonical;
   }
 
-  function canCast(meta, data) {
-    if (meta && classIsSpellcaster(meta)) return true;
-    const classes = Array.isArray(data?.classes) ? data.classes : normalizeClassEntries(data || {});
-    const packClasses = getPackData().classes || [];
-    return classes.some((entry) => {
-      const identifier = entry?.class || entry?.slug || entry?.id || entry;
-      if (!identifier) return false;
-      const resolved = findEntry(packClasses, identifier);
-      return classIsSpellcaster(resolved);
+  function buildFeatList() {
+    const feats = getPackData().feats || [];
+    featLookup = new Map();
+    featList = feats
+      .map((feat) => {
+        const baseKey = feat.slug || feat.id || feat.name;
+        if (!baseKey) return null;
+        const key = String(baseKey).trim();
+        if (!key) return null;
+        const name = feat.name || key;
+        const summary = feat.summary || '';
+        const description = feat.description || '';
+        const source = feat.source?.name || '';
+        const prerequisites = Array.isArray(feat.prerequisites)
+          ? feat.prerequisites.map((entry) => String(entry).trim()).filter(Boolean)
+          : [];
+        const search = `${name} ${summary} ${description} ${prerequisites.join(' ')}`.toLowerCase();
+        const entry = { key, name, summary, description, source, prerequisites, search, raw: feat };
+        const identifiers = new Set([
+          key.toLowerCase(),
+          (feat.slug || '').toLowerCase(),
+          (feat.id || '').toLowerCase(),
+          (feat.name || '').toLowerCase()
+        ]);
+        identifiers.forEach((identifier) => {
+          if (!identifier) return;
+          if (!featLookup.has(identifier)) {
+            featLookup.set(identifier, entry);
+          }
+        });
+        return entry;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  function updateHiddenField({ silent = false } = {}) {
+    if (!hiddenField) return;
+    const payload = JSON.stringify(Array.from(selected));
+    if (hiddenField.value === payload) return;
+    hiddenField.value = payload;
+    if (!silent) {
+      hiddenField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function syncSelectedFromData(data, { silent = false } = {}) {
+    const values = normalizeFeatSelections(data || {});
+    const canonical = values.map((value) => resolveFeatKey(value)).filter(Boolean);
+    selected = new Set(canonical);
+    if (state.data) {
+      state.data.feats = Array.from(selected);
+    }
+    updateHiddenField({ silent });
+  }
+
+  function getContext(options = {}) {
+    if (!state || !state.data) return null;
+    const snapshot = options.useFormValues ? serializeForm() : state.data;
+    const derived = options.useFormValues ? computeDerivedState(snapshot) : state.derived;
+    return { snapshot, derived };
+  }
+
+  function computeSlotInfo(snapshot, derived) {
+    const classesDerived = derived?.classes || computeClassDerived(snapshot);
+    const totalLevel = classesDerived.totalLevel || Number.parseInt(snapshot?.level, 10) || 1;
+    const base = FEAT_LEVEL_THRESHOLDS.reduce(
+      (count, threshold) => (totalLevel >= threshold ? count + 1 : count),
+      0
+    );
+    let classBonus = 0;
+    (classesDerived.entries || []).forEach((entry) => {
+      const slug = String(entry.slug || entry.class || entry.name || '').toLowerCase();
+      if (!slug) return;
+      const bonuses = CLASS_FEAT_BONUS_LEVELS[slug];
+      if (!Array.isArray(bonuses)) return;
+      bonuses.forEach((threshold) => {
+        if (entry.level >= threshold) {
+          classBonus += 1;
+        }
+      });
     });
+    const manualValue = Number.parseInt(snapshot?.featBonusSlots, 10);
+    const manual = Number.isFinite(manualValue) && manualValue > 0 ? manualValue : 0;
+    const total = base + classBonus + manual;
+    return { base, classBonus, manual, total, totalLevel };
   }
 
-  function render(data) {
-    if (!summaryNode) return;
-    const featValue = data?.signatureFeat || (featInput ? featInput.value : '');
-    if (!featValue) {
-      summaryNode.textContent = 'Select a feat to check prerequisites.';
-      summaryNode.dataset.state = '';
-      return;
+  function evaluatePrerequisites(feat, context) {
+    const prerequisites = Array.isArray(feat.prerequisites) ? feat.prerequisites : [];
+    if (!prerequisites.length) {
+      return { locked: false, checks: [] };
     }
-    const featEntry = findEntry(getPackData().feats || [], featValue);
-    if (!featEntry) {
-      summaryNode.textContent = 'Custom feat selected. Verify prerequisites manually.';
-      summaryNode.dataset.state = 'warn';
-      return;
-    }
-    const prereqs = Array.isArray(featEntry.prerequisites) ? featEntry.prerequisites : [];
-    if (!prereqs.length) {
-      summaryNode.textContent = 'No prerequisites.';
-      summaryNode.dataset.state = 'ok';
-      return;
-    }
-    const meta = getPrimaryClassMeta(data);
-    const checks = prereqs.map((prereq) => {
-      const normalized = prereq.toLowerCase();
-      let satisfied = false;
-      if (normalized.includes('martial weapons')) {
-        satisfied = hasMartial(meta);
-      } else if (normalized.includes('cast at least one spell')) {
-        satisfied = canCast(meta, data);
+    const checks = [];
+    const abilities = context.derived?.abilities || {};
+    const totalLevel = context.derived?.classes?.totalLevel || Number.parseInt(context.snapshot?.level, 10) || 1;
+    const classEntries = context.derived?.classes?.entries || [];
+    const classLevels = new Map();
+    classEntries.forEach((entry) => {
+      const slug = String(entry.slug || entry.class || entry.name || '').toLowerCase();
+      if (!slug) return;
+      const level = Number.isFinite(entry.level) ? entry.level : Number.parseInt(entry.level, 10) || 0;
+      classLevels.set(slug, Math.max(classLevels.get(slug) || 0, level));
+    });
+    const weaponProfs = context.weaponProfs || new Set();
+    const armorProfs = context.armorProfs || new Set();
+    const hasMartial = Array.from(weaponProfs).some((value) => value && value.includes('martial'));
+    const hasSimple = Array.from(weaponProfs).some((value) => value && value.includes('simple'));
+    const hasLightArmor = Array.from(armorProfs).some((value) => value && value.includes('light'));
+    const hasMediumArmor = Array.from(armorProfs).some((value) => value && value.includes('medium'));
+    const hasHeavyArmor = Array.from(armorProfs).some((value) => value && value.includes('heavy'));
+    const hasShields = Array.from(armorProfs).some((value) => value && value.includes('shield'));
+    const spellcastingCount = context.derived?.classes?.spellcastingCount || 0;
+
+    prerequisites.forEach((raw) => {
+      const label = String(raw).trim();
+      if (!label) return;
+      const normalized = label.toLowerCase();
+      let satisfied = null;
+      let unknown = false;
+      if (normalized.includes('martial weapon')) {
+        satisfied = hasMartial;
+      } else if (normalized.includes('simple weapon')) {
+        satisfied = hasSimple;
+      } else if (normalized.includes('light armor')) {
+        satisfied = hasLightArmor;
+      } else if (normalized.includes('medium armor')) {
+        satisfied = hasMediumArmor;
+      } else if (normalized.includes('heavy armor')) {
+        satisfied = hasHeavyArmor;
+      } else if (normalized.includes('shield')) {
+        satisfied = hasShields;
+      } else if (/cast\b.*spell/.test(normalized) || normalized.includes('spellcasting')) {
+        satisfied = spellcastingCount > 0;
+      } else {
+        const abilityMatch = label.match(
+          /(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*(\d{1,2})/i
+        );
+        if (abilityMatch) {
+          const abilityId = abilityNameToId(abilityMatch[1]);
+          const required = Number.parseInt(abilityMatch[2], 10);
+          const score = abilityId
+            ? abilities[abilityId]?.total ?? Number.parseInt(context.snapshot?.[abilityId], 10)
+            : null;
+          satisfied = Number.isFinite(score) && score >= required;
+        } else {
+          const classMatch = label.match(
+            /(barbarian|bard|cleric|druid|fighter|monk|paladin|ranger|rogue|sorcerer|warlock|wizard)[^0-9]*(\d+)/i
+          );
+          if (classMatch) {
+            const slug = classMatch[1].toLowerCase();
+            const required = Number.parseInt(classMatch[2], 10);
+            const level = classLevels.get(slug) || 0;
+            satisfied = Number.isFinite(required) ? level >= required : null;
+          } else {
+            const levelMatch = label.match(/(?:character|overall)?\s*level\s*(\d+)/i);
+            if (levelMatch) {
+              const required = Number.parseInt(levelMatch[1], 10);
+              satisfied = Number.isFinite(required) ? totalLevel >= required : null;
+            }
+          }
+        }
       }
-      return { label: prereq, satisfied };
+      if (satisfied === null) {
+        unknown = true;
+        satisfied = true;
+      }
+      checks.push({ label, satisfied: Boolean(satisfied), unknown });
     });
-    const allMet = checks.every((entry) => entry.satisfied);
-    summaryNode.dataset.state = allMet ? 'ok' : 'warn';
-    summaryNode.innerHTML = checks.map((entry) => `${entry.satisfied ? '✅' : '⚠️'} ${entry.label}`).join(' · ');
+    const locked = checks.some((check) => check.satisfied === false);
+    return { locked, checks };
+  }
+
+  function matchesSearch(feat) {
+    if (!searchQuery) return true;
+    return feat.search.includes(searchQuery);
+  }
+
+  function matchesFilter(feat, status) {
+    if (activeFilter === 'available') return !status.locked;
+    if (activeFilter === 'locked') return status.locked;
+    if (activeFilter === 'selected') return selected.has(feat.key);
+    return true;
+  }
+
+  function updateSummary(slotInfo, stats) {
+    if (!summaryNode) return;
+    if (!featList.length) {
+      summaryNode.textContent = 'Load a ruleset to browse feats.';
+      summaryNode.dataset.state = '';
+      nextLocked = false;
+      return;
+    }
+    const { selectedCount, lockedTotal } = stats;
+    const totalSlots = slotInfo.total;
+    const parts = [];
+    if (totalSlots <= 0) {
+      parts.push(`Level ${slotInfo.totalLevel} grants 0 feat slots.`);
+      if (slotInfo.classBonus > 0 || slotInfo.manual > 0) {
+        const extras = [];
+        if (slotInfo.classBonus > 0) extras.push(`class bonus ${slotInfo.classBonus}`);
+        if (slotInfo.manual > 0) extras.push(`bonus ${slotInfo.manual}`);
+        parts.push(`Tracking ${extras.join(' + ')} slot${slotInfo.classBonus + slotInfo.manual === 1 ? '' : 's'}.`);
+      } else {
+        parts.push('Add bonus slots to track racial or class features that grant feats.');
+      }
+      if (lockedTotal > 0) {
+        parts.push(`${lockedTotal} locked by prerequisites`);
+      }
+      summaryNode.textContent = parts.join(' ');
+      summaryNode.dataset.state = '';
+      nextLocked = false;
+      return;
+    }
+    if (selectedCount === 0) {
+      parts.push(`Choose at least one feat (0/${totalSlots}).`);
+      nextLocked = true;
+    } else if (selectedCount > totalSlots) {
+      parts.push(`Over capacity: ${selectedCount}/${totalSlots} feats selected.`);
+      nextLocked = true;
+    } else {
+      parts.push(`Using ${selectedCount}/${totalSlots} feat slots.`);
+      nextLocked = false;
+    }
+    const breakdown = [`base ${slotInfo.base}`];
+    if (slotInfo.classBonus > 0) breakdown.push(`class bonus ${slotInfo.classBonus}`);
+    if (slotInfo.manual > 0) breakdown.push(`bonus ${slotInfo.manual}`);
+    if (breakdown.length > 1) {
+      parts.push(`(${breakdown.join(' + ')})`);
+    }
+    if (lockedTotal > 0) {
+      parts.push(`${lockedTotal} locked by prerequisites`);
+    }
+    summaryNode.textContent = parts.join(' ');
+    summaryNode.dataset.state = nextLocked ? 'warn' : 'ok';
+  }
+
+  function enforceNextButton() {
+    if (!nextBtn) return;
+    if (activeStep) {
+      nextBtn.disabled = nextLocked;
+    } else if (nextLocked) {
+      nextLocked = false;
+      nextBtn.disabled = false;
+    }
+  }
+
+  function render(options = {}) {
+    if (!section) return;
+    const context = getContext(options);
+    if (!context) return;
+    const canonicalSelections = normalizeFeatSelections(context.snapshot)
+      .map((value) => resolveFeatKey(value))
+      .filter(Boolean);
+    selected = new Set(canonicalSelections);
+    if (state.data) {
+      state.data.feats = Array.from(selected);
+    }
+    updateHiddenField({ silent: true });
+    const sanitizedBonus = sanitizeBonusValue(context.snapshot?.featBonusSlots);
+    if (state.data) {
+      state.data.featBonusSlots = sanitizedBonus;
+    }
+    if (bonusInput && bonusInput.value !== sanitizedBonus) {
+      bonusInput.value = sanitizedBonus;
+    }
+    const slotInfo = computeSlotInfo({ ...context.snapshot, featBonusSlots: sanitizedBonus }, context.derived);
+    const proficiency = getClassProficiencies(context.snapshot);
+    const evaluationContext = {
+      snapshot: context.snapshot,
+      derived: context.derived,
+      weaponProfs: proficiency.weaponProfs,
+      armorProfs: proficiency.armorProfs
+    };
+    const evaluated = featList.map((feat) => ({
+      feat,
+      status: evaluatePrerequisites(feat, evaluationContext)
+    }));
+    const filtered = evaluated.filter(
+      (item) => matchesSearch(item.feat) && matchesFilter(item.feat, item.status)
+    );
+    if (gridNode) {
+      gridNode.innerHTML = '';
+      if (!featList.length) {
+        const empty = document.createElement('p');
+        empty.className = 'feat-empty';
+        empty.textContent = 'Load a ruleset to browse feats.';
+        gridNode.appendChild(empty);
+      } else if (!filtered.length) {
+        const empty = document.createElement('p');
+        empty.className = 'feat-empty';
+        empty.textContent = 'No feats match your search or filters.';
+        gridNode.appendChild(empty);
+      } else {
+        filtered.forEach(({ feat, status }) => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.className = 'feat-card';
+          button.dataset.featCard = feat.key;
+          const isSelected = selected.has(feat.key);
+          button.dataset.selected = isSelected ? 'true' : 'false';
+          button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+          if (status.locked) {
+            button.disabled = true;
+            button.dataset.state = 'locked';
+            button.setAttribute('aria-disabled', 'true');
+          } else {
+            button.disabled = false;
+            button.dataset.state = 'available';
+            button.removeAttribute('aria-disabled');
+          }
+          const header = document.createElement('div');
+          header.className = 'feat-card-header';
+          const title = document.createElement('strong');
+          title.textContent = feat.name;
+          header.appendChild(title);
+          if (feat.source) {
+            const source = document.createElement('span');
+            source.className = 'feat-card-source';
+            source.textContent = feat.source;
+            header.appendChild(source);
+          }
+          button.appendChild(header);
+          if (feat.summary) {
+            const summary = document.createElement('p');
+            summary.className = 'feat-card-summary';
+            summary.textContent = feat.summary;
+            button.appendChild(summary);
+          }
+          const chips = [];
+          if (isSelected) {
+            chips.push('Selected');
+          }
+          if (!feat.prerequisites.length) {
+            chips.push('No prerequisites');
+          } else if (status.locked) {
+            chips.push('Prerequisites unmet');
+          } else {
+            chips.push('Prerequisites met');
+          }
+          if (chips.length) {
+            const chipWrapper = document.createElement('div');
+            chipWrapper.className = 'feat-card-chips';
+            chips.forEach((label) => {
+              const chip = document.createElement('span');
+              chip.className = 'feat-card-chip';
+              chip.textContent = label;
+              chipWrapper.appendChild(chip);
+            });
+            button.appendChild(chipWrapper);
+          }
+          if (status.checks.length) {
+            const list = document.createElement('ul');
+            list.className = 'feat-card-prereqs';
+            status.checks.forEach((check) => {
+              const item = document.createElement('li');
+              if (check.unknown) {
+                item.dataset.state = 'unknown';
+              } else if (check.satisfied) {
+                item.dataset.state = 'ok';
+              } else {
+                item.dataset.state = 'warn';
+              }
+              const icon = document.createElement('span');
+              icon.textContent = check.unknown ? '❔' : check.satisfied ? '✅' : '⚠️';
+              const text = document.createElement('span');
+              text.textContent = check.label;
+              item.append(icon, text);
+              list.appendChild(item);
+            });
+            button.appendChild(list);
+          }
+          gridNode.appendChild(button);
+        });
+      }
+    }
+    const lockedTotal = evaluated.filter((item) => item.status.locked).length;
+    updateSummary(slotInfo, {
+      selectedCount: selected.size,
+      lockedTotal
+    });
+    enforceNextButton();
+  }
+
+  function handleCardClick(event) {
+    const button = event.target.closest('[data-feat-card]');
+    if (!button || button.disabled) return;
+    const key = button.dataset.featCard;
+    if (!key) return;
+    const resolved = resolveFeatKey(key);
+    if (!resolved) return;
+    if (selected.has(resolved)) {
+      selected.delete(resolved);
+    } else {
+      selected.add(resolved);
+    }
+    if (state.data) {
+      state.data.feats = Array.from(selected);
+    }
+    updateHiddenField();
+    render({ useFormValues: true });
+  }
+
+  function handleFilterClick(event) {
+    if (!filterContainer) return;
+    const button = event.target.closest('button[data-filter]');
+    if (!button) return;
+    const filter = button.dataset.filter || 'all';
+    if (filter === activeFilter) return;
+    activeFilter = filter;
+    Array.from(filterContainer.querySelectorAll('button[data-filter]')).forEach((node) => {
+      node.setAttribute('aria-pressed', node.dataset.filter === activeFilter ? 'true' : 'false');
+    });
+    render({ useFormValues: true });
+  }
+
+  function handleSearchInput() {
+    searchQuery = searchInput.value.trim().toLowerCase();
+    render({ useFormValues: true });
+  }
+
+  function handleBonusInput(event) {
+    const value = event.target.value;
+    const sanitized = sanitizeBonusValue(value);
+    if (state.data) {
+      state.data.featBonusSlots = sanitized;
+    }
+    render({ useFormValues: true });
+  }
+
+  function handleBonusBlur() {
+    if (!bonusInput) return;
+    const sanitized = sanitizeBonusValue(bonusInput.value);
+    if (bonusInput.value !== sanitized) {
+      bonusInput.value = sanitized;
+      bonusInput.dispatchEvent(new Event('input', { bubbles: true }));
+    }
   }
 
   return {
-    setup(section) {
-      summaryNode = section.querySelector('#feat-prereqs');
-      featInput = section.querySelector('input[name="signatureFeat"]');
-      render(state.data);
+    setup(stepSection) {
+      section = stepSection;
+      summaryNode = section.querySelector('[data-feat-summary]');
+      gridNode = section.querySelector('[data-feat-grid]');
+      searchInput = section.querySelector('[data-feat-search]');
+      filterContainer = section.querySelector('[data-feat-filters]');
+      hiddenField = section.querySelector('[data-feat-field]');
+      bonusInput = section.querySelector('[data-feat-bonus]');
+      buildFeatList();
+      syncSelectedFromData(state.data, { silent: true });
+      if (searchInput) {
+        searchInput.addEventListener('input', handleSearchInput);
+      }
+      if (filterContainer) {
+        filterContainer.addEventListener('click', handleFilterClick);
+      }
+      if (gridNode) {
+        gridNode.addEventListener('click', handleCardClick);
+      }
+      if (bonusInput) {
+        bonusInput.addEventListener('input', handleBonusInput);
+        bonusInput.addEventListener('change', handleBonusBlur);
+        bonusInput.addEventListener('blur', handleBonusBlur);
+      }
+      render();
     },
     onPackData() {
-      render(state.data);
+      buildFeatList();
+      syncSelectedFromData(state.data, { silent: true });
+      render();
     },
     onStateHydrated(currentState) {
-      render(currentState?.data || state.data);
+      syncSelectedFromData(currentState?.data || state.data, { silent: true });
+      render();
+    },
+    onStatePersisted() {
+      render();
+    },
+    onFormInput(event) {
+      const target = event.target;
+      if (!target) return;
+      if (abilityFields.some((field) => field.id === target.name)) {
+        render({ useFormValues: true });
+        return;
+      }
+      if (target.matches('[data-class-level]') || target.matches('[data-class-select]')) {
+        render({ useFormValues: true });
+        return;
+      }
+      if (target.name === 'featBonusSlots') {
+        handleBonusInput(event);
+      }
     },
     onFormChange(event) {
       const target = event.target;
       if (!target) return;
-      if (target.name === 'signatureFeat' || target.matches('[data-class-select]')) {
-        render(serializeForm());
+      if (target.matches('[data-class-level]') || target.matches('[data-class-select]')) {
+        render({ useFormValues: true });
+        return;
+      }
+      if (target.name === 'featBonusSlots') {
+        handleBonusBlur();
+      }
+    },
+    onStepChange(detail) {
+      activeStep = detail?.id === 'feats';
+      enforceNextButton();
+      if (activeStep) {
+        render({ useFormValues: true });
       }
     }
   };

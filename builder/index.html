@@ -192,6 +192,167 @@
       resize: vertical;
     }
 
+    .feat-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .feat-toolbar label {
+      flex: 1 1 220px;
+      min-width: 200px;
+    }
+    .feat-toolbar input[type="search"] {
+      width: 100%;
+    }
+    .feat-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .feat-filters .pill-button {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.7rem;
+    }
+    .feat-filters .pill-button[aria-pressed="true"] {
+      background: color-mix(in srgb, var(--accent) 55%, transparent 45%);
+      border-color: color-mix(in srgb, var(--accent) 70%, var(--surface-border) 30%);
+      color: var(--accent-contrast);
+    }
+    .feat-grid {
+      display: grid;
+      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      max-height: 360px;
+      overflow-y: auto;
+      padding-right: 0.4rem;
+    }
+    .feat-grid::-webkit-scrollbar {
+      width: 8px;
+    }
+    .feat-grid::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+    }
+    .feat-empty {
+      margin: 0;
+      grid-column: 1 / -1;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .feat-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--surface-border);
+      background: rgba(20, 27, 43, 0.8);
+      padding: 0.9rem;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      font: inherit;
+      appearance: none;
+      transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+    }
+    .feat-card:hover:not(:disabled),
+    .feat-card:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--surface-border) 45%);
+      background: color-mix(in srgb, var(--accent) 20%, rgba(20, 27, 43, 0.8) 80%);
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(3, 14, 10, 0.35);
+    }
+    .feat-card:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 45%, transparent 55%);
+    }
+    .feat-card:disabled,
+    .feat-card[aria-disabled="true"] {
+      cursor: not-allowed;
+      opacity: 0.7;
+      background: rgba(20, 27, 43, 0.6);
+      box-shadow: none;
+      transform: none;
+    }
+    .feat-card[data-selected="true"] {
+      border-color: color-mix(in srgb, var(--accent) 80%, white 20%);
+      background: color-mix(in srgb, var(--accent) 28%, rgba(20, 27, 43, 0.88) 72%);
+    }
+    .feat-card[data-state="locked"] {
+      border-color: rgba(255, 115, 115, 0.55);
+    }
+    .feat-card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+    .feat-card-header strong {
+      font-size: 0.95rem;
+    }
+    .feat-card-source {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .feat-card-summary {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted-strong);
+    }
+    .feat-card-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .feat-card-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.15rem 0.55rem;
+      border-radius: 999px;
+      border: 1px solid var(--surface-border);
+      background: rgba(255, 255, 255, 0.08);
+      font-size: 0.7rem;
+      color: var(--muted-strong);
+      font-weight: 600;
+    }
+    .feat-card[data-state="locked"] .feat-card-chip {
+      background: rgba(255, 86, 110, 0.2);
+      border-color: rgba(255, 86, 110, 0.45);
+      color: #ffb3c1;
+    }
+    .feat-card-prereqs {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .feat-card-prereqs li {
+      display: flex;
+      gap: 0.35rem;
+      align-items: flex-start;
+      line-height: 1.4;
+    }
+    .feat-card-prereqs li[data-state="ok"] {
+      color: var(--muted-strong);
+    }
+    .feat-card-prereqs li[data-state="warn"] {
+      color: #ffb3c1;
+    }
+    .feat-card-prereqs li[data-state="unknown"] {
+      color: var(--muted);
+      opacity: 0.85;
+    }
+    .feat-card-prereqs span {
+      font-weight: 600;
+    }
+
     .companion-picker {
       display: grid;
       gap: 0.85rem;
@@ -1506,13 +1667,25 @@
       </section>
       <section class="step" data-step="feats">
         <h2>Feats &amp; Talents</h2>
-        <label>Signature feat
-          <input type="text" name="signatureFeat" placeholder="Alert" list="feat-options" />
+        <div class="feat-toolbar">
+          <label>Search feats
+            <input type="search" data-feat-search placeholder="Search feats" autocomplete="off" />
+          </label>
+          <div class="feat-filters" data-feat-filters role="group" aria-label="Feat filters">
+            <button type="button" class="pill-button" data-filter="all" aria-pressed="true">All</button>
+            <button type="button" class="pill-button" data-filter="available" aria-pressed="false">Available</button>
+            <button type="button" class="pill-button" data-filter="locked" aria-pressed="false">Locked</button>
+            <button type="button" class="pill-button" data-filter="selected" aria-pressed="false">Selected</button>
+          </div>
+        </div>
+        <div class="feat-grid" data-feat-grid role="list" aria-label="Feat options">
+          <p class="feat-empty">Load a ruleset to browse feats.</p>
+        </div>
+        <p class="step-hint" id="feat-prereqs" data-feat-summary aria-live="polite">Select a feat to check prerequisites.</p>
+        <label>Bonus feat slots
+          <input type="number" name="featBonusSlots" value="0" min="0" step="1" data-feat-bonus />
         </label>
-        <p class="step-hint" id="feat-prereqs" aria-live="polite">Select a feat to check prerequisites.</p>
-        <label>Bonus feats
-          <textarea name="bonusFeats" placeholder="Great Weapon Master, Mage Slayer"></textarea>
-        </label>
+        <input type="hidden" name="feats" value="[]" data-feat-field />
       </section>
       <section class="step" data-step="equipment">
         <h2>Equipment</h2>
@@ -1632,7 +1805,6 @@
     </form>
   </main>
   <datalist id="background-options"></datalist>
-  <datalist id="feat-options"></datalist>
   <datalist id="item-options"></datalist>
   <datalist id="weapon-options"></datalist>
   <datalist id="armor-options"></datalist>
