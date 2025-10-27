@@ -1072,6 +1072,152 @@
       color: var(--muted);
       white-space: nowrap;
     }
+    .dice-card {
+      display: grid;
+      gap: 0.6rem;
+    }
+    .dice-card .dice-quick {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .dice-card .dice-quick button,
+    .dice-card .dice-entry button {
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      font-size: 0.75rem;
+      padding: 0.35rem 0.6rem;
+      cursor: pointer;
+    }
+    .dice-card .dice-entry {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      align-items: center;
+    }
+    .dice-card .dice-entry input {
+      flex: 1 1 160px;
+      min-width: 140px;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.05);
+      color: var(--fg);
+      padding: 0.4rem 0.55rem;
+      font-size: 0.8rem;
+    }
+    .dice-presets {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .dice-preset-group {
+      display: grid;
+      gap: 0.35rem;
+    }
+    .dice-preset-group h5 {
+      margin: 0;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dice-preset-list {
+      display: grid;
+      gap: 0.4rem;
+    }
+    .dice-preset {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 0.65rem;
+      padding: 0.55rem 0.65rem;
+      display: grid;
+      gap: 0.4rem;
+    }
+    .dice-preset[data-preset-type="weapon"] {
+      border-color: rgba(79, 216, 160, 0.35);
+    }
+    .dice-preset-meta {
+      display: grid;
+      gap: 0.2rem;
+    }
+    .dice-preset-meta strong {
+      font-size: 0.85rem;
+    }
+    .dice-preset-meta span {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    .dice-preset-meta small {
+      font-size: 0.7rem;
+      color: var(--muted-strong);
+    }
+    .dice-preset-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+    }
+    .dice-preset-actions button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.08);
+      color: var(--fg);
+      font-size: 0.72rem;
+      padding: 0.3rem 0.55rem;
+      cursor: pointer;
+    }
+    .dice-preset-actions button small {
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
+    .dice-history {
+      display: grid;
+      gap: 0.45rem;
+    }
+    .dice-history strong {
+      font-size: 0.8rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .dice-history-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.3rem;
+    }
+    .dice-history-list li button {
+      width: 100%;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 0.4rem;
+      align-items: center;
+      border-radius: 0.6rem;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.05);
+      color: var(--fg);
+      padding: 0.35rem 0.55rem;
+      font-size: 0.72rem;
+      text-align: left;
+      cursor: pointer;
+    }
+    .dice-history-list li button span:first-of-type {
+      font-variant-numeric: tabular-nums;
+      color: var(--muted);
+    }
+    .dice-history-list li button strong {
+      justify-self: end;
+      font-size: 0.82rem;
+    }
+    .dice-history-list li button small {
+      grid-column: 1 / -1;
+      font-size: 0.68rem;
+      color: var(--muted);
+    }
     .abilities-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));

@@ -377,6 +377,121 @@ function parseNumber(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function formatSigned(value) {
+  if (!Number.isFinite(value)) return '+0';
+  return value >= 0 ? `+${value}` : `${value}`;
+}
+
+function encodeDataAttribute(value) {
+  if (value === undefined) return '';
+  try {
+    return encodeURIComponent(JSON.stringify(value));
+  } catch (error) {
+    console.warn('Failed to encode data attribute', error);
+    return '';
+  }
+}
+
+function decodeDataAttribute(value) {
+  if (!value && value !== 0) return null;
+  try {
+    return JSON.parse(decodeURIComponent(value));
+  } catch (error) {
+    console.warn('Failed to decode data attribute', error);
+    return null;
+  }
+}
+
+function appendModifierToExpression(expression, modifier) {
+  if (!Number.isFinite(modifier) || modifier === 0) return expression;
+  return `${expression}${modifier >= 0 ? `+${modifier}` : modifier}`;
+}
+
+function multiplyDiceString(dice, multiplier) {
+  if (!dice || !multiplier || multiplier === 1) return dice;
+  const match = /^\s*(\d+)d(\d+)\s*$/i.exec(dice);
+  if (!match) return dice;
+  const count = Number.parseInt(match[1], 10);
+  if (!Number.isFinite(count) || count <= 0) return dice;
+  const die = match[2];
+  return `${count * multiplier}d${die}`;
+}
+
+function parseDamageDice(value) {
+  if (!value && value !== 0) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  const match = text.match(/(\d+d\d+)/i);
+  if (!match) return null;
+  const dice = match[1];
+  const index = match.index ?? 0;
+  const remainder = text.slice(index + dice.length).replace(/^[:\s,+-]+/, '').trim();
+  const type = remainder ? remainder.replace(/\bdamage\b/gi, '').trim() : '';
+  return { dice, type };
+}
+
+function extractVersatileDice(properties) {
+  if (!Array.isArray(properties)) return null;
+  for (const property of properties) {
+    if (!property && property !== 0) continue;
+    const match = String(property).match(/versatile\s*\(([^)]+)\)/i);
+    if (match) {
+      return match[1].trim();
+    }
+  }
+  return null;
+}
+
+function parseNumberish(value) {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string') {
+    const match = value.match(/-?\d+/);
+    if (match) {
+      const parsed = Number.parseInt(match[0], 10);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+  return null;
+}
+
+function resolvePackItem(identifier) {
+  if (!identifier && identifier !== 0) return null;
+  const key = String(identifier).trim().toLowerCase();
+  if (!key) return null;
+  const { items = [] } = getPackData();
+  for (let index = 0; index < items.length; index += 1) {
+    const entry = items[index];
+    if (!entry) continue;
+    const slug = entry.slug ? String(entry.slug).toLowerCase() : null;
+    const id = entry.id ? String(entry.id).toLowerCase() : null;
+    const name = entry.name ? String(entry.name).toLowerCase() : null;
+    if (slug === key || id === key || name === key) {
+      return entry;
+    }
+  }
+  return null;
+}
+
+function resolvePackSpell(identifier) {
+  if (!identifier && identifier !== 0) return null;
+  const key = String(identifier).trim().toLowerCase();
+  if (!key) return null;
+  const { spells = [] } = getPackData();
+  for (let index = 0; index < spells.length; index += 1) {
+    const entry = spells[index];
+    if (!entry) continue;
+    const slug = entry.slug ? String(entry.slug).toLowerCase() : null;
+    const id = entry.id ? String(entry.id).toLowerCase() : null;
+    const name = entry.name ? String(entry.name).toLowerCase() : null;
+    if (slug === key || id === key || name === key) {
+      return entry;
+    }
+  }
+  return null;
+}
+
 function clamp(value, min, max) {
   if (!Number.isFinite(value)) return min;
   if (Number.isFinite(min) && value < min) return min;
@@ -531,7 +646,7 @@ class SummaryUI {
       languagesNote: '',
       currency: { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
       spellcasting: { prepared: '', known: '', notes: '', slots: {} },
-      dice: { history: [], lastResult: null, lastExpression: '' },
+      dice: { history: [], lastResult: null, lastExpression: '', lastDetail: '', lastContext: null },
       attackHelper: { attackTotal: '', ac: '', attackType: 'melee', attackerProne: false, defenderProne: false, result: '' },
       conditions: [],
       deathSaves: { success: 0, failure: 0 }
@@ -645,11 +760,31 @@ class SummaryUI {
       const rollerAction = target.dataset.rollerAction;
       if (rollerAction) {
         const expression = target.dataset.diceExpression || target.dataset.rollerExpression || '';
-        this.handleDiceAction(rollerAction, expression);
+        const options = {};
+        if (target.dataset.diceDetail !== undefined) {
+          options.detail = target.dataset.diceDetail;
+        }
+        if (target.dataset.diceLabel !== undefined) {
+          options.label = target.dataset.diceLabel;
+        }
+        if (target.dataset.diceContext !== undefined) {
+          options.context = decodeDataAttribute(target.dataset.diceContext);
+        }
+        this.handleDiceAction(rollerAction, expression, options);
         return;
       }
       if (target.dataset.diceExpression && !target.dataset.rollerAction) {
-        this.handleDiceAction('quick', target.dataset.diceExpression);
+        const options = {};
+        if (target.dataset.diceDetail !== undefined) {
+          options.detail = target.dataset.diceDetail;
+        }
+        if (target.dataset.diceLabel !== undefined) {
+          options.label = target.dataset.diceLabel;
+        }
+        if (target.dataset.diceContext !== undefined) {
+          options.context = decodeDataAttribute(target.dataset.diceContext);
+        }
+        this.handleDiceAction('quick', target.dataset.diceExpression, options);
         return;
       }
       const attackAction = target.dataset.attackAction;
@@ -815,6 +950,12 @@ class SummaryUI {
     }
     if (!('lastExpression' in this.playState.dice)) {
       this.playState.dice.lastExpression = '';
+    }
+    if (!('lastDetail' in this.playState.dice)) {
+      this.playState.dice.lastDetail = '';
+    }
+    if (!('lastContext' in this.playState.dice)) {
+      this.playState.dice.lastContext = null;
     }
 
     if (!this.playState.attackHelper || typeof this.playState.attackHelper !== 'object') {
@@ -1351,6 +1492,21 @@ class SummaryUI {
     return Math.floor((total - 10) / 2);
   }
 
+  getAbilityShortName(id) {
+    if (!id) return '';
+    const key = String(id).trim().toLowerCase();
+    const match = abilityFields.find((field) => field.id === key || field.label.toLowerCase() === key || field.short.toLowerCase() === key);
+    return match ? match.short : key.toUpperCase();
+  }
+
+  normalizeAbilityId(value) {
+    if (!value && value !== 0) return null;
+    const key = String(value).trim().toLowerCase();
+    if (!key) return null;
+    const match = abilityFields.find((field) => field.id === key || field.label.toLowerCase() === key || field.short.toLowerCase() === key);
+    return match ? match.id : null;
+  }
+
   deriveBuilderSkillDefaults() {
     const data = this.builderState?.data || {};
     const defaults = {};
@@ -1712,20 +1868,38 @@ class SummaryUI {
 
   appendDiceHistory(entry) {
     if (!this.playState.dice || !Array.isArray(this.playState.dice.history)) {
-      this.playState.dice = { history: [], lastResult: null };
+      this.playState.dice = { history: [], lastResult: null, lastExpression: '', lastDetail: '', lastContext: null };
     }
-    this.playState.dice.history.unshift(entry);
+    const historyEntry = { ...entry };
+    if (Array.isArray(entry.terms)) {
+      historyEntry.terms = entry.terms.map((term) => ({
+        ...term,
+        rolls: Array.isArray(term.rolls) ? term.rolls.slice() : term.rolls
+      }));
+    }
+    if (entry.context && typeof entry.context === 'object') {
+      historyEntry.context = { ...entry.context };
+    }
+    this.playState.dice.history.unshift(historyEntry);
     this.playState.dice.history = this.playState.dice.history.slice(0, 20);
-    this.playState.dice.lastResult = entry;
-    this.playState.dice.lastExpression = entry.expression || '';
+    this.playState.dice.lastResult = historyEntry;
+    this.playState.dice.lastExpression = historyEntry.expression || '';
+    if (historyEntry.detail) {
+      this.playState.dice.lastDetail = historyEntry.detail;
+    }
+    if (historyEntry.context !== undefined) {
+      this.playState.dice.lastContext = historyEntry.context || null;
+    }
   }
 
-  handleDiceAction(action, expression) {
+  handleDiceAction(action, expression, options = {}) {
     if (action === 'clear') {
       if (this.playState.dice) {
         this.playState.dice.history = [];
         this.playState.dice.lastResult = null;
         this.playState.dice.lastExpression = '';
+        this.playState.dice.lastDetail = '';
+        this.playState.dice.lastContext = null;
       }
       savePlayState(this.playState);
       this.render();
@@ -1747,10 +1921,33 @@ class SummaryUI {
       this.toast('Unable to parse that dice expression.');
       return;
     }
-    this.appendDiceHistory({ ...result, rolledAt: Date.now() });
-    this.playState.dice.lastExpression = result.expression || targetExpression;
+    const detailFallback = this.playState.dice?.lastDetail || '';
+    const detailProvided = Object.prototype.hasOwnProperty.call(options, 'detail');
+    const contextProvided = Object.prototype.hasOwnProperty.call(options, 'context');
+    const contextSource = contextProvided
+      ? options.context
+      : (this.playState.dice?.lastContext ?? null);
+    const expressionValue = result.expression || targetExpression;
+    const detail = detailProvided
+      ? (options.detail || result.detail || expressionValue)
+      : (result.detail || detailFallback || expressionValue);
+    const context = contextSource && typeof contextSource === 'object' ? { ...contextSource } : (contextSource ?? null);
+    const entry = {
+      ...result,
+      expression: expressionValue,
+      detail,
+      rolledAt: Date.now(),
+      label: options.label || '',
+      context
+    };
+    this.appendDiceHistory(entry);
+    this.playState.dice.lastExpression = expressionValue;
+    this.playState.dice.lastDetail = detail;
+    this.playState.dice.lastContext = context;
     savePlayState(this.playState);
-    this.toast(`Rolled ${result.expression || targetExpression}: ${result.total}`);
+    const toastLabel = options.label
+      || (context && context.name ? `${context.name}${context.variant ? ` (${context.variant})` : ''}` : expressionValue);
+    this.toast(`Rolled ${toastLabel}: ${result.total}`);
     this.render();
   }
 
@@ -2787,6 +2984,325 @@ class SummaryUI {
     container.appendChild(chips);
   }
 
+  getWeaponAttackPresets() {
+    const weapons = this.builderState?.derived?.equipment?.groups?.weapons;
+    if (!Array.isArray(weapons) || !weapons.length) return [];
+    const proficiencyBonus = this.getProficiencyBonus();
+    return weapons.map((weapon) => {
+      const identifier = weapon?.slug || weapon?.id || weapon?.key || weapon?.name;
+      const item = resolvePackItem(identifier);
+      const name = weapon?.name || item?.name || 'Weapon';
+      const damageInfo = parseDamageDice(item?.damage || weapon?.damage);
+      if (!damageInfo) return null;
+      const category = String(weapon?.category || item?.category || '').toLowerCase();
+      const properties = Array.isArray(item?.properties) ? item.properties : [];
+      let ability = 'str';
+      if (category.includes('ranged')) {
+        ability = 'dex';
+      } else if (properties.some((prop) => String(prop || '').toLowerCase().includes('finesse'))) {
+        const strMod = this.getAbilityModifier('str');
+        const dexMod = this.getAbilityModifier('dex');
+        ability = dexMod >= strMod ? 'dex' : 'str';
+      }
+      const abilityMod = this.getAbilityModifier(ability);
+      const proficient = weapon?.proficient !== false;
+      const attackBonus = Number.isFinite(abilityMod)
+        ? abilityMod + (proficient ? proficiencyBonus : 0)
+        : proficient ? proficiencyBonus : 0;
+      const abilityShort = this.getAbilityShortName(ability);
+      const baseContext = {
+        type: 'weapon',
+        id: weapon?.key || weapon?.slug || weapon?.id || name.toLowerCase(),
+        name,
+        ability,
+        abilityMod,
+        damageDice: damageInfo.dice,
+        damageType: damageInfo.type || '',
+        proficient,
+      };
+      const baseDetailParts = [`${name} damage`];
+      if (damageInfo.type) baseDetailParts.push(damageInfo.type);
+      baseDetailParts.push(`${abilityShort}${proficient ? ' + PB' : ''}`);
+      const baseDetail = baseDetailParts.join(' • ');
+      const buttons = [];
+      const baseExpression = appendModifierToExpression(damageInfo.dice, abilityMod);
+      buttons.push({
+        label: 'Damage',
+        expression: baseExpression,
+        detail: baseDetail,
+        context: { ...baseContext, variant: 'normal' },
+        badge: baseExpression,
+        toastLabel: `${name} damage`,
+      });
+      const critExpression = appendModifierToExpression(multiplyDiceString(damageInfo.dice, 2), abilityMod);
+      buttons.push({
+        label: 'Crit',
+        expression: critExpression,
+        detail: `${baseDetail} • critical hit`,
+        context: { ...baseContext, variant: 'critical', critical: true },
+        badge: critExpression,
+        toastLabel: `${name} damage (critical)`,
+      });
+      const versatileDice = extractVersatileDice(properties);
+      let extra = '';
+      if (versatileDice) {
+        extra = `Versatile ${versatileDice}`;
+        const versatileExpression = appendModifierToExpression(versatileDice, abilityMod);
+        buttons.push({
+          label: 'Versatile',
+          expression: versatileExpression,
+          detail: `${baseDetail} • versatile grip`,
+          context: { ...baseContext, variant: 'versatile', versatile: true, damageDice: versatileDice },
+          badge: versatileExpression,
+          toastLabel: `${name} versatile damage`,
+        });
+        const versatileCrit = appendModifierToExpression(multiplyDiceString(versatileDice, 2), abilityMod);
+        buttons.push({
+          label: 'Crit (Versatile)',
+          expression: versatileCrit,
+          detail: `${baseDetail} • versatile grip • critical hit`,
+          context: { ...baseContext, variant: 'versatile-critical', versatile: true, critical: true, damageDice: versatileDice },
+          badge: versatileCrit,
+          toastLabel: `${name} versatile damage (critical)`,
+        });
+      }
+      const damageSummary = damageInfo.type ? `${baseExpression} ${damageInfo.type}` : baseExpression;
+      return {
+        type: 'weapon',
+        id: baseContext.id,
+        name,
+        attackBonus,
+        damageDice: damageInfo.dice,
+        damageType: damageInfo.type || '',
+        abilityShort,
+        abilityMod,
+        proficient,
+        summary: damageSummary,
+        attackSummary: Number.isFinite(attackBonus) ? `${formatSigned(attackBonus)} to hit` : '',
+        extra,
+        buttons,
+      };
+    }).filter(Boolean);
+  }
+
+  createSpellPresetFromEntry(entry) {
+    if (!entry) return null;
+    const name = entry.name || entry.spell || entry.label;
+    if (!name) return null;
+    const prepared = entry.prepared ?? entry.isPrepared ?? false;
+    const abilityId = this.normalizeAbilityId(entry.ability || entry.spellcastingAbility || entry.abilityId);
+    let abilityMod = Number.isFinite(entry.abilityMod) ? entry.abilityMod : null;
+    if (!Number.isFinite(abilityMod) && abilityId) {
+      abilityMod = this.getAbilityModifier(abilityId);
+    }
+    const flatBonus = parseNumberish(entry.flatBonus ?? entry.bonus ?? entry.bonusDamage ?? entry.damageBonus);
+    let attackBonus = parseNumberish(entry.attackBonus ?? entry.toHit ?? entry.attack ?? entry.hitBonus);
+    if (!Number.isFinite(attackBonus) && abilityId) {
+      const base = Number.isFinite(abilityMod) ? abilityMod : this.getAbilityModifier(abilityId);
+      if (Number.isFinite(base)) {
+        attackBonus = base + this.getProficiencyBonus();
+      }
+    }
+    const damageSource = entry.damageDice || entry.damage || entry.roll || entry.damageRoll;
+    const damageInfo = parseDamageDice(damageSource);
+    if (!damageInfo) return null;
+    const damageType = entry.damageType || entry.type || damageInfo.type || '';
+    const baseContext = {
+      type: 'spell',
+      id: entry.id || entry.slug || name.toLowerCase(),
+      name,
+      prepared: !!prepared,
+      damageDice: damageInfo.dice,
+      damageType,
+      ability: abilityId,
+      abilityMod: Number.isFinite(abilityMod) ? abilityMod : null,
+      bonus: Number.isFinite(flatBonus) ? flatBonus : null,
+    };
+    let baseExpression = damageInfo.dice;
+    if (Number.isFinite(abilityMod)) {
+      baseExpression = appendModifierToExpression(baseExpression, abilityMod);
+    }
+    if (Number.isFinite(flatBonus) && flatBonus !== 0) {
+      baseExpression = appendModifierToExpression(baseExpression, flatBonus);
+    }
+    const detailParts = [`${name} damage`];
+    if (damageType) detailParts.push(damageType);
+    if (abilityId && Number.isFinite(abilityMod)) {
+      detailParts.push(`${this.getAbilityShortName(abilityId)} mod`);
+    }
+    const baseDetail = detailParts.join(' • ');
+    const buttons = [{
+      label: 'Damage',
+      expression: baseExpression,
+      detail: baseDetail,
+      context: { ...baseContext, variant: 'normal' },
+      badge: baseExpression,
+      toastLabel: `${name} damage`,
+    }];
+    const critBase = multiplyDiceString(damageInfo.dice, 2);
+    let critExpression = critBase;
+    if (Number.isFinite(abilityMod)) {
+      critExpression = appendModifierToExpression(critExpression, abilityMod);
+    }
+    if (Number.isFinite(flatBonus) && flatBonus !== 0) {
+      critExpression = appendModifierToExpression(critExpression, flatBonus);
+    }
+    buttons.push({
+      label: 'Crit',
+      expression: critExpression,
+      detail: `${baseDetail} • critical hit`,
+      context: { ...baseContext, variant: 'critical', critical: true },
+      badge: critExpression,
+      toastLabel: `${name} damage (critical)`,
+    });
+    const abilityShort = abilityId ? this.getAbilityShortName(abilityId) : '';
+    const summary = damageType ? `${baseExpression} ${damageType}` : baseExpression;
+    return {
+      type: 'spell',
+      id: baseContext.id,
+      name,
+      attackBonus,
+      damageDice: damageInfo.dice,
+      damageType,
+      abilityShort,
+      abilityMod: Number.isFinite(abilityMod) ? abilityMod : null,
+      prepared: !!prepared,
+      summary,
+      attackSummary: Number.isFinite(attackBonus) ? `${formatSigned(attackBonus)} to hit` : '',
+      buttons,
+    };
+  }
+
+  getSpellAttackPresets() {
+    const presets = [];
+    const derived = this.builderState?.derived?.spellAttacks;
+    if (Array.isArray(derived)) {
+      derived.forEach((entry) => {
+        const preset = this.createSpellPresetFromEntry(entry);
+        if (preset) presets.push(preset);
+      });
+    }
+    const dataEntries = this.builderState?.data?.spellAttacks;
+    if (Array.isArray(dataEntries)) {
+      dataEntries.forEach((entry) => {
+        const preset = this.createSpellPresetFromEntry(entry);
+        if (preset) presets.push(preset);
+      });
+    }
+    return presets;
+  }
+
+  createDicePresetGroup(title, presets) {
+    if (!Array.isArray(presets) || !presets.length) return null;
+    const group = document.createElement('div');
+    group.className = 'dice-preset-group';
+    const heading = document.createElement('h5');
+    heading.textContent = title;
+    group.appendChild(heading);
+    const list = document.createElement('div');
+    list.className = 'dice-preset-list';
+    presets.forEach((preset) => {
+      const entry = this.createDicePresetEntry(preset);
+      if (entry) {
+        list.appendChild(entry);
+      }
+    });
+    if (!list.childElementCount) return null;
+    group.appendChild(list);
+    return group;
+  }
+
+  createDicePresetEntry(preset) {
+    if (!preset || !Array.isArray(preset.buttons) || !preset.buttons.length) return null;
+    const wrapper = document.createElement('div');
+    wrapper.className = 'dice-preset';
+    if (preset.type) {
+      wrapper.dataset.presetType = preset.type;
+    }
+    const meta = document.createElement('div');
+    meta.className = 'dice-preset-meta';
+    const nameEl = document.createElement('strong');
+    nameEl.textContent = preset.name;
+    meta.appendChild(nameEl);
+    const summaryParts = [];
+    if (preset.attackSummary) summaryParts.push(preset.attackSummary);
+    if (preset.summary) summaryParts.push(preset.summary);
+    if (preset.extra) summaryParts.push(preset.extra);
+    if (summaryParts.length) {
+      const summaryEl = document.createElement('span');
+      summaryEl.textContent = summaryParts.join(' • ');
+      meta.appendChild(summaryEl);
+    }
+    const abilityParts = [];
+    if (preset.abilityShort && Number.isFinite(preset.abilityMod)) {
+      abilityParts.push(`${preset.abilityShort} ${formatSigned(preset.abilityMod)}`);
+    }
+    if (preset.proficient) {
+      abilityParts.push('Proficient');
+    }
+    if (preset.prepared) {
+      abilityParts.push('Prepared');
+    }
+    if (abilityParts.length) {
+      const abilityEl = document.createElement('small');
+      abilityEl.textContent = abilityParts.join(' • ');
+      meta.appendChild(abilityEl);
+    }
+    wrapper.appendChild(meta);
+    const actions = document.createElement('div');
+    actions.className = 'dice-preset-actions';
+    preset.buttons.forEach((button) => {
+      if (!button || !button.expression) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.dataset.rollerAction = 'roll';
+      btn.dataset.diceExpression = button.expression;
+      if (button.detail) {
+        btn.dataset.diceDetail = button.detail;
+      }
+      if (button.toastLabel) {
+        btn.dataset.diceLabel = button.toastLabel;
+      }
+      if (button.context) {
+        const encoded = encodeDataAttribute(button.context);
+        if (encoded) {
+          btn.dataset.diceContext = encoded;
+        }
+      }
+      const labelSpan = document.createElement('span');
+      labelSpan.textContent = button.label || 'Roll';
+      btn.appendChild(labelSpan);
+      if (button.badge) {
+        const badge = document.createElement('small');
+        badge.textContent = button.badge;
+        btn.appendChild(badge);
+      }
+      actions.appendChild(btn);
+    });
+    if (actions.childElementCount) {
+      wrapper.appendChild(actions);
+    }
+    return wrapper;
+  }
+
+  buildDicePresetContainer() {
+    const weapons = this.getWeaponAttackPresets();
+    const spells = this.getSpellAttackPresets();
+    if (!weapons.length && !spells.length) return null;
+    const container = document.createElement('div');
+    container.className = 'dice-presets';
+    const weaponGroup = this.createDicePresetGroup('Weapons', weapons);
+    if (weaponGroup) {
+      container.appendChild(weaponGroup);
+    }
+    const spellGroup = this.createDicePresetGroup('Spell Attacks', spells);
+    if (spellGroup) {
+      container.appendChild(spellGroup);
+    }
+    if (!container.childElementCount) return null;
+    return container;
+  }
+
   renderUtilities() {
     const container = this.root.querySelector('[data-summary-section="utilities"]');
     if (!container) return;
@@ -2795,29 +3311,101 @@ class SummaryUI {
     const utilitiesGrid = createElement('div', 'utilities-grid');
 
     const diceCard = createElement('div', 'utility-card dice-card');
-    const quickButtons = ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'].map((expr) => `<button type="button" data-roller-action="roll" data-dice-expression="${expr}">${expr}</button>`).join('');
+    const diceHeader = document.createElement('h4');
+    diceHeader.textContent = 'Dice Roller';
+    diceCard.appendChild(diceHeader);
+
+    const quick = document.createElement('div');
+    quick.className = 'dice-quick';
+    ['d4', 'd6', 'd8', 'd10', 'd12', 'd20', 'd100'].forEach((expr) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.rollerAction = 'roll';
+      button.dataset.diceExpression = expr;
+      button.textContent = expr;
+      quick.appendChild(button);
+    });
+    diceCard.appendChild(quick);
+
+    const diceEntry = document.createElement('div');
+    diceEntry.className = 'dice-entry';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = '2d6+3';
+    input.setAttribute('data-roller-input', '');
+    input.value = this.playState.dice?.lastExpression || '';
+    diceEntry.appendChild(input);
+    const rollBtn = document.createElement('button');
+    rollBtn.type = 'button';
+    rollBtn.dataset.rollerAction = 'roll';
+    rollBtn.textContent = 'Roll';
+    diceEntry.appendChild(rollBtn);
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.dataset.rollerAction = 'clear';
+    clearBtn.textContent = 'Clear';
+    diceEntry.appendChild(clearBtn);
+    diceCard.appendChild(diceEntry);
+
+    const presetContainer = this.buildDicePresetContainer();
+    if (presetContainer) {
+      diceCard.appendChild(presetContainer);
+    }
+
+    const historyWrapper = document.createElement('div');
+    historyWrapper.className = 'dice-history';
+    const historyTitle = document.createElement('strong');
+    historyTitle.textContent = 'History';
+    historyWrapper.appendChild(historyTitle);
     const history = Array.isArray(this.playState.dice?.history) ? this.playState.dice.history : [];
-    const formatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
-    const historyList = history.length ? `<ul>${history.map((entry) => {
-      const timestamp = entry && entry.rolledAt ? formatter.format(new Date(entry.rolledAt)) : '—';
-      const expression = entry?.expression || '';
-      const detail = entry?.detail || '';
-      const total = entry?.total ?? '';
-      return `<li><span>${timestamp}</span> <span>${expression}</span> <strong>${total}</strong> <small>${detail}</small></li>`;
-    }).join('')}</ul>` : '<p class="summary-empty">Roll dice to populate history.</p>';
-    diceCard.innerHTML = `
-      <h4>Dice Roller</h4>
-      <div class="dice-quick">${quickButtons}</div>
-      <div class="dice-entry">
-        <input type="text" data-roller-input placeholder="2d6+3" value="${this.playState.dice?.lastExpression || ''}">
-        <button type="button" data-roller-action="roll">Roll</button>
-        <button type="button" data-roller-action="clear">Clear</button>
-      </div>
-      <div class="dice-history">
-        <strong>History</strong>
-        ${historyList}
-      </div>
-    `;
+    if (history.length) {
+      const formatter = new Intl.DateTimeFormat(undefined, { timeStyle: 'short' });
+      const list = document.createElement('ul');
+      list.className = 'dice-history-list';
+      history.forEach((entry) => {
+        const item = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.rollerAction = 'roll';
+        if (entry.expression) {
+          button.dataset.diceExpression = entry.expression;
+        }
+        if (entry.detail) {
+          button.dataset.diceDetail = entry.detail;
+        }
+        if (entry.label) {
+          button.dataset.diceLabel = entry.label;
+        }
+        if (entry.context) {
+          const encoded = encodeDataAttribute(entry.context);
+          if (encoded) {
+            button.dataset.diceContext = encoded;
+          }
+        }
+        const timestamp = document.createElement('span');
+        timestamp.textContent = entry && entry.rolledAt ? formatter.format(new Date(entry.rolledAt)) : '—';
+        button.appendChild(timestamp);
+        const exprSpan = document.createElement('span');
+        exprSpan.textContent = entry.expression || '';
+        button.appendChild(exprSpan);
+        const total = document.createElement('strong');
+        total.textContent = Number.isFinite(entry.total) ? String(entry.total) : '';
+        button.appendChild(total);
+        const detailText = entry.detail || entry.label;
+        if (detailText) {
+          const detail = document.createElement('small');
+          detail.textContent = detailText;
+          button.appendChild(detail);
+        }
+        item.appendChild(button);
+        list.appendChild(item);
+      });
+      historyWrapper.appendChild(list);
+    } else {
+      historyWrapper.appendChild(createElement('p', 'summary-empty', 'Roll dice to populate history.'));
+    }
+    diceCard.appendChild(historyWrapper);
+
     utilitiesGrid.appendChild(diceCard);
 
     const helper = this.playState.attackHelper || { attackTotal: '', ac: '', attackType: 'melee', attackerProne: false, defenderProne: false, result: '' };
