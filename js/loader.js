@@ -1,7 +1,30 @@
 (function () {
   'use strict';
 
-  const BASE_URL = new URL('./', window.location.href);
+  function resolveBaseUrl() {
+    try {
+      const { currentScript } = document;
+      if (currentScript && currentScript.src) {
+        const scriptUrl = new URL(currentScript.src, window.location.href);
+        return new URL('../', scriptUrl);
+      }
+
+      const scripts = document.getElementsByTagName('script');
+      for (let index = 0; index < scripts.length; index += 1) {
+        const { src } = scripts[index];
+        if (src && /(^|\/)loader\.js(\?|#|$)/.test(src)) {
+          const scriptUrl = new URL(src, window.location.href);
+          return new URL('../', scriptUrl);
+        }
+      }
+    } catch (error) {
+      // Ignore lookup failures and fall back to the page location below.
+    }
+
+    return new URL('./', window.location.href);
+  }
+
+  const BASE_URL = resolveBaseUrl();
   try {
     window.dndBaseUrl = BASE_URL;
   } catch (error) {
