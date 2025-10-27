@@ -18,6 +18,138 @@ const abilityNameIndex = abilityFields.reduce((map, field) => {
   return map;
 }, {});
 
+const abilityLabelIndex = abilityFields.reduce((map, field) => {
+  map[field.id] = field.label;
+  map[field.label.toLowerCase()] = field.label;
+  return map;
+}, {});
+
+const MAX_CHARACTER_LEVEL = 20;
+
+const SPELLCASTING_CLASS_SLUGS = new Set([
+  'artificer',
+  'bard',
+  'cleric',
+  'druid',
+  'paladin',
+  'ranger',
+  'sorcerer',
+  'warlock',
+  'wizard'
+]);
+
+function calculateProficiencyBonus(level) {
+  if (!Number.isFinite(level) || level <= 0) return 2;
+  const bounded = Math.min(Math.max(1, level), MAX_CHARACTER_LEVEL);
+  return 2 + Math.floor((bounded - 1) / 4);
+}
+
+function parseJsonValue(value) {
+  if (typeof value !== 'string') return value;
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  const firstChar = trimmed[0];
+  const lastChar = trimmed[trimmed.length - 1];
+  if ((firstChar === '{' && lastChar === '}') || (firstChar === '[' && lastChar === ']')) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (error) {
+      return value;
+    }
+  }
+  return value;
+}
+
+function sanitizeClassEntry(value, fallbackLevel = 1) {
+  let raw = value;
+  if (raw === undefined) {
+    return { class: '', level: fallbackLevel };
+  }
+  raw = parseJsonValue(raw);
+  if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
+    const identifier = raw.class || raw.slug || raw.id || raw.value || raw.name || '';
+    const label = raw.name || raw.label || raw.title || '';
+    const rawLevel = raw.level ?? raw.levels ?? raw.count ?? raw.total ?? fallbackLevel;
+    const parsedLevel = Number.parseInt(rawLevel, 10);
+    const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : fallbackLevel;
+    return {
+      class: identifier ? String(identifier) : '',
+      level,
+      name: label ? String(label) : undefined
+    };
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return { class: '', level: fallbackLevel };
+    }
+    const match = trimmed.match(/^([^|:]+)[|:](\d+)(?:[|:](.+))?$/);
+    if (match) {
+      const level = Number.parseInt(match[2], 10);
+      const label = match[3] ? match[3].trim() : '';
+      return {
+        class: match[1].trim(),
+        level: Number.isFinite(level) && level > 0 ? level : fallbackLevel,
+        name: label || undefined
+      };
+    }
+    return { class: trimmed, level: fallbackLevel };
+  }
+  if (Array.isArray(raw)) {
+    const first = raw[0];
+    return sanitizeClassEntry(first, fallbackLevel);
+  }
+  return { class: '', level: fallbackLevel };
+}
+
+function normalizeClassEntries(data) {
+  const entries = [];
+  const source = [];
+  if (Array.isArray(data?.classes)) {
+    source.push(...data.classes);
+  }
+  if (!source.length && Array.isArray(data?.classesJson)) {
+    source.push(...data.classesJson);
+  }
+  if (!source.length && data && (data.class || data.level)) {
+    source.push({ class: data.class || '', level: data.level });
+  }
+  if (!source.length) {
+    const totalLevel = Number.parseInt(data?.level, 10);
+    source.push({ class: '', level: Number.isFinite(totalLevel) && totalLevel > 0 ? totalLevel : 1 });
+  }
+  source.forEach((value) => {
+    const normalized = sanitizeClassEntry(value, 1);
+    if (!normalized) return;
+    let level = Number.parseInt(normalized.level, 10);
+    if (!Number.isFinite(level) || level < 1) {
+      level = 1;
+    }
+    normalized.level = Math.min(level, MAX_CHARACTER_LEVEL);
+    entries.push(normalized);
+  });
+  if (!entries.length) {
+    entries.push({ class: '', level: 1 });
+  }
+  return entries;
+}
+
+function classIsSpellcaster(meta) {
+  if (!meta) return false;
+  if (meta.spellcasting || meta.hasSpellcasting) return true;
+  if (Array.isArray(meta.tags) && meta.tags.some((tag) => /spellcasting/i.test(tag))) {
+    return true;
+  }
+  const slug = String(meta.slug || meta.id || meta.class || '').toLowerCase();
+  if (SPELLCASTING_CLASS_SLUGS.has(slug)) {
+    return true;
+  }
+  if (typeof meta.summary === 'string' && /spellcaster|spellcasting/i.test(meta.summary)) {
+    return true;
+  }
+  return false;
+}
+
 const EQUIPMENT_CATEGORIES = [
   { key: 'weapons', field: 'equipmentWeapons', datalist: 'weapon-options', legacy: 'weapons', label: 'Weapons', empty: 'No weapons selected.' },
   { key: 'armor', field: 'equipmentArmor', datalist: 'armor-options', legacy: 'armor', label: 'Armor & Shields', empty: 'No armor selected.' },
@@ -315,22 +447,30 @@ function getEquipmentRecordsFromFormData(formData) {
 }
 
 function getClassProficiencies(formData) {
-  const entry = findEntry(getPackData().classes || [], formData?.class);
+  const classes = Array.isArray(formData?.classes) ? formData.classes : normalizeClassEntries(formData || {});
   const weaponProfs = new Set();
   const armorProfs = new Set();
-  if (entry && Array.isArray(entry.weapon_proficiencies)) {
-    entry.weapon_proficiencies.forEach((value) => {
-      if (!value) return;
-      weaponProfs.add(String(value).toLowerCase());
-    });
-  }
-  if (entry && Array.isArray(entry.armor_proficiencies)) {
-    entry.armor_proficiencies.forEach((value) => {
-      if (!value) return;
-      armorProfs.add(String(value).toLowerCase());
-    });
-  }
-  return { entry, weaponProfs, armorProfs };
+  const entries = [];
+  classes.forEach((cls) => {
+    const identifier = cls?.class || cls?.slug || cls?.id || cls;
+    if (!identifier) return;
+    const entry = findEntry(getPackData().classes || [], identifier);
+    if (!entry) return;
+    entries.push(entry);
+    if (Array.isArray(entry.weapon_proficiencies)) {
+      entry.weapon_proficiencies.forEach((value) => {
+        if (!value) return;
+        weaponProfs.add(String(value).toLowerCase());
+      });
+    }
+    if (Array.isArray(entry.armor_proficiencies)) {
+      entry.armor_proficiencies.forEach((value) => {
+        if (!value) return;
+        armorProfs.add(String(value).toLowerCase());
+      });
+    }
+  });
+  return { entries, weaponProfs, armorProfs };
 }
 
 function assessWeaponProficiency(item, weaponProfs) {
@@ -449,6 +589,54 @@ function computeEquipmentDerived(formData, abilityDerived = {}) {
   derived.encumbrance.overLimit = capacity > 0 && derived.encumbrance.totalWeight > capacity;
   derived.encumbrance.nearLimit = capacity > 0 && !derived.encumbrance.overLimit && derived.encumbrance.totalWeight > capacity * 0.75;
 
+  return derived;
+}
+
+function computeClassDerived(formData) {
+  const derived = {
+    entries: [],
+    totalLevel: 0,
+    proficiencyBonus: 2,
+    hitDice: {},
+    primary: null,
+    spellcastingCount: 0
+  };
+  if (!formData) {
+    return derived;
+  }
+  const classes = Array.isArray(formData.classes) ? formData.classes : normalizeClassEntries(formData);
+  const packClasses = getPackData().classes || [];
+  classes.forEach((cls, index) => {
+    const identifier = cls?.class || cls?.slug || cls?.id || cls;
+    const rawLevel = cls?.level;
+    const parsedLevel = Number.parseInt(rawLevel, 10);
+    const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : 1;
+    const meta = identifier ? findEntry(packClasses, identifier) : null;
+    const hitDie = meta?.hit_die || cls?.hit_die || null;
+    const entry = {
+      index,
+      class: identifier ? String(identifier) : '',
+      level,
+      name: meta?.name || cls?.name || (identifier ? String(identifier) : `Class ${index + 1}`),
+      slug: meta?.slug || '',
+      id: meta?.id || '',
+      hitDie,
+      source: meta?.source?.name || null,
+      spellcasting: classIsSpellcaster(meta),
+      meta: meta ? { slug: meta.slug || null, id: meta.id || null } : null
+    };
+    derived.entries.push(entry);
+    derived.totalLevel += level;
+    if (hitDie) {
+      const key = String(hitDie);
+      derived.hitDice[key] = (derived.hitDice[key] || 0) + level;
+    }
+    if (entry.spellcasting) {
+      derived.spellcastingCount += 1;
+    }
+  });
+  derived.primary = derived.entries[0] || null;
+  derived.proficiencyBonus = calculateProficiencyBonus(derived.totalLevel);
   return derived;
 }
 
@@ -624,7 +812,10 @@ function computeDerivedState(formData) {
       }))
     };
   });
+  derived.classes = computeClassDerived(formData);
   derived.equipment = computeEquipmentDerived(formData, derived.abilities);
+  derived.proficiencyBonus = derived.classes?.proficiencyBonus || calculateProficiencyBonus(Number.parseInt(formData?.level, 10));
+  derived.hitDice = derived.classes?.hitDice || {};
   return derived;
 }
 function updateProgressIndicator() {
@@ -730,8 +921,6 @@ function updatePackMeta() {
 function populateDynamicOptions() {
   const data = getPackData();
   if (form && form.elements) {
-    const classField = form.elements.namedItem('class');
-    populateSelectOptions(classField, data.classes || [], 'Choose a class');
     const raceField = form.elements.namedItem('race');
     populateSelectOptions(raceField, data.races || [], 'Choose a race');
     const familiarField = form.elements.namedItem('familiarType');
@@ -860,9 +1049,36 @@ function wirePackControls() {
 function serializeForm() {
   const formData = new FormData(form);
   const data = {};
+  const arrayFields = new Map();
   for (const [key, value] of formData.entries()) {
-    data[key] = value;
+    if (key.endsWith('[]')) {
+      const base = key.slice(0, -2);
+      if (!arrayFields.has(base)) {
+        arrayFields.set(base, []);
+      }
+      arrayFields.get(base).push(value);
+    } else {
+      data[key] = value;
+    }
   }
+  arrayFields.forEach((values, key) => {
+    data[key] = values.map((entry) => parseJsonValue(entry));
+  });
+  const classes = normalizeClassEntries(data);
+  data.classes = classes;
+  const totalLevel = classes.reduce((sum, entry) => {
+    const parsed = Number.parseInt(entry.level, 10);
+    return sum + (Number.isFinite(parsed) ? parsed : 0);
+  }, 0);
+  const boundedTotal = Math.max(1, totalLevel || 1);
+  data.level = String(boundedTotal);
+  if (classes.length) {
+    const primary = classes[0];
+    data.class = primary.class || primary.slug || primary.id || primary.name || '';
+  } else {
+    data.class = data.class || '';
+  }
+  data.proficiencyBonus = String(calculateProficiencyBonus(totalLevel));
   return data;
 }
 
@@ -1198,45 +1414,535 @@ const identityModule = (() => {
 
 const classModule = (() => {
   let summaryNode = null;
-  let classSelect = null;
+  let rowsContainer = null;
+  let addButton = null;
+  let warningsNode = null;
+  let totalDisplay = null;
+  let totalField = null;
+  let activeStep = false;
+  let nextLocked = false;
+  const rows = [];
 
-  function render(data) {
+  function populateClassOptions(select, value = '', label = '') {
+    if (!select) return;
+    const currentValue = value || select.value;
+    const currentLabel = label || (select.options[select.selectedIndex]?.textContent || '');
+    populateSelectOptions(select, getPackData().classes || [], 'Choose a class');
+    if (currentValue) {
+      const hasOption = Array.from(select.options).some((option) => option.value === currentValue);
+      if (!hasOption) {
+        const option = document.createElement('option');
+        option.value = currentValue;
+        option.textContent = currentLabel || currentValue;
+        select.appendChild(option);
+      }
+      select.value = currentValue;
+    } else {
+      select.value = '';
+    }
+  }
+
+  function collectRowData() {
+    return rows.map((ref) => {
+      const classValue = (ref.select.value || '').trim();
+      const rawLevel = Number.parseInt(ref.level.value, 10);
+      const level = Number.isFinite(rawLevel) && rawLevel > 0 ? Math.min(rawLevel, MAX_CHARACTER_LEVEL) : 1;
+      if (ref.level.value !== String(level)) {
+        ref.level.value = String(level);
+      }
+      const option = ref.select.options[ref.select.selectedIndex];
+      const name = option ? option.textContent.trim() : classValue;
+      ref.hidden.value = JSON.stringify({
+        class: classValue,
+        level,
+        name: name || undefined
+      });
+      return { class: classValue, level, name };
+    });
+  }
+
+  function updateRowLabels() {
+    rows.forEach((ref, index) => {
+      if (ref.label) {
+        ref.label.textContent = index === 0 ? 'Primary class' : 'Additional class';
+      }
+      if (ref.remove) {
+        const hide = rows.length <= 1;
+        ref.remove.hidden = hide;
+        ref.remove.disabled = hide;
+      }
+    });
+  }
+
+  function updateTotals(rowData) {
+    const total = rowData.reduce((sum, entry) => sum + (Number.isFinite(entry.level) ? entry.level : 0), 0);
+    if (totalDisplay) {
+      totalDisplay.textContent = String(total || 0);
+    }
+    if (totalField) {
+      totalField.value = String(Math.max(total || 1, 1));
+    }
+    return total;
+  }
+
+  function updateAddButton(rowData, total) {
+    if (!addButton) return;
+    const totalLevel = Number.isFinite(total) ? total : rowData.reduce((sum, entry) => sum + (Number.isFinite(entry.level) ? entry.level : 0), 0);
+    const shouldDisable = totalLevel < 2 || totalLevel >= MAX_CHARACTER_LEVEL || rowData.length >= MAX_CHARACTER_LEVEL;
+    addButton.disabled = shouldDisable;
+  }
+
+  function applyWarnings(warnings) {
+    if (!warningsNode) return;
+    warningsNode.innerHTML = '';
+    if (!warnings.length) {
+      warningsNode.hidden = true;
+      return;
+    }
+    warningsNode.hidden = false;
+    warnings.forEach((warning) => {
+      const item = document.createElement('li');
+      item.textContent = warning.message;
+      item.dataset.state = warning.severity;
+      warningsNode.appendChild(item);
+    });
+  }
+
+  function applySummary(derivedClasses, warnings) {
     if (!summaryNode) return;
-    const classValue = data?.class || (classSelect ? classSelect.value : '');
-    if (!classValue) {
+    const entries = derivedClasses?.entries || [];
+    const hasClass = entries.some((entry) => entry.class);
+    if (!hasClass) {
       summaryNode.textContent = 'Pick a class to view hit die and proficiencies.';
-      summaryNode.dataset.state = '';
+      summaryNode.dataset.state = warnings.some((warning) => warning.severity === 'error') ? 'warn' : '';
       return;
     }
-    const entry = findEntry(getPackData().classes || [], classValue);
-    if (!entry) {
-      summaryNode.textContent = 'Custom class selected. Review proficiencies manually.';
-      summaryNode.dataset.state = 'warn';
-      return;
+    const parts = [];
+    const totalLevel = derivedClasses?.totalLevel || 0;
+    if (totalLevel > 0) {
+      parts.push(`Level ${totalLevel}`);
     }
-    const hitDie = entry.hit_die ? `Hit die ${entry.hit_die}` : 'Hit die —';
-    const saves = Array.isArray(entry.saving_throws) && entry.saving_throws.length ? entry.saving_throws.join(', ') : 'None';
-    const weapons = Array.isArray(entry.weapon_proficiencies) && entry.weapon_proficiencies.length ? entry.weapon_proficiencies.join(', ') : 'None';
-    summaryNode.textContent = `${hitDie} · Saves: ${saves} · Weapons: ${weapons}`;
-    summaryNode.dataset.state = 'ok';
+    const pb = derivedClasses?.proficiencyBonus;
+    if (Number.isFinite(pb)) {
+      parts.push(`PB +${pb}`);
+    }
+    const hitParts = entries.map((entry) => {
+      const label = entry.name || entry.class || 'Class';
+      if (entry.hitDie) {
+        return `${label} ${entry.hitDie}×${entry.level}`;
+      }
+      return `${label} ${entry.level}`;
+    }).filter(Boolean);
+    if (hitParts.length) {
+      parts.push(hitParts.join(', '));
+    }
+    summaryNode.textContent = parts.join(' · ');
+    const hasErrors = warnings.some((warning) => warning.severity === 'error');
+    const hasWarns = warnings.some((warning) => warning.severity === 'warn');
+    summaryNode.dataset.state = hasErrors || hasWarns ? 'warn' : 'ok';
+  }
+
+  function enforceNextButton() {
+    if (!nextBtn) return;
+    if (activeStep) {
+      nextBtn.disabled = nextLocked;
+    } else if (!activeStep && nextLocked) {
+      nextLocked = false;
+      nextBtn.disabled = false;
+    }
+  }
+
+  function extractClassPrereqDetails(meta, { isMulticlass } = {}) {
+    const abilityRequirements = new Map();
+    const additionalNotes = [];
+    let requiresSpellcasting = false;
+
+    const ABILITY_REGEX = /(strength|dexterity|constitution|intelligence|wisdom|charisma)[^0-9]*?(\d+)/gi;
+
+    function recordAbility(name, minimum) {
+      if (!name || !Number.isFinite(minimum)) return;
+      const abilityId = abilityNameToId(name);
+      if (!abilityId) return;
+      const existing = abilityRequirements.get(abilityId) || 0;
+      if (minimum > existing) {
+        abilityRequirements.set(abilityId, minimum);
+      }
+    }
+
+    function processString(text) {
+      if (!text) return;
+      const lower = text.toLowerCase();
+      if (lower.includes('cast') && lower.includes('spell')) {
+        requiresSpellcasting = true;
+      }
+      let matched = false;
+      let match;
+      while ((match = ABILITY_REGEX.exec(text))) {
+        matched = true;
+        const score = Number.parseInt(match[2], 10);
+        if (Number.isFinite(score)) {
+          recordAbility(match[1], score);
+        }
+      }
+      if (!matched) {
+        additionalNotes.push(text.trim());
+      }
+    }
+
+    function processObject(value) {
+      if (value == null) return;
+      if (Array.isArray(value)) {
+        value.forEach((entry) => processObject(entry));
+        return;
+      }
+      if (typeof value === 'string') {
+        processString(value);
+        return;
+      }
+      if (typeof value === 'number') {
+        return;
+      }
+      if (typeof value !== 'object') {
+        return;
+      }
+
+      const entries = Object.entries(value);
+      let handledAbilityMap = false;
+      entries.forEach(([key, val]) => {
+        const abilityId = abilityNameToId(key);
+        if (abilityId) {
+          handledAbilityMap = true;
+          const minimum = Number.parseInt(val, 10);
+          if (Number.isFinite(minimum)) {
+            recordAbility(key, minimum);
+          }
+        }
+      });
+      if (handledAbilityMap) {
+        return;
+      }
+
+      const abilityName = value.ability || value.name || value.label;
+      if (abilityName) {
+        const minimum = Number.parseInt(value.minimum ?? value.score ?? value.value ?? value.requirement ?? value.min, 10);
+        if (Number.isFinite(minimum)) {
+          recordAbility(abilityName, minimum);
+        }
+      }
+      if (typeof value.spellcasting === 'boolean') {
+        requiresSpellcasting = requiresSpellcasting || value.spellcasting;
+      }
+      if (value.spellcasting && typeof value.spellcasting === 'string') {
+        processString(value.spellcasting);
+      }
+
+      ['prerequisite', 'prerequisites', 'requirements', 'notes', 'text', 'description', 'details'].forEach((key) => {
+        if (value[key] !== undefined) {
+          processObject(value[key]);
+        }
+      });
+    }
+
+    const candidates = [
+      meta?.ability_prerequisites,
+      meta?.prerequisite_abilities,
+      meta?.prerequisites,
+      meta?.requirements,
+      meta?.abilityRequirements,
+      meta?.ability_minimums
+    ];
+    if (isMulticlass) {
+      candidates.push(meta?.multiclass_prerequisites);
+      const multi = meta?.multiclass || meta?.multiclassing;
+      if (multi) {
+        candidates.push(multi);
+      }
+    }
+
+    candidates.forEach((candidate) => processObject(candidate));
+
+    const abilityList = Array.from(abilityRequirements.entries()).map(([ability, minimum]) => ({
+      ability,
+      minimum,
+      label: abilityLabelIndex[ability] || ability.toUpperCase()
+    }));
+
+    return { abilityRequirements: abilityList, requiresSpellcasting, additionalNotes };
+  }
+
+  function evaluateClassPrereqs(meta, { abilityTotals, dataSnapshot, classLabel, isMulticlass, canCast }) {
+    const warnings = [];
+    const details = extractClassPrereqDetails(meta, { isMulticlass });
+    details.abilityRequirements.forEach((req) => {
+      let score = abilityTotals?.[req.ability]?.total;
+      if (!Number.isFinite(score)) {
+        score = abilityTotals?.[req.ability]?.base;
+      }
+      if (!Number.isFinite(score)) {
+        const raw = Number.parseInt(dataSnapshot?.[req.ability], 10);
+        if (Number.isFinite(raw)) {
+          score = raw;
+        }
+      }
+      if (!Number.isFinite(score) || score < req.minimum) {
+        warnings.push({ severity: 'error', message: `${classLabel} requires ${req.label} ${req.minimum}.` });
+      }
+    });
+    if (details.requiresSpellcasting && !canCast) {
+      warnings.push({ severity: 'error', message: `${classLabel} requires the ability to cast at least one spell.` });
+    }
+    details.additionalNotes.forEach((note) => {
+      if (!note) return;
+      warnings.push({ severity: 'warn', message: `${classLabel}: ${note}` });
+    });
+    return warnings;
+  }
+
+  function evaluateClassState(rowData, derivedSnapshot, dataSnapshot) {
+    const derivedClasses = derivedSnapshot?.classes || computeClassDerived(dataSnapshot || {});
+    const warnings = [];
+    const totalLevel = derivedClasses.totalLevel || 0;
+    const hasSelection = rowData.some((entry) => entry.class);
+    if (!hasSelection) {
+      warnings.push({ severity: 'error', message: 'Choose at least one class to continue.' });
+    }
+    rowData.forEach((entry, index) => {
+      if (!entry.class) {
+        warnings.push({ severity: 'error', message: `Class ${index + 1}: Select a class.` });
+      }
+      if (!Number.isFinite(entry.level) || entry.level < 1) {
+        warnings.push({ severity: 'error', message: `Class ${index + 1}: Level must be at least 1.` });
+      }
+    });
+    if (totalLevel <= 0) {
+      warnings.push({ severity: 'error', message: 'Assign at least one class level.' });
+    }
+    if (totalLevel > MAX_CHARACTER_LEVEL) {
+      warnings.push({ severity: 'error', message: `Total level ${totalLevel} exceeds ${MAX_CHARACTER_LEVEL}.` });
+    }
+    if (rowData.length > totalLevel && totalLevel > 0) {
+      warnings.push({ severity: 'error', message: 'Distribute at least one level to each class.' });
+    }
+
+    const abilityTotals = derivedSnapshot?.abilities || {};
+    const isMulticlass = rowData.length > 1;
+    const canCast = derivedClasses.entries.some((entry) => entry.spellcasting);
+    const packClasses = getPackData().classes || [];
+
+    rowData.forEach((entry, index) => {
+      if (!entry.class) return;
+      const meta = findEntry(packClasses, entry.class);
+      if (!meta) {
+        if (entry.class || entry.name) {
+          warnings.push({ severity: 'warn', message: `${entry.name || entry.class}: Custom class prerequisites must be verified manually.` });
+        }
+        return;
+      }
+      const prereqWarnings = evaluateClassPrereqs(meta, {
+        abilityTotals,
+        dataSnapshot,
+        classLabel: meta.name || entry.name || `Class ${index + 1}`,
+        isMulticlass,
+        canCast
+      });
+      warnings.push(...prereqWarnings);
+    });
+
+    return { warnings, derivedClasses };
+  }
+
+  function refreshSummary(rowData, { useSnapshot = false } = {}) {
+    let dataSnapshot = state.data;
+    let derivedSnapshot = state.derived;
+    if (useSnapshot) {
+      dataSnapshot = serializeForm();
+      derivedSnapshot = computeDerivedState(dataSnapshot);
+    }
+    const evaluation = evaluateClassState(rowData, derivedSnapshot, dataSnapshot);
+    applyWarnings(evaluation.warnings);
+    applySummary(evaluation.derivedClasses, evaluation.warnings);
+    nextLocked = evaluation.warnings.some((warning) => warning.severity === 'error');
+    enforceNextButton();
+  }
+
+  function updateAll({ useSnapshot = false } = {}) {
+    if (!rows.length) return;
+    const rowData = collectRowData();
+    updateRowLabels();
+    const total = updateTotals(rowData);
+    updateAddButton(rowData, total);
+    refreshSummary(rowData, { useSnapshot });
+  }
+
+  function handleRowChange() {
+    updateAll({ useSnapshot: true });
+  }
+
+  function removeRow(ref) {
+    if (rows.length <= 1) return;
+    const index = rows.indexOf(ref);
+    if (index !== -1) {
+      rows.splice(index, 1);
+    }
+    if (ref.row && ref.row.parentNode) {
+      ref.row.parentNode.removeChild(ref.row);
+    }
+    updateAll({ useSnapshot: true });
+    handleInput();
+  }
+
+  function createRow(initialData = {}) {
+    if (!rowsContainer) return null;
+    const row = document.createElement('div');
+    row.className = 'class-row';
+    row.dataset.classRow = 'true';
+
+    const classLabel = document.createElement('label');
+    const classLabelText = document.createElement('span');
+    classLabelText.className = 'class-row-label';
+    classLabelText.textContent = 'Class';
+    classLabel.appendChild(classLabelText);
+    const select = document.createElement('select');
+    select.dataset.classSelect = 'true';
+    classLabel.appendChild(select);
+
+    const levelLabel = document.createElement('label');
+    const levelLabelText = document.createElement('span');
+    levelLabelText.className = 'class-row-label';
+    levelLabelText.textContent = 'Level';
+    levelLabel.appendChild(levelLabelText);
+    const levelInput = document.createElement('input');
+    levelInput.type = 'number';
+    levelInput.min = '1';
+    levelInput.max = String(MAX_CHARACTER_LEVEL);
+    const parsedLevel = Number.parseInt(initialData.level, 10);
+    const initialLevel = Number.isFinite(parsedLevel) && parsedLevel > 0 ? Math.min(parsedLevel, MAX_CHARACTER_LEVEL) : 1;
+    levelInput.value = String(initialLevel);
+    levelInput.dataset.classLevel = 'true';
+    levelLabel.appendChild(levelInput);
+
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'class-remove';
+    removeButton.dataset.classRemove = 'true';
+    removeButton.textContent = 'Remove';
+    removeButton.hidden = true;
+    removeButton.disabled = true;
+    removeButton.setAttribute('aria-label', 'Remove class');
+
+    const hidden = document.createElement('input');
+    hidden.type = 'hidden';
+    hidden.name = 'classes[]';
+
+    row.append(classLabel, levelLabel, removeButton, hidden);
+    rowsContainer.appendChild(row);
+
+    const initialClass = initialData.class ? String(initialData.class) : '';
+    const initialName = initialData.name || '';
+
+    populateClassOptions(select, initialClass, initialName);
+
+    const ref = { row, select, level: levelInput, remove: removeButton, hidden, label: classLabelText };
+
+    hidden.value = JSON.stringify({ class: initialClass, level: initialLevel, name: initialName || undefined });
+
+    select.addEventListener('change', () => handleRowChange(ref));
+    levelInput.addEventListener('input', () => handleRowChange(ref));
+    levelInput.addEventListener('change', () => handleRowChange(ref));
+    removeButton.addEventListener('click', () => removeRow(ref));
+
+    rows.push(ref);
+    return ref;
+  }
+
+  function addRow(initialData = {}) {
+    createRow(initialData);
+    updateRowLabels();
+    updateAll({ useSnapshot: true });
+    handleInput();
+  }
+
+  function populateRowsFromState(data) {
+    if (!rowsContainer) return;
+    while (rows.length) {
+      const ref = rows.pop();
+      if (ref?.row?.parentNode) {
+        ref.row.parentNode.removeChild(ref.row);
+      }
+    }
+    const classes = Array.isArray(data?.classes) ? data.classes : normalizeClassEntries(data || {});
+    if (classes.length) {
+      classes.forEach((entry) => {
+        const sanitized = sanitizeClassEntry(entry, 1);
+        const meta = sanitized.class ? findEntry(getPackData().classes || [], sanitized.class) : null;
+        createRow({
+          class: sanitized.class || '',
+          level: sanitized.level,
+          name: sanitized.name || meta?.name || sanitized.class || ''
+        });
+      });
+    }
+    if (!rows.length) {
+      createRow({ class: '', level: 1 });
+    }
+    updateRowLabels();
+    updateAll({ useSnapshot: false });
   }
 
   return {
     setup(section) {
       summaryNode = section.querySelector('[data-class-summary]');
-      classSelect = section.querySelector('select[name="class"]');
-      render(state.data);
+      rowsContainer = section.querySelector('[data-class-rows]');
+      addButton = section.querySelector('[data-class-add]');
+      warningsNode = section.querySelector('[data-class-warnings]');
+      totalDisplay = section.querySelector('[data-class-total]');
+      totalField = section.querySelector('[data-class-total-field]');
+      if (warningsNode) {
+        warningsNode.hidden = true;
+      }
+      if (rowsContainer) {
+        rowsContainer.innerHTML = '';
+      }
+      populateRowsFromState(state.data);
+      if (addButton) {
+        addButton.addEventListener('click', () => {
+          addRow({ class: '', level: 1 });
+        });
+      }
+      updateRowLabels();
+      updateAll({ useSnapshot: false });
     },
     onPackData() {
-      render(state.data);
+      rows.forEach((ref) => {
+        const option = ref.select.options[ref.select.selectedIndex];
+        const label = option ? option.textContent.trim() : '';
+        populateClassOptions(ref.select, ref.select.value, label);
+      });
+      updateAll({ useSnapshot: true });
     },
     onStateHydrated(currentState) {
-      render(currentState?.data || state.data);
+      populateRowsFromState(currentState?.data || state.data);
+    },
+    onFormInput(event) {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.matches('[data-class-level]')) {
+        updateAll({ useSnapshot: true });
+      }
     },
     onFormChange(event) {
-      if (event.target && event.target.name === 'class') {
-        render(serializeForm());
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      if (target.matches('[data-class-select]')) {
+        updateAll({ useSnapshot: true });
       }
+    },
+    onStatePersisted() {
+      updateAll({ useSnapshot: false });
+    },
+    onStepChange(detail) {
+      activeStep = detail?.id === 'classLevel';
+      enforceNextButton();
     }
   };
 })();
@@ -1700,11 +2406,13 @@ const abilityModule = (() => {
 const featsModule = (() => {
   let summaryNode = null;
   let featInput = null;
-  const SPELLCASTING_CLASSES = new Set(['bard', 'cleric', 'druid', 'sorcerer', 'warlock', 'wizard', 'paladin', 'ranger']);
 
-  function getClassMeta(data) {
-    const classValue = data?.class;
-    return findEntry(getPackData().classes || [], classValue);
+  function getPrimaryClassMeta(data) {
+    const classes = Array.isArray(data?.classes) ? data.classes : normalizeClassEntries(data || {});
+    const primary = classes[0];
+    const identifier = primary?.class || primary?.slug || primary?.id || primary;
+    if (!identifier) return null;
+    return findEntry(getPackData().classes || [], identifier);
   }
 
   function hasMartial(meta) {
@@ -1713,9 +2421,15 @@ const featsModule = (() => {
   }
 
   function canCast(meta, data) {
-    if (meta && SPELLCASTING_CLASSES.has((meta.slug || meta.id || '').toLowerCase())) return true;
-    const classValue = data?.class;
-    return classValue ? SPELLCASTING_CLASSES.has(String(classValue).toLowerCase()) : false;
+    if (meta && classIsSpellcaster(meta)) return true;
+    const classes = Array.isArray(data?.classes) ? data.classes : normalizeClassEntries(data || {});
+    const packClasses = getPackData().classes || [];
+    return classes.some((entry) => {
+      const identifier = entry?.class || entry?.slug || entry?.id || entry;
+      if (!identifier) return false;
+      const resolved = findEntry(packClasses, identifier);
+      return classIsSpellcaster(resolved);
+    });
   }
 
   function render(data) {
@@ -1738,7 +2452,7 @@ const featsModule = (() => {
       summaryNode.dataset.state = 'ok';
       return;
     }
-    const meta = getClassMeta(data);
+    const meta = getPrimaryClassMeta(data);
     const checks = prereqs.map((prereq) => {
       const normalized = prereq.toLowerCase();
       let satisfied = false;
@@ -1767,8 +2481,9 @@ const featsModule = (() => {
       render(currentState?.data || state.data);
     },
     onFormChange(event) {
-      if (!event.target) return;
-      if (event.target.name === 'signatureFeat' || event.target.name === 'class') {
+      const target = event.target;
+      if (!target) return;
+      if (target.name === 'signatureFeat' || target.matches('[data-class-select]')) {
         render(serializeForm());
       }
     }
@@ -2227,7 +2942,7 @@ const equipmentModule = (() => {
     onFormChange(event) {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
-      if (target.name === 'class') {
+      if (target.matches('[data-class-select], [data-class-level]')) {
         render({ useFormValues: true });
       }
     },
