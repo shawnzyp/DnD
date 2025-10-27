@@ -114,4 +114,43 @@ test.describe('Builder mobile journey', () => {
 
     await expect(page.locator('section.step[data-step="finalize"]')).toHaveClass(/active/);
   });
+
+  test('selecting an SRD race seeds derived languages and speed', async ({ page }) => {
+    const raceSelect = page.locator('select[name="race"]');
+    await raceSelect.selectOption({ label: 'Dwarf' });
+
+    await page.waitForFunction(() => {
+      const state = (window as any).dndBuilderState;
+      if (!state || !state.derived) return false;
+      const languages = state.derived.languages;
+      const speed = state.derived.speed;
+      return (
+        Array.isArray(languages?.list) &&
+        languages.list.includes('Common') &&
+        languages.list.includes('Dwarvish') &&
+        speed &&
+        (speed.base === 25 || (typeof speed.label === 'string' && speed.label.includes('25')))
+      );
+    });
+
+    const builderState = await page.evaluate(() => (window as any).dndBuilderState);
+    expect(builderState?.derived?.languages?.list).toEqual(
+      expect.arrayContaining(['Common', 'Dwarvish'])
+    );
+    expect(builderState?.derived?.speed?.base).toBe(25);
+    expect(builderState?.derived?.speed?.label).toContain('25');
+
+    await page.locator('#toggle-summary').click();
+    await page.waitForFunction(
+      () => document.getElementById('summary-panel')?.classList.contains('visible')
+    );
+
+    const languagesNote = page.locator('#summary-panel textarea[data-track="languagesNote"]');
+    await expect(languagesNote).toHaveValue(/Common,\s*Dwarvish/);
+
+    const speedCard = page.locator('#summary-panel [data-speed-card]');
+    await expect(speedCard.locator('[data-speed-current]')).toHaveText(/25/);
+    await expect(speedCard.locator('[data-speed-detail]')).toContainText(/Base/i);
+    await expect(speedCard.locator('input[data-track="speedOverride"]')).toHaveValue('');
+  });
 });
