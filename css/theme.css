@@ -987,8 +987,22 @@ button {
 
 .pack-manager__footer {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
   margin-top: auto;
+}
+
+.pack-manager__learn {
+  font-size: 0.95rem;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.pack-manager__learn:hover,
+.pack-manager__learn:focus-visible {
+  text-decoration: underline;
 }
 
 body[data-pack-manager='open'] {
