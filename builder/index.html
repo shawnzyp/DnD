@@ -912,9 +912,11 @@
         <div class="grid two">
           <label>Generation method
             <select name="abilityMethod">
-              <option>Standard Array</option>
-              <option>Point Buy</option>
-              <option>Manual Entry</option>
+              <option value="standard-array">Standard Array (15, 14, 13, 12, 10, 8)</option>
+              <option value="point-buy">27-Point Buy</option>
+              <option value="roll-4d6-drop">Roll 4d6 (drop lowest)</option>
+              <option value="roll-3d6">Roll 3d6</option>
+              <option value="manual">Manual Entry</option>
             </select>
           </label>
           <label>Total score pool
@@ -924,6 +926,7 @@
         <div class="grid two" id="abilities-grid" data-ability-grid>
           <!-- ability inputs inserted by wizard.js -->
         </div>
+        <p class="step-hint" data-ability-summary aria-live="polite">Standard Array · Assign each score once.</p>
       </section>
       <section class="step" data-step="feats">
         <h2>Feats &amp; Talents</h2>

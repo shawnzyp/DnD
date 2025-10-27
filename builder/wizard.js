@@ -180,22 +180,150 @@ function formatModifier(score) {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 }
 
+const ABILITY_INCREASE_KEYS = [
+  'ability_score_increase',
+  'ability_score_increases',
+  'ability_score_improvement',
+  'ability_score_improvements',
+  'ability_score_bonus',
+  'ability_score_bonuses',
+  'ability_bonus',
+  'ability_bonuses',
+  'ability_modifiers',
+  'ability_mods',
+  'ability_increase',
+  'ability_increases',
+  'ability_boosts',
+  'ability_score_boosts',
+  'ability_adjustments',
+  'asi',
+  'asis'
+];
+
+function normalizeAbilityIncreaseContainer(container) {
+  if (!container) return [];
+  if (Array.isArray(container)) {
+    return container.flatMap((entry) => normalizeAbilityIncreaseContainer(entry));
+  }
+  if (typeof container === 'object') {
+    const results = [];
+    const abilityKey = container.ability || container.stat || container.ability_score || container.name;
+    const amountValue = container.value ?? container.amount ?? container.bonus ?? container.modifier ?? container.score ?? container.increment;
+    if (abilityKey && Number.isFinite(Number(amountValue))) {
+      results.push({ ability: abilityKey, value: Number(amountValue) });
+    }
+    Object.entries(container).forEach(([key, value]) => {
+      if (['ability', 'ability_score', 'stat', 'name', 'value', 'amount', 'bonus', 'modifier', 'score', 'increment', 'type', 'description', 'text', 'notes'].includes(key)) {
+        if ((key === 'value' || key === 'amount' || key === 'bonus' || key === 'modifier' || key === 'score' || key === 'increment') && typeof value === 'object') {
+          results.push(...normalizeAbilityIncreaseContainer(value));
+        }
+        return;
+      }
+      if (Number.isFinite(value)) {
+        results.push({ ability: key, value: Number(value) });
+        return;
+      }
+      if (typeof value === 'string' || typeof value === 'object') {
+        results.push(...normalizeAbilityIncreaseContainer(value));
+      }
+    });
+    return results;
+  }
+  if (typeof container === 'string') {
+    const abilityMatch = container.match(/(strength|dexterity|constitution|intelligence|wisdom|charisma)/i);
+    const valueMatch = container.match(/([+-]?\d+)/);
+    if (abilityMatch && valueMatch) {
+      return [{ ability: abilityMatch[1], value: Number(valueMatch[1]) }];
+    }
+  }
+  return [];
+}
+
+function collectAbilityIncreases(entry) {
+  if (!entry || typeof entry !== 'object') return [];
+  const containers = [];
+  ABILITY_INCREASE_KEYS.forEach((key) => {
+    if (entry[key]) {
+      containers.push(entry[key]);
+    }
+  });
+  if (Array.isArray(entry.advancements)) {
+    entry.advancements.forEach((advancement) => {
+      if (!advancement || typeof advancement !== 'object') return;
+      ABILITY_INCREASE_KEYS.forEach((key) => {
+        if (advancement[key]) {
+          containers.push(advancement[key]);
+        }
+      });
+      if (advancement.type && /ability/i.test(String(advancement.type))) {
+        containers.push(advancement);
+      }
+    });
+  }
+  return containers.flatMap((value) => normalizeAbilityIncreaseContainer(value));
+}
+
+function applyAbilityEntryBonuses(map, entry, label) {
+  if (!entry) return;
+  const increases = collectAbilityIncreases(entry);
+  increases.forEach(({ ability, value }) => {
+    const amount = Number(value);
+    const id = abilityNameToId(ability);
+    if (!id || !Number.isFinite(amount) || amount === 0) return;
+    if (!map[id]) {
+      map[id] = { total: 0, sources: [] };
+    }
+    map[id].total += amount;
+    map[id].sources.push({ label, value: amount });
+  });
+}
+
+function parseFeatList(value) {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.filter((entry) => entry && typeof entry === 'string').map((entry) => entry.trim()).filter(Boolean);
+  }
+  return String(value)
+    .split(/[,;\n]+/)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
 function computeAbilityBonuses(formData) {
   const bonuses = {};
   abilityFields.forEach((field) => {
     bonuses[field.id] = { total: 0, sources: [] };
   });
-  const raceValue = formData?.race;
+  const raceValue = typeof formData?.race === 'string' ? formData.race.trim() : formData?.race;
   const raceEntry = findEntry(packData.races || [], raceValue);
-  if (raceEntry && raceEntry.ability_score_increase) {
-    Object.entries(raceEntry.ability_score_increase).forEach(([abilityName, amount]) => {
-      const id = abilityNameToId(abilityName);
-      const value = Number(amount) || 0;
-      if (!id || !value) return;
-      bonuses[id].total += value;
-      bonuses[id].sources.push({ label: raceEntry.name || 'Race', value });
-    });
+  if (raceEntry) {
+    applyAbilityEntryBonuses(bonuses, raceEntry, raceEntry.name || 'Race');
   }
+  const backgroundValue = typeof formData?.background === 'string' ? formData.background.trim() : formData?.background;
+  const backgroundEntry = findEntry(packData.backgrounds || [], backgroundValue);
+  if (backgroundEntry) {
+    applyAbilityEntryBonuses(bonuses, backgroundEntry, backgroundEntry.name || 'Background');
+  }
+  const featNames = [];
+  if (formData?.signatureFeat) {
+    featNames.push(formData.signatureFeat);
+  }
+  parseFeatList(formData?.bonusFeats).forEach((feat) => {
+    featNames.push(feat);
+  });
+  const seenFeatIds = new Set();
+  featNames.forEach((identifier) => {
+    const featKey = typeof identifier === 'string' ? identifier.trim() : identifier;
+    if (!featKey) return;
+    const featEntry = findEntry(packData.feats || [], featKey);
+    if (!featEntry) return;
+    const unique = featEntry.slug || featEntry.id || featEntry.name || featKey;
+    if (unique && seenFeatIds.has(unique)) return;
+    if (unique) {
+      seenFeatIds.add(unique);
+    }
+    applyAbilityEntryBonuses(bonuses, featEntry, featEntry.name || 'Feat');
+  });
   return bonuses;
 }
 
@@ -828,6 +956,364 @@ const classModule = (() => {
 
 const abilityModule = (() => {
   const abilityMap = new Map();
+  const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8];
+  const POINT_BUY_COST = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 };
+  const DICE_METHODS = {
+    'roll-4d6-drop': { label: '4d6 (drop lowest)', dice: 4, faces: 6, drop: 1 },
+    'roll-3d6': { label: '3d6', dice: 3, faces: 6, drop: 0 }
+  };
+  const DEFAULT_POINT_POOL = 27;
+
+  let summaryNode = null;
+  let methodSelect = null;
+  let poolInput = null;
+  let hiddenRollsInput = null;
+  let rollMeta = null;
+  let activeStep = false;
+  let nextLocked = false;
+
+  function ensureHiddenRollInput() {
+    if (!form) return null;
+    const existing = form.elements.namedItem('abilityRolls');
+    if (existing instanceof HTMLInputElement) {
+      return existing;
+    }
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'abilityRolls';
+    form.appendChild(input);
+    return input;
+  }
+
+  function canonicalizeMethod(value) {
+    const normalized = String(value || '').trim().toLowerCase();
+    if (normalized in DICE_METHODS) return normalized;
+    if (normalized === 'standard-array') return 'standard-array';
+    if (normalized === 'point-buy' || normalized === '27-point buy') return 'point-buy';
+    if (normalized === 'manual' || normalized === 'manual entry') return 'manual';
+    if (normalized.includes('standard')) return 'standard-array';
+    if (normalized.includes('point')) return 'point-buy';
+    if (normalized.includes('4d6')) return 'roll-4d6-drop';
+    if (normalized.includes('3d6')) return 'roll-3d6';
+    if (normalized.includes('manual')) return 'manual';
+    if (normalized.includes('roll')) return 'roll-4d6-drop';
+    return 'standard-array';
+  }
+
+  function isDiceMethod(method) {
+    return Object.prototype.hasOwnProperty.call(DICE_METHODS, method);
+  }
+
+  function getDiceLabel(method) {
+    return DICE_METHODS[method]?.label || 'Dice';
+  }
+
+  function rollDiceTotal(count, faces, drop = 0) {
+    const rolls = [];
+    for (let i = 0; i < count; i += 1) {
+      rolls.push(1 + Math.floor(Math.random() * faces));
+    }
+    rolls.sort((a, b) => a - b);
+    const kept = rolls.slice(Math.min(drop, rolls.length));
+    return kept.reduce((sum, value) => sum + value, 0);
+  }
+
+  function rollAbilityScores(method) {
+    const config = DICE_METHODS[method];
+    if (!config) return [];
+    const results = [];
+    for (let i = 0; i < abilityFields.length; i += 1) {
+      results.push(rollDiceTotal(config.dice, config.faces, config.drop));
+    }
+    return results;
+  }
+
+  function getAbilityScoresFromInputs() {
+    return abilityFields.map((field) => {
+      const refs = abilityMap.get(field.id);
+      if (!refs) return Number.NaN;
+      const parsed = Number.parseInt(refs.input.value, 10);
+      return Number.isFinite(parsed) ? parsed : Number.NaN;
+    });
+  }
+
+  function setAbilityScores(scores) {
+    abilityFields.forEach((field, index) => {
+      const refs = abilityMap.get(field.id);
+      if (!refs) return;
+      const score = Number(scores[index]);
+      if (!Number.isFinite(score)) return;
+      const nextValue = String(score);
+      if (refs.input.value === nextValue) return;
+      refs.input.value = nextValue;
+      refs.input.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+  }
+
+  function updateInputConstraints(method) {
+    abilityMap.forEach(({ input }) => {
+      if (!input) return;
+      if (method === 'point-buy') {
+        input.min = '8';
+        input.max = '15';
+      } else {
+        input.min = '3';
+        input.max = '20';
+      }
+    });
+  }
+
+  function updatePoolControl(method) {
+    if (!poolInput) return;
+    if (method === 'point-buy') {
+      poolInput.readOnly = false;
+      poolInput.removeAttribute('aria-disabled');
+    } else {
+      poolInput.readOnly = true;
+      poolInput.setAttribute('aria-disabled', 'true');
+    }
+  }
+
+  function shouldPopulateDefaults(method) {
+    const scores = getAbilityScoresFromInputs();
+    if (method === 'standard-array') {
+      return scores.every((score) => !Number.isFinite(score) || score === 10);
+    }
+    if (method === 'point-buy') {
+      return scores.every((score) => !Number.isFinite(score) || score === 10 || score === 8);
+    }
+    if (isDiceMethod(method)) {
+      return true;
+    }
+    return false;
+  }
+
+  function readRollMeta() {
+    if (!hiddenRollsInput || !hiddenRollsInput.value) return null;
+    try {
+      const parsed = JSON.parse(hiddenRollsInput.value);
+      if (parsed && typeof parsed === 'object' && parsed.method) {
+        return parsed;
+      }
+    } catch (error) {
+      // ignore malformed JSON
+    }
+    return null;
+  }
+
+  function setRollMeta(meta) {
+    rollMeta = meta;
+    if (!hiddenRollsInput) return;
+    const newValue = meta ? JSON.stringify(meta) : '';
+    if (hiddenRollsInput.value === newValue) return;
+    hiddenRollsInput.value = newValue;
+    hiddenRollsInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function applyMethod(rawMethod, { forcePopulate = false } = {}) {
+    const method = canonicalizeMethod(rawMethod);
+    if (methodSelect && methodSelect.value !== method) {
+      methodSelect.value = method;
+    }
+    updateInputConstraints(method);
+    updatePoolControl(method);
+    if (method === 'point-buy' && poolInput) {
+      const pool = Number.parseInt(poolInput.value, 10);
+      if (!Number.isFinite(pool)) {
+        poolInput.value = String(DEFAULT_POINT_POOL);
+        poolInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }
+    if (!isDiceMethod(method) && rollMeta) {
+      setRollMeta(null);
+    }
+    const shouldPopulate = forcePopulate || shouldPopulateDefaults(method);
+    if (method === 'standard-array' && shouldPopulate) {
+      setAbilityScores([...STANDARD_ARRAY]);
+    } else if (method === 'point-buy' && shouldPopulate) {
+      setAbilityScores(Array(abilityFields.length).fill(8));
+    } else if (isDiceMethod(method) && (forcePopulate || !rollMeta || rollMeta.method !== method)) {
+      const rolled = rollAbilityScores(method);
+      if (rolled.length) {
+        setRollMeta({ method, values: rolled, timestamp: Date.now() });
+        setAbilityScores(rolled);
+      }
+    }
+    updateSummaryAndValidity();
+  }
+
+  function getPointBuyEvaluation(scores) {
+    const poolValue = Number.parseInt(poolInput ? poolInput.value : '', 10);
+    const totalPool = Number.isFinite(poolValue) ? poolValue : DEFAULT_POINT_POOL;
+    let spent = 0;
+    let hasFatal = false;
+    const notes = new Set();
+    scores.forEach((score) => {
+      if (!Number.isFinite(score)) {
+        hasFatal = true;
+        notes.add('Enter a score for each ability.');
+        return;
+      }
+      if (score < 8) {
+        hasFatal = true;
+        notes.add('Scores must be at least 8 before bonuses.');
+      }
+      if (score > 15) {
+        hasFatal = true;
+        notes.add('Scores cannot exceed 15 before bonuses.');
+      }
+      const cost = POINT_BUY_COST[score];
+      if (!Number.isFinite(cost)) {
+        hasFatal = true;
+        notes.add(`Score ${score} is not allowed in point buy.`);
+        return;
+      }
+      spent += cost;
+    });
+    const remaining = totalPool - spent;
+    let message;
+    let state = 'ok';
+    if (remaining > 0) {
+      message = `Point Buy · ${remaining} points remaining (${spent}/${totalPool} spent).`;
+      state = 'warn';
+    } else if (remaining === 0) {
+      message = `Point Buy · All points spent (${spent}/${totalPool}).`;
+    } else {
+      message = `Point Buy · Over budget by ${Math.abs(remaining)} points (${spent}/${totalPool}).`;
+      state = 'warn';
+      hasFatal = true;
+    }
+    if (notes.size) {
+      message += ` · ${Array.from(notes).join(' · ')}`;
+      state = 'warn';
+    }
+    return { message, state, valid: !hasFatal };
+  }
+
+  function getStandardArrayEvaluation(scores) {
+    const pool = [...STANDARD_ARRAY];
+    const extras = [];
+    let hasFatal = false;
+    scores.forEach((score) => {
+      if (!Number.isFinite(score)) {
+        hasFatal = true;
+        extras.push('—');
+        return;
+      }
+      const index = pool.indexOf(score);
+      if (index === -1) {
+        extras.push(String(score));
+      } else {
+        pool.splice(index, 1);
+      }
+    });
+    let message;
+    let state = 'ok';
+    if (!pool.length && !extras.length && !hasFatal) {
+      message = `Standard Array · Assigned ${scores.join(', ')}.`;
+    } else {
+      const parts = [];
+      if (pool.length) {
+        parts.push(`Remaining values: ${pool.join(', ')}`);
+        hasFatal = true;
+      }
+      if (extras.length) {
+        parts.push(`Extra values: ${extras.join(', ')}`);
+        hasFatal = true;
+      }
+      if (!parts.length) {
+        parts.push('Assign each array value once.');
+        hasFatal = true;
+      }
+      message = `Standard Array · ${parts.join(' · ')}`;
+      state = 'warn';
+    }
+    return { message, state, valid: !hasFatal };
+  }
+
+  function getDiceEvaluation(scores, method) {
+    const metaValid = rollMeta && rollMeta.method === method;
+    if (!metaValid) {
+      return { message: `${getDiceLabel(method)} · Roll ability scores to continue.`, state: 'warn', valid: false };
+    }
+    const filled = scores.every((score) => Number.isFinite(score));
+    if (!filled) {
+      return { message: `${getDiceLabel(method)} · Assign each rolled score.`, state: 'warn', valid: false };
+    }
+    return { message: `${getDiceLabel(method)} · ${scores.join(', ')}`, state: 'ok', valid: true };
+  }
+
+  function getManualEvaluation(scores) {
+    const filled = scores.every((score) => Number.isFinite(score));
+    if (!filled) {
+      return { message: 'Manual Entry · Enter a score for each ability.', state: 'warn', valid: false };
+    }
+    return { message: 'Manual Entry · Customize ability scores as needed.', state: 'ok', valid: true };
+  }
+
+  function updateSummaryAndValidity() {
+    if (!summaryNode) return;
+    const method = canonicalizeMethod(methodSelect ? methodSelect.value : state.data?.abilityMethod);
+    const scores = getAbilityScoresFromInputs();
+    let result;
+    if (method === 'point-buy') {
+      result = getPointBuyEvaluation(scores);
+    } else if (method === 'standard-array') {
+      result = getStandardArrayEvaluation(scores);
+    } else if (isDiceMethod(method)) {
+      result = getDiceEvaluation(scores, method);
+    } else {
+      result = getManualEvaluation(scores);
+    }
+    summaryNode.textContent = result.message;
+    summaryNode.dataset.state = result.state || '';
+    nextLocked = !result.valid;
+    enforceNextButton();
+  }
+
+  function enforceNextButton() {
+    if (!nextBtn) return;
+    if (activeStep) {
+      nextBtn.disabled = nextLocked;
+    } else if (!activeStep && nextLocked) {
+      nextLocked = false;
+      nextBtn.disabled = false;
+    }
+  }
+
+  function updateDisplay({ useFormValues = false } = {}) {
+    if (!abilityMap.size) return;
+    const snapshot = useFormValues ? serializeForm() : state.data;
+    const derived = computeDerivedState(snapshot);
+    abilityFields.forEach((field) => {
+      const refs = abilityMap.get(field.id);
+      if (!refs) return;
+      const info = derived.abilities[field.id];
+      const base = info?.base ?? 10;
+      const total = info?.total ?? base;
+      const bonus = info?.bonus ?? 0;
+      refs.input.value = base;
+      refs.total.textContent = `Total ${total}`;
+      if (info?.sources && info.sources.length) {
+        const parts = info.sources.map((source) => `${source.value >= 0 ? '+' : ''}${source.value} ${source.label}`);
+        refs.helper.innerHTML = `<strong>${bonus >= 0 ? '+' : ''}${bonus}</strong> from ${parts.join(', ')}`;
+      } else {
+        refs.helper.textContent = 'No bonuses applied.';
+      }
+      refs.mod.textContent = `Modifier ${formatModifier(total)}`;
+    });
+    updateSummaryAndValidity();
+  }
+
+  function syncFromState(options = {}) {
+    rollMeta = readRollMeta();
+    const method = canonicalizeMethod(state.data?.abilityMethod || methodSelect?.value);
+    if (methodSelect && methodSelect.value !== method) {
+      methodSelect.value = method;
+    }
+    applyMethod(method, options);
+    updateDisplay({ useFormValues: true });
+  }
 
   function initialize(section) {
     const container = section.querySelector('[data-ability-grid]');
@@ -870,55 +1356,56 @@ const abilityModule = (() => {
 
       abilityMap.set(field.id, { input, total, helper, mod });
     });
-    updateDisplay();
-  }
 
-  function updateDisplay({ useFormValues = false } = {}) {
-    if (!abilityMap.size) return;
-    const snapshot = useFormValues ? serializeForm() : state.data;
-    const derived = computeDerivedState(snapshot);
-    abilityFields.forEach((field) => {
-      const refs = abilityMap.get(field.id);
-      if (!refs) return;
-      const info = derived.abilities[field.id];
-      const base = info?.base ?? 10;
-      const total = info?.total ?? base;
-      const bonus = info?.bonus ?? 0;
-      refs.input.value = base;
-      refs.total.textContent = `Total ${total}`;
-      if (info?.sources && info.sources.length) {
-        const parts = info.sources.map((source) => `${source.value >= 0 ? '+' : ''}${source.value} ${source.label}`);
-        refs.helper.innerHTML = `<strong>${bonus >= 0 ? '+' : ''}${bonus}</strong> from ${parts.join(', ')}`;
-      } else {
-        refs.helper.textContent = 'No bonuses applied.';
-      }
-      refs.mod.textContent = `Modifier ${formatModifier(total)}`;
-    });
+    summaryNode = section.querySelector('[data-ability-summary]');
+    methodSelect = section.querySelector('select[name="abilityMethod"]');
+    poolInput = section.querySelector('input[name="scorePool"]');
+    hiddenRollsInput = ensureHiddenRollInput();
+
+    updateDisplay();
   }
 
   return {
     setup(section) {
       initialize(section);
+      syncFromState();
     },
     onPackData() {
       updateDisplay({ useFormValues: true });
     },
     onStateHydrated() {
-      updateDisplay();
+      syncFromState();
     },
     onFormInput(event) {
-      if (event.target && abilityMap.has(event.target.name)) {
+      if (!event.target) return;
+      if (abilityMap.has(event.target.name)) {
         updateDisplay({ useFormValues: true });
+        return;
+      }
+      if (event.target.name === 'scorePool') {
+        updateSummaryAndValidity();
       }
     },
     onFormChange(event) {
       if (!event.target) return;
+      if (event.target.name === 'abilityMethod') {
+        applyMethod(event.target.value, { forcePopulate: true });
+        return;
+      }
+      if (event.target.name === 'scorePool') {
+        updateSummaryAndValidity();
+        return;
+      }
       if (abilityMap.has(event.target.name) || event.target.name === 'race') {
         updateDisplay({ useFormValues: true });
       }
     },
     onStatePersisted() {
       updateDisplay();
+    },
+    onStepChange(detail) {
+      activeStep = detail?.id === 'abilities';
+      enforceNextButton();
     }
   };
 })();
