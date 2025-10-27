@@ -1,3 +1,5 @@
+import { createVirtualList } from '../js/virtual-list.js';
+
 const STORAGE_KEY = 'dndBuilderState';
 const COACHMARK_KEY = 'dndBuilderCoachMarksSeen';
 const HISTORY_LIMIT = 50;
@@ -2715,6 +2717,7 @@ const featsModule = (() => {
   let section = null;
   let summaryNode = null;
   let gridNode = null;
+  let featVirtualizer = null;
   let searchInput = null;
   let filterContainer = null;
   let hiddenField = null;
@@ -3043,6 +3046,104 @@ const featsModule = (() => {
     }
   }
 
+  function ensureFeatVirtualizer() {
+    if (!gridNode) return null;
+    if (!featVirtualizer) {
+      featVirtualizer = createVirtualList({
+        container: gridNode,
+        render: (item, index, existing) => renderFeatCard(item, index, existing),
+        estimateHeight: 220,
+        placeholderClassName: 'virtual-placeholder feat-virtual-item',
+        root: gridNode,
+        getKey: (item) => item.key
+      });
+    }
+    return featVirtualizer;
+  }
+
+  function renderFeatCard(item, index, existingNode) {
+    const { feat, status, isSelected } = item;
+    let button = existingNode instanceof HTMLButtonElement ? existingNode : null;
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'feat-card';
+    }
+    button.dataset.featCard = feat.key;
+    button.dataset.selected = isSelected ? 'true' : 'false';
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    button.dataset.state = status.locked ? 'locked' : 'available';
+    if (status.locked && !isSelected) {
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+    } else {
+      button.disabled = false;
+      button.removeAttribute('aria-disabled');
+    }
+    const header = document.createElement('div');
+    header.className = 'feat-card-header';
+    const title = document.createElement('strong');
+    title.textContent = feat.name;
+    header.appendChild(title);
+    if (feat.source) {
+      const source = document.createElement('span');
+      source.className = 'feat-card-source';
+      source.textContent = feat.source;
+      header.appendChild(source);
+    }
+    const children = [header];
+    if (feat.summary) {
+      const summary = document.createElement('p');
+      summary.className = 'feat-card-summary';
+      summary.textContent = feat.summary;
+      children.push(summary);
+    }
+    const chips = [];
+    if (isSelected) chips.push('Selected');
+    if (!feat.prerequisites.length) {
+      chips.push('No prerequisites');
+    } else if (status.locked) {
+      chips.push('Prerequisites unmet');
+    } else {
+      chips.push('Prerequisites met');
+    }
+    if (chips.length) {
+      const chipWrapper = document.createElement('div');
+      chipWrapper.className = 'feat-card-chips';
+      chips.forEach((label) => {
+        const chip = document.createElement('span');
+        chip.className = 'feat-card-chip';
+        chip.textContent = label;
+        chipWrapper.appendChild(chip);
+      });
+      children.push(chipWrapper);
+    }
+    if (Array.isArray(status.checks) && status.checks.length) {
+      const list = document.createElement('ul');
+      list.className = 'feat-card-prereqs';
+      status.checks.forEach((check) => {
+        if (!check) return;
+        const itemNode = document.createElement('li');
+        if (check.unknown) {
+          itemNode.dataset.state = 'unknown';
+        } else if (check.satisfied) {
+          itemNode.dataset.state = 'ok';
+        } else {
+          itemNode.dataset.state = 'warn';
+        }
+        const icon = document.createElement('span');
+        icon.textContent = check.unknown ? '❔' : check.satisfied ? '✅' : '⚠️';
+        const text = document.createElement('span');
+        text.textContent = check.label;
+        itemNode.append(icon, text);
+        list.appendChild(itemNode);
+      });
+      children.push(list);
+    }
+    button.replaceChildren(...children);
+    return button;
+  }
+
   function render(options = {}) {
     if (!section) return;
     const context = getContext(options);
@@ -3081,97 +3182,38 @@ const featsModule = (() => {
       (item) => matchesSearch(item.feat) && matchesFilter(item.feat, item.status)
     );
     if (gridNode) {
-      gridNode.innerHTML = '';
       if (!featList.length) {
+        if (featVirtualizer) {
+          featVirtualizer.setItems([]);
+        } else {
+          gridNode.innerHTML = '';
+        }
         const empty = document.createElement('p');
         empty.className = 'feat-empty';
         empty.textContent = 'Load a ruleset to browse feats.';
         gridNode.appendChild(empty);
       } else if (!filtered.length) {
+        if (featVirtualizer) {
+          featVirtualizer.setItems([]);
+        } else {
+          gridNode.innerHTML = '';
+        }
         const empty = document.createElement('p');
         empty.className = 'feat-empty';
         empty.textContent = 'No feats match your search or filters.';
         gridNode.appendChild(empty);
       } else {
-        filtered.forEach(({ feat, status }) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'feat-card';
-          button.dataset.featCard = feat.key;
-          const isSelected = selected.has(feat.key);
-          button.dataset.selected = isSelected ? 'true' : 'false';
-          button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-          button.dataset.state = status.locked ? 'locked' : 'available';
-          if (status.locked && !isSelected) {
-            button.disabled = true;
-            button.setAttribute('aria-disabled', 'true');
-          } else {
-            button.disabled = false;
-            button.removeAttribute('aria-disabled');
-          }
-          const header = document.createElement('div');
-          header.className = 'feat-card-header';
-          const title = document.createElement('strong');
-          title.textContent = feat.name;
-          header.appendChild(title);
-          if (feat.source) {
-            const source = document.createElement('span');
-            source.className = 'feat-card-source';
-            source.textContent = feat.source;
-            header.appendChild(source);
-          }
-          button.appendChild(header);
-          if (feat.summary) {
-            const summary = document.createElement('p');
-            summary.className = 'feat-card-summary';
-            summary.textContent = feat.summary;
-            button.appendChild(summary);
-          }
-          const chips = [];
-          if (isSelected) {
-            chips.push('Selected');
-          }
-          if (!feat.prerequisites.length) {
-            chips.push('No prerequisites');
-          } else if (status.locked) {
-            chips.push('Prerequisites unmet');
-          } else {
-            chips.push('Prerequisites met');
-          }
-          if (chips.length) {
-            const chipWrapper = document.createElement('div');
-            chipWrapper.className = 'feat-card-chips';
-            chips.forEach((label) => {
-              const chip = document.createElement('span');
-              chip.className = 'feat-card-chip';
-              chip.textContent = label;
-              chipWrapper.appendChild(chip);
-            });
-            button.appendChild(chipWrapper);
-          }
-          if (status.checks.length) {
-            const list = document.createElement('ul');
-            list.className = 'feat-card-prereqs';
-            status.checks.forEach((check) => {
-              const item = document.createElement('li');
-              if (check.unknown) {
-                item.dataset.state = 'unknown';
-              } else if (check.satisfied) {
-                item.dataset.state = 'ok';
-              } else {
-                item.dataset.state = 'warn';
-              }
-              const icon = document.createElement('span');
-              icon.textContent = check.unknown ? '❔' : check.satisfied ? '✅' : '⚠️';
-              const text = document.createElement('span');
-              text.textContent = check.label;
-              item.append(icon, text);
-              list.appendChild(item);
-            });
-            button.appendChild(list);
-          }
-          gridNode.appendChild(button);
-        });
+        const virtualizer = ensureFeatVirtualizer();
+        if (virtualizer) {
+          const items = filtered.map(({ feat, status }) => ({
+            key: feat.key,
+            feat,
+            status,
+            isSelected: selected.has(feat.key)
+          }));
+          virtualizer.setItems(items);
+          gridNode.dataset.itemCount = String(items.length);
+        }
       }
     }
     const selectionDetails = Array.from(selected).map((key) => {
@@ -3394,6 +3436,7 @@ const equipmentModule = (() => {
   }, {});
   const groupRefs = new Map();
   const fieldRefs = new Map();
+  const equipmentVirtualizers = new Map();
   let section = null;
   let summaryNode = null;
   let attunementFeedback = null;
@@ -3414,6 +3457,15 @@ const equipmentModule = (() => {
     if (!skipEvent) {
       field.dispatchEvent(new Event('input', { bubbles: true }));
     }
+  }
+
+  function resetEquipmentVirtualizers() {
+    equipmentVirtualizers.forEach((instance) => {
+      if (instance && typeof instance.destroy === 'function') {
+        instance.destroy();
+      }
+    });
+    equipmentVirtualizers.clear();
   }
 
   function createRecordFromValue(value, quantity, category) {
@@ -3503,14 +3555,152 @@ const equipmentModule = (() => {
     });
   }
 
+  function ensureEquipmentVirtualizer(category) {
+    const refs = groupRefs.get(category);
+    if (!refs || !refs.list) return null;
+    let instance = equipmentVirtualizers.get(category);
+    if (!instance) {
+      instance = createVirtualList({
+        container: refs.list,
+        placeholderTagName: 'li',
+        placeholderClassName: 'virtual-placeholder equipment-virtual-item',
+        estimateHeight: 116,
+        getKey: (item) => item.key,
+        render: (item, index, existing) => renderEquipmentItem(item, index, existing),
+        root: null,
+        rootMargin: '200% 0px'
+      });
+      equipmentVirtualizers.set(category, instance);
+    }
+    return instance;
+  }
+
+  function renderEquipmentItem(item, index, existingNode) {
+    const { record, derived, category, key } = item;
+    let wrapper =
+      existingNode instanceof HTMLElement && existingNode.classList.contains('equipment-item')
+        ? existingNode
+        : null;
+    if (!wrapper) {
+      wrapper = document.createElement('div');
+      wrapper.className = 'equipment-item';
+      const main = document.createElement('div');
+      main.className = 'equipment-item-main';
+      const title = document.createElement('strong');
+      title.dataset.role = 'equipment-title';
+      main.appendChild(title);
+      const meta = document.createElement('span');
+      meta.className = 'equipment-item-meta';
+      meta.dataset.role = 'equipment-meta';
+      meta.hidden = true;
+      main.appendChild(meta);
+      const status = document.createElement('span');
+      status.className = 'equipment-item-status';
+      status.dataset.role = 'equipment-status';
+      status.hidden = true;
+      main.appendChild(status);
+      wrapper.appendChild(main);
+      const controls = document.createElement('div');
+      controls.className = 'equipment-item-controls';
+      controls.dataset.role = 'equipment-controls';
+      wrapper.appendChild(controls);
+    }
+    wrapper.dataset.key = key;
+    if ((category === 'weapons' || category === 'armor') && derived && derived.proficient === false) {
+      wrapper.dataset.state = 'warn';
+    } else {
+      wrapper.removeAttribute('data-state');
+    }
+    const main = wrapper.querySelector('.equipment-item-main');
+    const titleNode = main?.querySelector('[data-role="equipment-title"]');
+    if (titleNode) {
+      titleNode.textContent = derived?.name || record.name || key || 'Item';
+    }
+    const metaNode = main?.querySelector('[data-role="equipment-meta"]');
+    if (metaNode) {
+      const metaParts = [];
+      if (derived?.category) metaParts.push(derived.category);
+      if (derived?.weightEach) metaParts.push(`${formatWeight(derived.weightEach)} each`);
+      if (derived?.source) metaParts.push(derived.source);
+      if (metaParts.length) {
+        metaNode.textContent = metaParts.join(' · ');
+        metaNode.hidden = false;
+      } else {
+        metaNode.textContent = '';
+        metaNode.hidden = true;
+      }
+    }
+    const statusNode = main?.querySelector('[data-role="equipment-status"]');
+    if (statusNode) {
+      const showProficiency = category === 'weapons' || category === 'armor';
+      if (showProficiency) {
+        statusNode.textContent = derived && derived.proficient === false ? '⚠️ Not proficient' : '✅ Proficient';
+        statusNode.hidden = false;
+      } else if (derived && derived.totalWeight) {
+        statusNode.textContent = `${formatWeight(derived.totalWeight)} total`;
+        statusNode.hidden = false;
+      } else {
+        statusNode.textContent = '';
+        statusNode.hidden = true;
+      }
+    }
+    const controls =
+      wrapper.querySelector('[data-role="equipment-controls"]') || wrapper.querySelector('.equipment-item-controls');
+    if (controls) {
+      let quantityWrapper = controls.querySelector('[data-role="equipment-quantity-wrapper"]');
+      if (category === 'attunements') {
+        if (quantityWrapper) {
+          controls.removeChild(quantityWrapper);
+          quantityWrapper = null;
+        }
+      } else {
+        if (!quantityWrapper) {
+          quantityWrapper = document.createElement('label');
+          quantityWrapper.dataset.role = 'equipment-quantity-wrapper';
+          quantityWrapper.appendChild(document.createTextNode('Qty'));
+          const input = document.createElement('input');
+          input.type = 'number';
+          input.min = '0';
+          input.step = '1';
+          input.dataset.equipmentQuantityControl = 'true';
+          quantityWrapper.appendChild(input);
+          controls.insertBefore(quantityWrapper, controls.firstChild || null);
+        }
+        const input = quantityWrapper.querySelector('input');
+        if (input) {
+          input.value = String(Number.isFinite(record.quantity) ? record.quantity : 1);
+          input.dataset.equipmentCategory = category;
+          input.dataset.equipmentKey = key;
+        }
+      }
+      let removeButton = controls.querySelector('[data-role="equipment-remove"]');
+      if (!removeButton) {
+        removeButton = document.createElement('button');
+        removeButton.type = 'button';
+        removeButton.dataset.role = 'equipment-remove';
+        removeButton.dataset.equipmentRemove = 'true';
+        controls.appendChild(removeButton);
+      }
+      removeButton.textContent = 'Remove';
+      removeButton.dataset.equipmentCategory = category;
+      removeButton.dataset.equipmentKey = key;
+    }
+    return wrapper;
+  }
+
   function renderGroup(category, derivedEquipment) {
     const refs = groupRefs.get(category);
     if (!refs || !refs.list) return;
     const listNode = refs.list;
-    listNode.innerHTML = '';
     const entries = equipmentState[category] || [];
     const derivedGroup = derivedEquipment?.groups?.[category] || [];
     if (!entries.length) {
+      const virtualizer = equipmentVirtualizers.get(category);
+      if (virtualizer) {
+        virtualizer.setItems([]);
+      } else {
+        listNode.innerHTML = '';
+      }
       const empty = document.createElement('li');
       empty.className = 'equipment-empty';
       const config = EQUIPMENT_CATEGORIES.find((cfg) => cfg.key === category);
@@ -3518,77 +3708,16 @@ const equipmentModule = (() => {
       listNode.appendChild(empty);
       return;
     }
-    entries.forEach((record) => {
-      const key = getEquipmentRecordKey(record);
-      const resolved = derivedGroup.find((entry) => entry.key === key) || null;
-      const itemNode = document.createElement('li');
-      itemNode.className = 'equipment-item';
-      itemNode.dataset.key = key;
-      if ((category === 'weapons' || category === 'armor') && resolved && resolved.proficient === false) {
-        itemNode.dataset.state = 'warn';
-      } else {
-        itemNode.removeAttribute('data-state');
-      }
-
-      const main = document.createElement('div');
-      main.className = 'equipment-item-main';
-      const title = document.createElement('strong');
-      title.textContent = resolved?.name || record.name || key || 'Item';
-      main.appendChild(title);
-
-      const metaParts = [];
-      if (resolved?.category) metaParts.push(resolved.category);
-      if (resolved?.weightEach) metaParts.push(`${formatWeight(resolved.weightEach)} each`);
-      if (resolved?.source) metaParts.push(resolved.source);
-      if (metaParts.length) {
-        const meta = document.createElement('span');
-        meta.className = 'equipment-item-meta';
-        meta.textContent = metaParts.join(' · ');
-        main.appendChild(meta);
-      }
-
-      const showProficiency = category === 'weapons' || category === 'armor';
-      if (showProficiency) {
-        const status = document.createElement('span');
-        status.className = 'equipment-item-status';
-        status.textContent = resolved && resolved.proficient === false ? '⚠️ Not proficient' : '✅ Proficient';
-        main.appendChild(status);
-      } else if (resolved && resolved.totalWeight) {
-        const status = document.createElement('span');
-        status.className = 'equipment-item-status';
-        status.textContent = `${formatWeight(resolved.totalWeight)} total`;
-        main.appendChild(status);
-      }
-
-      itemNode.appendChild(main);
-
-      const controls = document.createElement('div');
-      controls.className = 'equipment-item-controls';
-      if (category !== 'attunements') {
-        const label = document.createElement('label');
-        label.textContent = 'Qty';
-        const input = document.createElement('input');
-        input.type = 'number';
-        input.min = '0';
-        input.step = '1';
-        input.value = String(record.quantity || 1);
-        input.dataset.equipmentQuantityControl = 'true';
-        input.dataset.equipmentCategory = category;
-        input.dataset.equipmentKey = key;
-        label.appendChild(input);
-        controls.appendChild(label);
-      }
-      const remove = document.createElement('button');
-      remove.type = 'button';
-      remove.textContent = 'Remove';
-      remove.dataset.equipmentRemove = 'true';
-      remove.dataset.equipmentCategory = category;
-      remove.dataset.equipmentKey = key;
-      controls.appendChild(remove);
-      itemNode.appendChild(controls);
-
-      listNode.appendChild(itemNode);
-    });
+    const virtualizer = ensureEquipmentVirtualizer(category);
+    if (virtualizer) {
+      const items = entries.map((record) => {
+        const key = getEquipmentRecordKey(record);
+        const resolved = derivedGroup.find((entry) => entry.key === key) || null;
+        return { key, record, derived: resolved, category };
+      });
+      virtualizer.setItems(items);
+      listNode.dataset.itemCount = String(items.length);
+    }
   }
 
   function renderSummary(equipmentDerived) {
@@ -3793,6 +3922,9 @@ const equipmentModule = (() => {
   return {
     setup(node) {
       section = node;
+      resetEquipmentVirtualizers();
+      groupRefs.clear();
+      fieldRefs.clear();
       summaryNode = section.querySelector('[data-equipment-summary]');
       attunementFeedback = section.querySelector('[data-equipment-feedback]');
       EQUIPMENT_CATEGORIES.forEach(({ key, field }) => {
@@ -3858,6 +3990,7 @@ const familiarModule = (() => {
   let hiddenField = null;
   let nameField = null;
   let notesField = null;
+  let familiarVirtualizer = null;
   const filterNodes = new Map();
   const overrideInputs = new Map();
 
@@ -4248,41 +4381,88 @@ const familiarModule = (() => {
     });
   }
 
+  function destroyFamiliarVirtualizer() {
+    if (familiarVirtualizer && typeof familiarVirtualizer.destroy === 'function') {
+      familiarVirtualizer.destroy();
+    }
+    familiarVirtualizer = null;
+  }
+
+  function ensureFamiliarVirtualizer() {
+    if (!listNode) return null;
+    if (!familiarVirtualizer) {
+      familiarVirtualizer = createVirtualList({
+        container: listNode,
+        render: (item, index, existing) => renderCompanionOption(item, index, existing),
+        estimateHeight: 104,
+        placeholderClassName: 'virtual-placeholder companion-virtual-item',
+        root: listNode,
+        getKey: (item) => item.key
+      });
+    }
+    return familiarVirtualizer;
+  }
+
+  function renderCompanionOption(item, index, existingNode) {
+    const { entry, active } = item;
+    let button = existingNode instanceof HTMLButtonElement ? existingNode : null;
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'companion-option';
+      button.setAttribute('role', 'option');
+    }
+    button.dataset.companionId = entry.id;
+    button.dataset.active = active ? 'true' : 'false';
+    button.setAttribute('aria-selected', active ? 'true' : 'false');
+    const summary = entry.summary ? `<small>${entry.summary}</small>` : '';
+    const tags = entry.tags.length
+      ? `<div class="companion-tags">${entry.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>`
+      : '';
+    button.innerHTML = `
+      <div>
+        <strong>${entry.name}</strong>
+        ${summary}
+      </div>
+      ${tags}
+    `;
+    return button;
+  }
+
   function renderList() {
     if (!listNode) return;
-    listNode.innerHTML = '';
     if (!filtered.length) {
+      if (familiarVirtualizer) {
+        familiarVirtualizer.setItems([]);
+      } else {
+        listNode.innerHTML = '';
+      }
       if (emptyState) {
         emptyState.hidden = false;
-        listNode.appendChild(emptyState);
+        if (emptyState.parentNode !== listNode) {
+          listNode.appendChild(emptyState);
+        }
       }
+      listNode.dataset.itemCount = '0';
       section?.setAttribute('data-companion-count', String(companions.length));
       return;
     }
     if (emptyState) {
       emptyState.hidden = true;
+      if (emptyState.parentNode === listNode) {
+        listNode.removeChild(emptyState);
+      }
     }
-    filtered.forEach((entry) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'companion-option';
-      button.dataset.companionId = entry.id;
-      button.dataset.active = entry.key === selectedKey ? 'true' : 'false';
-      button.setAttribute('role', 'option');
-      button.setAttribute('aria-selected', entry.key === selectedKey ? 'true' : 'false');
-      const summary = entry.summary ? `<small>${entry.summary}</small>` : '';
-      const tags = entry.tags.length
-        ? `<div class="companion-tags">${entry.tags.map((tag) => `<span>${tag}</span>`).join('')}</div>`
-        : '';
-      button.innerHTML = `
-        <div>
-          <strong>${entry.name}</strong>
-          ${summary}
-        </div>
-        ${tags}
-      `;
-      listNode.appendChild(button);
-    });
+    const virtualizer = ensureFamiliarVirtualizer();
+    if (virtualizer) {
+      const items = filtered.map((entry) => ({
+        key: entry.key,
+        entry,
+        active: entry.key === selectedKey
+      }));
+      virtualizer.setItems(items);
+      listNode.dataset.itemCount = String(items.length);
+    }
     section?.setAttribute('data-companion-count', String(companions.length));
   }
 
@@ -4520,6 +4700,7 @@ const familiarModule = (() => {
   return {
     setup(node) {
       section = node;
+      destroyFamiliarVirtualizer();
       listNode = section.querySelector('[data-familiar-list]');
       detailNode = section.querySelector('[data-familiar-detail]');
       searchInput = section.querySelector('[data-familiar-search]');

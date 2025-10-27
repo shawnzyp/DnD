@@ -122,6 +122,13 @@
       gap: 0.5rem;
       align-items: center;
     }
+    .virtual-placeholder {
+      position: relative;
+      min-height: 1px;
+    }
+    .virtual-placeholder[data-rendered="false"] {
+      pointer-events: none;
+    }
     .pack-controls .pack-buttons {
       display: flex;
       flex-wrap: wrap;
@@ -267,6 +274,8 @@
       font: inherit;
       appearance: none;
       transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+      content-visibility: auto;
+      contain-intrinsic-size: 320px;
     }
     .feat-card:hover:not(:disabled),
     .feat-card:focus-visible {
@@ -437,6 +446,8 @@
       cursor: pointer;
       text-align: left;
       transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+      content-visibility: auto;
+      contain-intrinsic-size: 140px;
     }
 
     .companion-option:hover,
@@ -748,6 +759,8 @@
       border-radius: 0.8rem;
       border: 1px solid rgba(255, 255, 255, 0.12);
       background: rgba(12, 18, 30, 0.55);
+      content-visibility: auto;
+      contain-intrinsic-size: 180px;
     }
     .equipment-item[data-state="warn"] {
       border-color: color-mix(in srgb, #ff9966 55%, rgba(255, 255, 255, 0.12) 45%);

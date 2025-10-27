@@ -1,3 +1,5 @@
+import { createVirtualList } from './virtual-list.js';
+
 const FAVORITES_KEY = 'dndCompendiumFavorites';
 const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
 const TYPE_LABELS = {
@@ -8,7 +10,6 @@ const TYPE_LABELS = {
   monster: 'Monster',
   skill: 'Skill'
 };
-const VIEW_ROW_HEIGHT = 156;
 
 const viewport = document.getElementById('list-viewport');
 const list = document.getElementById('virtual-list');
@@ -58,8 +59,7 @@ let activeRequestId = 0;
 let workerReady = false;
 let pendingQuery = false;
 let statusTimer = null;
-let renderedStart = 0;
-let renderedEnd = 0;
+let listVirtualizer = null;
 let currentEntry = null;
 let spellPanelModulePromise = null;
 
@@ -212,8 +212,11 @@ function handleResults(payload) {
   if (reset) {
     filtered = [];
     entryIndex = new Map();
-    renderedStart = 0;
-    renderedEnd = 0;
+    if (listVirtualizer) {
+      listVirtualizer.setItems([]);
+    } else if (list) {
+      list.innerHTML = '';
+    }
   }
   if (Array.isArray(chunk) && chunk.length) {
     for (const entry of chunk) {
@@ -221,17 +224,10 @@ function handleResults(payload) {
       entryIndex.set(entry.id, entry);
     }
   }
-  updateListHeight();
   updateEmptyState(total);
-  renderVirtualRows(true);
+  renderList();
   if (done) {
     viewport?.setAttribute('aria-busy', 'false');
-  }
-}
-
-function updateListHeight() {
-  if (list) {
-    list.style.height = filtered.length ? `${filtered.length * VIEW_ROW_HEIGHT}px` : '0px';
   }
 }
 
@@ -240,72 +236,112 @@ function updateEmptyState(total) {
   emptyState.hidden = total !== 0;
 }
 
-function renderVirtualRows(force = false) {
-  if (!viewport || !list) return;
-  const scrollTop = viewport.scrollTop;
-  const viewportHeight = viewport.clientHeight;
-  const buffer = 6;
-  const start = Math.max(0, Math.floor(scrollTop / VIEW_ROW_HEIGHT) - buffer);
-  const end = Math.min(filtered.length, Math.ceil((scrollTop + viewportHeight) / VIEW_ROW_HEIGHT) + buffer);
-  if (!force && start === renderedStart && end === renderedEnd) {
+function ensureListVirtualizer() {
+  if (!list || !viewport) return null;
+  if (!listVirtualizer) {
+    listVirtualizer = createVirtualList({
+      container: list,
+      render: (entry, index, existing) => renderRow(entry, index, existing),
+      estimateHeight: 168,
+      placeholderClassName: 'virtual-placeholder virtual-row',
+      root: viewport,
+      getKey: (item) => item.id
+    });
+  }
+  return listVirtualizer;
+}
+
+function renderList() {
+  if (!list) return;
+  const virtualizer = ensureListVirtualizer();
+  if (!filtered.length) {
+    if (virtualizer) {
+      virtualizer.setItems([]);
+    } else {
+      list.innerHTML = '';
+    }
+    list.dataset.itemCount = '0';
     return;
   }
-  renderedStart = start;
-  renderedEnd = end;
-  list.innerHTML = '';
-  for (let i = start; i < end; i += 1) {
-    const entry = filtered[i];
-    if (!entry) continue;
-    list.appendChild(createRow(entry, i));
+  if (virtualizer) {
+    virtualizer.setItems(filtered);
+    list.dataset.itemCount = String(filtered.length);
   }
 }
 
-function createRow(entry, index) {
-  const row = document.createElement('div');
-  row.className = 'virtual-row';
-  row.style.top = `${index * VIEW_ROW_HEIGHT}px`;
+function renderRow(entry, index, existingNode) {
+  let article = existingNode instanceof HTMLElement && existingNode.classList.contains('entry') ? existingNode : null;
+  if (!article) {
+    article = document.createElement('article');
+    article.className = 'entry';
+    article.setAttribute('role', 'listitem');
+    article.tabIndex = 0;
 
-  const article = document.createElement('article');
-  article.className = 'entry';
+    const title = document.createElement('h3');
+    title.dataset.role = 'entry-title';
+    article.appendChild(title);
+
+    const subtitle = document.createElement('small');
+    subtitle.dataset.role = 'entry-subtitle';
+    article.appendChild(subtitle);
+
+    const summary = document.createElement('p');
+    summary.dataset.role = 'entry-summary';
+    article.appendChild(summary);
+
+    const actions = document.createElement('div');
+    actions.className = 'entry-actions';
+
+    const quickLook = document.createElement('button');
+    quickLook.type = 'button';
+    quickLook.dataset.action = 'details';
+    quickLook.textContent = 'Quick look';
+    actions.appendChild(quickLook);
+
+    const quickAdd = document.createElement('button');
+    quickAdd.type = 'button';
+    quickAdd.dataset.action = 'quick-add';
+    actions.appendChild(quickAdd);
+
+    article.appendChild(actions);
+  }
+
   article.dataset.id = entry.id;
   article.dataset.type = entry.type;
   article.dataset.favorite = favorites.has(entry.id) ? 'true' : 'false';
-  article.setAttribute('role', 'listitem');
-  article.tabIndex = 0;
 
-  const title = document.createElement('h3');
-  title.textContent = entry.name;
-  article.appendChild(title);
-
-  if (entry.subtitle) {
-    const subtitle = document.createElement('small');
-    subtitle.textContent = entry.subtitle;
-    article.appendChild(subtitle);
+  const titleNode = article.querySelector('[data-role="entry-title"]') || article.querySelector('h3');
+  if (titleNode) {
+    titleNode.textContent = entry.name;
   }
 
-  const summary = document.createElement('p');
-  summary.textContent = entry.summary;
-  article.appendChild(summary);
+  const subtitleNode = article.querySelector('[data-role="entry-subtitle"]') || article.querySelector('small');
+  if (subtitleNode) {
+    if (entry.subtitle) {
+      subtitleNode.textContent = entry.subtitle;
+      subtitleNode.hidden = false;
+    } else {
+      subtitleNode.textContent = '';
+      subtitleNode.hidden = true;
+    }
+  }
 
-  const actions = document.createElement('div');
-  actions.className = 'entry-actions';
+  const summaryNode = article.querySelector('[data-role="entry-summary"]') || article.querySelector('p');
+  if (summaryNode) {
+    summaryNode.textContent = entry.summary;
+  }
 
-  const quickLook = document.createElement('button');
-  quickLook.type = 'button';
-  quickLook.dataset.action = 'details';
-  quickLook.textContent = 'Quick look';
-  actions.appendChild(quickLook);
+  const actionButtons = article.querySelectorAll('button[data-action]');
+  actionButtons.forEach((button) => {
+    if (button.dataset.action === 'quick-add') {
+      const typeLabel = TYPE_LABELS[entry.type] || 'Entry';
+      button.textContent = `Add ${typeLabel}`;
+    } else if (button.dataset.action === 'details') {
+      button.textContent = 'Quick look';
+    }
+  });
 
-  const quickAdd = document.createElement('button');
-  quickAdd.type = 'button';
-  quickAdd.dataset.action = 'quick-add';
-  const typeLabel = TYPE_LABELS[entry.type] || 'Entry';
-  quickAdd.textContent = `Add ${typeLabel}`;
-  actions.appendChild(quickAdd);
-
-  article.appendChild(actions);
-  row.appendChild(article);
-  return row;
+  return article;
 }
 
 function openDetailById(id) {
@@ -779,10 +815,6 @@ function wirePackControls() {
 }
 
 function initEventHandlers() {
-  viewport?.addEventListener('scroll', () => {
-    requestAnimationFrame(() => renderVirtualRows());
-  });
-
   searchInput?.addEventListener('input', () => {
     scheduleQuery();
   });
@@ -857,9 +889,6 @@ function initEventHandlers() {
 }
 
 async function init() {
-  if (list) {
-    list.style.height = '0px';
-  }
   resetSpellPanel();
   worker.addEventListener('message', handleWorkerMessage);
   initEventHandlers();

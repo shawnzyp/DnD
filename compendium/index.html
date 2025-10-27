@@ -194,18 +194,24 @@
       border-radius: 10px;
     }
 
-    .virtual-list {
+    .virtual-placeholder {
       position: relative;
+      min-height: 1px;
+    }
+
+    .virtual-placeholder[data-rendered="false"] {
+      pointer-events: none;
+    }
+
+    .virtual-list {
+      display: grid;
+      gap: 0.65rem;
       min-height: 100%;
     }
 
     .virtual-row {
-      position: absolute;
-      left: 0;
-      right: 0;
       padding: 0.65rem 0.35rem;
       box-sizing: border-box;
-      contain: layout style paint;
     }
 
     .entry {
