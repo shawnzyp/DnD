@@ -464,6 +464,12 @@ class SummaryUI {
       hitDice: { total: 1, available: 1, die: 'd8' },
       classCounters: [],
       wildShape: { max: 0, remaining: 0 },
+      arcaneRecovery: { max: 0, remaining: 0, slotLevelCap: 5 },
+      channelDivinity: {
+        cleric: { max: 0, remaining: 0 },
+        paladin: { max: 0, remaining: 0 }
+      },
+      layOnHands: { max: 0, remaining: 0 },
       concentration: { active: false, spell: '', notes: '', warCaster: false, lastDc: null },
       restLog: [],
       skills: {},
@@ -568,6 +574,11 @@ class SummaryUI {
         this.handleCounterAction(counterAction, id);
         return;
       }
+      const resourceAction = target.dataset.resourceAction;
+      if (resourceAction) {
+        this.handleResourceAction(resourceAction, target);
+        return;
+      }
       const concentrationAction = target.dataset.concentrationAction;
       if (concentrationAction) {
         this.handleConcentrationAction(concentrationAction);
@@ -627,6 +638,7 @@ class SummaryUI {
     const classEntries = this.getClassEntries();
     const classMeta = this.getClassMeta();
     const hitDiceBreakdown = this.getHitDiceBreakdown();
+    const druidLevel = this.getClassLevelBySlug('druid');
     const existingDie = typeof this.playState.hitDice.die === 'string' ? this.playState.hitDice.die.trim() : '';
     if (!existingDie) {
       if (classEntries.length === 1 && classEntries[0].hitDie) {
@@ -645,13 +657,16 @@ class SummaryUI {
         this.playState.hitDice.die = classMeta.hit_die;
       }
     }
-    const isDruid = this.hasClassSlug('druid') || (classMeta && String(classMeta.slug || '').toLowerCase() === 'druid');
-    if (isDruid) {
-      if (!Number.isFinite(this.playState.wildShape.max) || this.playState.wildShape.max < 2) {
-        this.playState.wildShape.max = 2;
-      }
-      if (!Number.isFinite(this.playState.wildShape.remaining)) {
-        this.playState.wildShape.remaining = this.playState.wildShape.max;
+    if (!this.playState.wildShape || typeof this.playState.wildShape !== 'object') {
+      this.playState.wildShape = { max: 0, remaining: 0 };
+    }
+    if (druidLevel >= 2) {
+      const wildShapeUses = 2;
+      this.playState.wildShape.max = wildShapeUses;
+      if (!Number.isFinite(this.playState.wildShape.remaining) || this.playState.wildShape.remaining > wildShapeUses) {
+        this.playState.wildShape.remaining = wildShapeUses;
+      } else {
+        this.playState.wildShape.remaining = Math.max(0, this.playState.wildShape.remaining);
       }
     } else {
       this.playState.wildShape.max = 0;
@@ -721,6 +736,8 @@ class SummaryUI {
       }
     }
 
+    this.ensureClassResourceDefaults();
+
     if (!this.playState.spellcasting || typeof this.playState.spellcasting !== 'object') {
       this.playState.spellcasting = { prepared: '', known: '', notes: '', slots: {} };
     }
@@ -784,6 +801,81 @@ class SummaryUI {
     savePlayState(this.playState);
   }
 
+  getClassLevelBySlug(slug) {
+    if (!slug) return 0;
+    const target = String(slug).trim().toLowerCase();
+    if (!target) return 0;
+    return this.getClassEntries().reduce((total, entry) => {
+      const candidates = [];
+      if (entry.slug) candidates.push(String(entry.slug).toLowerCase());
+      if (entry.meta?.slug) candidates.push(String(entry.meta.slug).toLowerCase());
+      if (entry.meta?.id) candidates.push(String(entry.meta.id).toLowerCase());
+      if (entry.class) candidates.push(String(entry.class).toLowerCase());
+      if (entry.name) candidates.push(String(entry.name).toLowerCase());
+      const match = candidates.includes(target);
+      const level = Number.isFinite(entry.level) ? entry.level : 0;
+      return match ? total + level : total;
+    }, 0);
+  }
+
+  ensureClassResourceDefaults() {
+    if (!this.playState.arcaneRecovery || typeof this.playState.arcaneRecovery !== 'object') {
+      this.playState.arcaneRecovery = { max: 0, remaining: 0, slotLevelCap: 5 };
+    }
+    if (!this.playState.channelDivinity || typeof this.playState.channelDivinity !== 'object') {
+      this.playState.channelDivinity = {
+        cleric: { max: 0, remaining: 0 },
+        paladin: { max: 0, remaining: 0 }
+      };
+    }
+    if (!this.playState.channelDivinity.cleric || typeof this.playState.channelDivinity.cleric !== 'object') {
+      this.playState.channelDivinity.cleric = { max: 0, remaining: 0 };
+    }
+    if (!this.playState.channelDivinity.paladin || typeof this.playState.channelDivinity.paladin !== 'object') {
+      this.playState.channelDivinity.paladin = { max: 0, remaining: 0 };
+    }
+    if (!this.playState.layOnHands || typeof this.playState.layOnHands !== 'object') {
+      this.playState.layOnHands = { max: 0, remaining: 0 };
+    }
+
+    const wizardLevel = this.getClassLevelBySlug('wizard');
+    const clericLevel = this.getClassLevelBySlug('cleric');
+    const paladinLevel = this.getClassLevelBySlug('paladin');
+
+    const arcaneBudget = wizardLevel > 0 ? Math.ceil(wizardLevel / 2) : 0;
+    this.playState.arcaneRecovery.max = arcaneBudget;
+    this.playState.arcaneRecovery.slotLevelCap = 5;
+    if (!Number.isFinite(this.playState.arcaneRecovery.remaining) || this.playState.arcaneRecovery.remaining > arcaneBudget || arcaneBudget === 0) {
+      this.playState.arcaneRecovery.remaining = arcaneBudget;
+    } else {
+      this.playState.arcaneRecovery.remaining = clamp(this.playState.arcaneRecovery.remaining, 0, arcaneBudget);
+    }
+
+    const clericUses = clericLevel >= 2 ? 1 + (clericLevel >= 6 ? 1 : 0) + (clericLevel >= 18 ? 1 : 0) : 0;
+    this.playState.channelDivinity.cleric.max = clericUses;
+    if (!Number.isFinite(this.playState.channelDivinity.cleric.remaining) || this.playState.channelDivinity.cleric.remaining > clericUses || clericUses === 0) {
+      this.playState.channelDivinity.cleric.remaining = clericUses;
+    } else {
+      this.playState.channelDivinity.cleric.remaining = clamp(this.playState.channelDivinity.cleric.remaining, 0, clericUses);
+    }
+
+    const paladinUses = paladinLevel >= 3 ? 1 : 0;
+    this.playState.channelDivinity.paladin.max = paladinUses;
+    if (!Number.isFinite(this.playState.channelDivinity.paladin.remaining) || this.playState.channelDivinity.paladin.remaining > paladinUses || paladinUses === 0) {
+      this.playState.channelDivinity.paladin.remaining = paladinUses;
+    } else {
+      this.playState.channelDivinity.paladin.remaining = clamp(this.playState.channelDivinity.paladin.remaining, 0, paladinUses);
+    }
+
+    const layOnHandsMax = paladinLevel >= 2 ? paladinLevel * 5 : 0;
+    this.playState.layOnHands.max = layOnHandsMax;
+    if (!Number.isFinite(this.playState.layOnHands.remaining) || this.playState.layOnHands.remaining > layOnHandsMax || layOnHandsMax === 0) {
+      this.playState.layOnHands.remaining = layOnHandsMax;
+    } else {
+      this.playState.layOnHands.remaining = clamp(this.playState.layOnHands.remaining, 0, layOnHandsMax);
+    }
+  }
+
   updatePlayState(path, value) {
     const segments = path.split('.');
     let target = this.playState;
@@ -817,6 +909,22 @@ class SummaryUI {
     if (path.startsWith('wildShape.')) {
       this.playState.wildShape.max = Math.max(0, this.playState.wildShape.max);
       this.playState.wildShape.remaining = Math.max(0, Math.min(this.playState.wildShape.max, this.playState.wildShape.remaining));
+    }
+    if (path.startsWith('arcaneRecovery.')) {
+      this.playState.arcaneRecovery.max = Math.max(0, this.playState.arcaneRecovery.max);
+      this.playState.arcaneRecovery.remaining = clamp(this.playState.arcaneRecovery.remaining, 0, this.playState.arcaneRecovery.max);
+    }
+    if (path.startsWith('channelDivinity.')) {
+      const [, branch] = path.split('.');
+      const entry = this.playState.channelDivinity?.[branch];
+      if (entry) {
+        entry.max = Math.max(0, entry.max);
+        entry.remaining = clamp(entry.remaining, 0, entry.max);
+      }
+    }
+    if (path.startsWith('layOnHands.')) {
+      this.playState.layOnHands.max = Math.max(0, this.playState.layOnHands.max);
+      this.playState.layOnHands.remaining = clamp(this.playState.layOnHands.remaining, 0, this.playState.layOnHands.max);
     }
     savePlayState(this.playState);
     this.render();
@@ -1198,6 +1306,69 @@ class SummaryUI {
     this.render();
   }
 
+  getResourceState(path) {
+    if (!path) return null;
+    const segments = path.split('.');
+    let target = this.playState;
+    while (segments.length) {
+      const key = segments.shift();
+      if (!target || typeof target !== 'object' || !(key in target)) {
+        return null;
+      }
+      target = target[key];
+    }
+    if (!target || typeof target !== 'object') {
+      return null;
+    }
+    if (!Number.isFinite(target.max)) {
+      target.max = 0;
+    }
+    if (!Number.isFinite(target.remaining)) {
+      target.remaining = target.max;
+    }
+    return target;
+  }
+
+  handleResourceAction(action, target) {
+    if (!target || !(target instanceof HTMLElement)) return;
+    const path = target.dataset.resourcePath;
+    if (!path) return;
+    const resource = this.getResourceState(path);
+    if (!resource) return;
+    const stepRaw = target.dataset.resourceStep;
+    const stepValue = Number.parseFloat(stepRaw);
+    const step = Number.isFinite(stepValue) && stepValue > 0 ? stepValue : 1;
+    const needsPrompt = target.dataset.resourcePrompt === 'true';
+    const message = target.dataset.resourceMessage || '';
+    if (action === 'reset') {
+      resource.remaining = resource.max;
+    } else if (action === 'spend' || action === 'recover') {
+      let amount = step;
+      if (needsPrompt) {
+        const defaultValue = amount || 1;
+        const promptMessage = message || (action === 'spend' ? 'Spend how many points?' : 'Recover how many points?');
+        const response = window.prompt(promptMessage, defaultValue);
+        if (response === null) {
+          return;
+        }
+        const parsed = Number.parseFloat(response);
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+          this.toast('Enter a positive number to adjust this resource.');
+          return;
+        }
+        amount = parsed;
+      }
+      if (action === 'spend') {
+        resource.remaining = Math.max(0, resource.remaining - amount);
+      } else {
+        resource.remaining = Math.min(resource.max, resource.remaining + amount);
+      }
+    }
+    resource.remaining = clamp(resource.remaining, 0, resource.max);
+    savePlayState(this.playState);
+    this.render();
+  }
+
   updateSkillToggle(skillId, field, value) {
     if (!skillId || !['proficient', 'expertise'].includes(field)) return;
     const state = this.getSkillState(skillId);
@@ -1461,7 +1632,7 @@ class SummaryUI {
   }
 
   performRest(type) {
-    const level = this.getLevel();
+    this.ensureClassResourceDefaults();
     const now = new Date();
     const logEntry = { type, at: now.toISOString() };
     if (type === 'short') {
@@ -1470,6 +1641,14 @@ class SummaryUI {
       this.playState.hitDice.available = Math.max(0, this.playState.hitDice.available - spend);
       if (this.playState.wildShape.max > 0) {
         this.playState.wildShape.remaining = this.playState.wildShape.max;
+      }
+      const clericChannel = this.playState.channelDivinity?.cleric;
+      if (clericChannel && clericChannel.max > 0) {
+        clericChannel.remaining = clericChannel.max;
+      }
+      const paladinChannel = this.playState.channelDivinity?.paladin;
+      if (paladinChannel && paladinChannel.max > 0) {
+        paladinChannel.remaining = paladinChannel.max;
       }
       this.resetCounters('short');
       this.toast('Short rest complete. Update hit dice and reset features.');
@@ -1480,6 +1659,20 @@ class SummaryUI {
       this.playState.hitDice.available = Math.min(this.playState.hitDice.total, this.playState.hitDice.available + recovery);
       if (this.playState.wildShape.max > 0) {
         this.playState.wildShape.remaining = this.playState.wildShape.max;
+      }
+      if (this.playState.arcaneRecovery.max > 0) {
+        this.playState.arcaneRecovery.remaining = this.playState.arcaneRecovery.max;
+      }
+      const clericChannel = this.playState.channelDivinity?.cleric;
+      if (clericChannel && clericChannel.max > 0) {
+        clericChannel.remaining = clericChannel.max;
+      }
+      const paladinChannel = this.playState.channelDivinity?.paladin;
+      if (paladinChannel && paladinChannel.max > 0) {
+        paladinChannel.remaining = paladinChannel.max;
+      }
+      if (this.playState.layOnHands.max > 0) {
+        this.playState.layOnHands.remaining = this.playState.layOnHands.max;
       }
       if (this.playState.spellcasting && this.playState.spellcasting.slots) {
         Object.values(this.playState.spellcasting.slots).forEach((slot) => {
@@ -1819,17 +2012,137 @@ class SummaryUI {
     `;
     resourceGrid.appendChild(deathCard);
 
-    if (this.playState.wildShape.max > 0) {
-      const wildShapeCard = createElement('div', 'resource-card');
-      wildShapeCard.innerHTML = `
-        <h4>Wild Shape</h4>
-        <label>Remaining <input type="number" data-type="number" data-track="wildShape.remaining" value="${this.playState.wildShape.remaining}" min="0"></label>
-        <label>Maximum <input type="number" data-type="number" data-track="wildShape.max" value="${this.playState.wildShape.max}" min="0"></label>
+    const trackedResources = this.getTrackedClassResources();
+    trackedResources.forEach((resource) => {
+      const card = createElement('div', 'resource-card special-resource-card');
+      const spendAttrs = [`data-resource-action="spend"`, `data-resource-path="${resource.path}"`];
+      if (resource.step && resource.step !== 1) {
+        spendAttrs.push(`data-resource-step="${resource.step}"`);
+      }
+      if (resource.promptSpend) {
+        spendAttrs.push('data-resource-prompt="true"');
+        if (resource.promptSpendMessage) {
+          spendAttrs.push(`data-resource-message="${resource.promptSpendMessage}"`);
+        }
+      }
+      const recoverAttrs = [`data-resource-action="recover"`, `data-resource-path="${resource.path}"`];
+      if (resource.step && resource.step !== 1) {
+        recoverAttrs.push(`data-resource-step="${resource.step}"`);
+      }
+      if (resource.promptRecover) {
+        recoverAttrs.push('data-resource-prompt="true"');
+        if (resource.promptRecoverMessage) {
+          recoverAttrs.push(`data-resource-message="${resource.promptRecoverMessage}"`);
+        }
+      }
+      card.innerHTML = `
+        <h4>${resource.label}</h4>
+        <div class="resource-metric">
+          <strong>${resource.remaining}</strong>
+          <span>of ${resource.max} remaining</span>
+        </div>
+        <div class="resource-inputs">
+          <label>Remaining <input type="number" data-type="number" data-track="${resource.path}.remaining" value="${resource.remaining}" min="0" max="${resource.max}"></label>
+          <label>Maximum <input type="number" data-type="number" data-track="${resource.path}.max" value="${resource.max}" min="0"></label>
+        </div>
+        ${resource.detail ? `<p class="resource-note">${resource.detail}</p>` : ''}
+        <div class="resource-buttons">
+          <button type="button" ${spendAttrs.join(' ')}>Spend</button>
+          <button type="button" ${recoverAttrs.join(' ')}>Recover</button>
+          <button type="button" data-resource-action="reset" data-resource-path="${resource.path}">Reset</button>
+        </div>
+        ${resource.refresh ? `<p class="resource-refresh">${resource.refresh}</p>` : ''}
       `;
-      resourceGrid.appendChild(wildShapeCard);
-    }
+      resourceGrid.appendChild(card);
+    });
 
     container.appendChild(resourceGrid);
+  }
+
+  getTrackedClassResources() {
+    const resources = [];
+    const wizardLevel = this.getClassLevelBySlug('wizard');
+    const clericLevel = this.getClassLevelBySlug('cleric');
+    const paladinLevel = this.getClassLevelBySlug('paladin');
+    const druidLevel = this.getClassLevelBySlug('druid');
+
+    if (this.playState.arcaneRecovery?.max > 0) {
+      const slotCap = this.playState.arcaneRecovery.slotLevelCap || 5;
+      resources.push({
+        id: 'arcaneRecovery',
+        path: 'arcaneRecovery',
+        label: 'Arcane Recovery',
+        remaining: this.playState.arcaneRecovery.remaining,
+        max: this.playState.arcaneRecovery.max,
+        detail: `Wizard level ${wizardLevel}: recover spell slots totaling ${this.playState.arcaneRecovery.max} levels (≤${slotCap}th level).`,
+        refresh: 'Refreshes on a long rest.',
+        promptSpend: true,
+        promptRecover: true,
+        promptSpendMessage: 'Spend how many spell levels from Arcane Recovery?',
+        promptRecoverMessage: 'Recover how many spell levels toward Arcane Recovery?',
+        step: 1
+      });
+    }
+
+    const clericChannel = this.playState.channelDivinity?.cleric;
+    if (clericChannel && clericChannel.max > 0) {
+      resources.push({
+        id: 'channelDivinityCleric',
+        path: 'channelDivinity.cleric',
+        label: 'Channel Divinity (Cleric)',
+        remaining: clericChannel.remaining,
+        max: clericChannel.max,
+        detail: `Cleric level ${clericLevel}: uses refresh on short or long rests.`,
+        refresh: 'Refreshes on short or long rest.',
+        step: 1
+      });
+    }
+
+    const paladinChannel = this.playState.channelDivinity?.paladin;
+    if (paladinChannel && paladinChannel.max > 0) {
+      resources.push({
+        id: 'channelDivinityPaladin',
+        path: 'channelDivinity.paladin',
+        label: 'Channel Divinity (Paladin)',
+        remaining: paladinChannel.remaining,
+        max: paladinChannel.max,
+        detail: `Paladin level ${paladinLevel}: use once per short or long rest.`,
+        refresh: 'Refreshes on short or long rest.',
+        step: 1
+      });
+    }
+
+    if (this.playState.layOnHands?.max > 0) {
+      resources.push({
+        id: 'layOnHands',
+        path: 'layOnHands',
+        label: 'Lay on Hands',
+        remaining: this.playState.layOnHands.remaining,
+        max: this.playState.layOnHands.max,
+        detail: `Paladin level ${paladinLevel}: pool of ${this.playState.layOnHands.max} hit points.`,
+        refresh: 'Refreshes on a long rest.',
+        promptSpend: true,
+        promptRecover: true,
+        promptSpendMessage: 'Heal how many hit points from Lay on Hands?',
+        promptRecoverMessage: 'Recover how many hit points to Lay on Hands?',
+        step: 1
+      });
+    }
+
+    if (this.playState.wildShape?.max > 0) {
+      resources.push({
+        id: 'wildShape',
+        path: 'wildShape',
+        label: 'Wild Shape',
+        remaining: this.playState.wildShape.remaining,
+        max: this.playState.wildShape.max,
+        detail: `Druid level ${druidLevel}: ${this.playState.wildShape.max} uses per rest.`,
+        refresh: 'Refreshes on short or long rest.',
+        step: 1
+      });
+    }
+
+    return resources;
   }
 
   renderSpellcasting() {
