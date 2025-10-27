@@ -18,6 +18,7 @@
   const DB_VERSION = 1;
   const PACK_STORE = 'packs';
   const USER_STORE = 'userPacks';
+  const SERVICE_WORKER_URL = '/sw.js';
 
   function createEmptyData() {
     return {
@@ -57,7 +58,8 @@
         feats: [],
         items: [],
         rules: []
-      }
+      },
+      loadedPacks: []
     };
   }
 
@@ -66,6 +68,8 @@
   let initialised = false;
   let lastDetail = createFallbackDetail();
   const listeners = new Set();
+  let serviceWorkerRegistrationStarted = false;
+  let pendingPackEntries = [];
 
   function slugify(value) {
     return value
@@ -90,6 +94,78 @@
       }
     });
     return clone;
+  }
+
+  function buildPackCacheEntries(loadedPacks) {
+    if (!Array.isArray(loadedPacks) || !loadedPacks.length) {
+      return [];
+    }
+    const urlMap = new Map();
+    loadedPacks.forEach((pack) => {
+      if (!pack || typeof pack !== 'object') return;
+      const path = typeof pack.path === 'string' ? pack.path.trim() : '';
+      if (!path) return;
+      let base = path.endsWith('/') ? path.slice(0, -1) : path;
+      if (!/^https?:/i.test(base) && !base.startsWith('/')) {
+        base = `/${base}`;
+      }
+      if (!base) return;
+      const files = Array.isArray(pack.files) ? pack.files : [];
+      files.forEach((file) => {
+        const clean = typeof file === 'string' ? file.replace(/\.json$/i, '').trim() : '';
+        if (!clean) return;
+        const url = `${base}/${clean}.json`;
+        const revisionParts = [];
+        if (typeof pack.version === 'string' && pack.version.trim()) {
+          revisionParts.push(pack.version.trim());
+        }
+        if (pack.updatedAt) {
+          revisionParts.push(String(pack.updatedAt));
+        } else if (pack.addedAt) {
+          revisionParts.push(String(pack.addedAt));
+        }
+        const revision = revisionParts.join(':');
+        urlMap.set(url, revision);
+      });
+    });
+    return Array.from(urlMap.entries()).map(([url, revision]) => ({ urls: [url], revision }));
+  }
+
+  function flushPackCacheUpdate() {
+    if (!('serviceWorker' in navigator)) return;
+    const controller = navigator.serviceWorker.controller;
+    if (!controller) return;
+    controller.postMessage({ type: 'packs:update', entries: pendingPackEntries });
+  }
+
+  function queuePackCacheUpdate(loadedPacks) {
+    pendingPackEntries = buildPackCacheEntries(loadedPacks);
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      flushPackCacheUpdate();
+    }
+  }
+
+  function registerServiceWorker() {
+    if (serviceWorkerRegistrationStarted || !('serviceWorker' in navigator)) {
+      return;
+    }
+    serviceWorkerRegistrationStarted = true;
+    navigator.serviceWorker
+      .register(SERVICE_WORKER_URL)
+      .then(() => {
+        flushPackCacheUpdate();
+      })
+      .catch((error) => {
+        console.warn('Service worker registration failed', error);
+      });
+    navigator.serviceWorker.ready
+      .then(() => {
+        flushPackCacheUpdate();
+      })
+      .catch(() => {});
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      flushPackCacheUpdate();
+    });
   }
 
   function openDatabase() {
@@ -528,11 +604,12 @@
     const builder = createBuilderView(merged);
     const compendium = createCompendiumView(merged);
 
-    return { manifest, merged, builder, compendium };
+    return { manifest, merged, builder, compendium, loadedPacks: packs };
   }
 
   function applyState(detail) {
     lastDetail = detail;
+    queuePackCacheUpdate(Array.isArray(detail?.loadedPacks) ? detail.loadedPacks : []);
     window.dndData = {
       packs: detail.merged.packSummaries,
       classes: detail.builder.classes,
@@ -704,6 +781,10 @@
     },
     onChange
   };
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', registerServiceWorker, { once: true });
+  }
 
   const ready = ensureReady();
   window.dnd = api;
