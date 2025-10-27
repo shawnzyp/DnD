@@ -2,7 +2,18 @@
   'use strict';
 
   const MANIFEST_URL = '/packs/manifest.json';
-  const DEFAULT_FILES = ['classes', 'races', 'backgrounds', 'feats', 'spells', 'items', 'companions', 'rules'];
+  const DEFAULT_FILES = [
+    'classes',
+    'races',
+    'backgrounds',
+    'feats',
+    'spells',
+    'items',
+    'companions',
+    'rules',
+    'skills',
+    'monsters'
+  ];
   const TYPE_MAP = {
     classes: 'class',
     races: 'race',
@@ -11,7 +22,9 @@
     spells: 'spell',
     items: 'item',
     companions: 'creature',
-    rules: 'rule'
+    rules: 'rule',
+    skills: 'skill',
+    monsters: 'monster'
   };
 
   const DB_NAME = 'dnd-packs';
@@ -29,7 +42,9 @@
       spells: [],
       items: [],
       companions: [],
-      rules: []
+      rules: [],
+      skills: [],
+      monsters: []
     };
   }
 
@@ -50,14 +65,18 @@
         backgrounds: [],
         feats: [],
         items: [],
-        companions: []
+        companions: [],
+        skills: [],
+        monsters: []
       },
       compendium: {
         packs: [],
         spells: [],
         feats: [],
         items: [],
-        rules: []
+        rules: [],
+        skills: [],
+        monsters: []
       },
       loadedPacks: []
     };
@@ -549,7 +568,9 @@
       backgrounds: merged.data.backgrounds || [],
       feats: merged.data.feats || [],
       items: merged.data.items || [],
-      companions: merged.data.companions || []
+      companions: merged.data.companions || [],
+      skills: merged.data.skills || [],
+      monsters: merged.data.monsters || []
     };
   }
 
@@ -559,7 +580,9 @@
       spells: merged.data.spells || [],
       feats: merged.data.feats || [],
       items: merged.data.items || [],
-      rules: merged.data.rules || []
+      rules: merged.data.rules || [],
+      skills: merged.data.skills || [],
+      monsters: merged.data.monsters || []
     };
   }
 
@@ -618,6 +641,8 @@
       feats: detail.builder.feats,
       items: detail.builder.items,
       companions: detail.builder.companions,
+      skills: detail.builder.skills,
+      monsters: detail.builder.monsters,
       spells: detail.compendium.spells,
       rules: detail.compendium.rules,
       sources: detail.merged.sources,
