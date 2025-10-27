@@ -171,6 +171,7 @@ const EQUIPMENT_CATEGORIES = [
 
 const ATTUNEMENT_LIMIT = 3;
 
+const builderMain = document.getElementById('builder-main');
 const steps = Array.from(document.querySelectorAll('section.step'));
 const form = document.getElementById('builder-form');
 const indicator = document.getElementById('step-indicator');
@@ -2073,6 +2074,86 @@ async function nextStep() {
 function prevStep() {
   if (currentStep === 0) return;
   goToStep(currentStep - 1);
+}
+
+function setupSwipeNavigation() {
+  if (!builderMain) return;
+
+  const SWIPE_THRESHOLD = 80;
+  const VERTICAL_LIMIT = 60;
+  let swipeState = null;
+
+  function resetSwipe() {
+    swipeState = null;
+  }
+
+  function originatesInScrollable(target) {
+    if (!(target instanceof Element)) return false;
+    let node = target;
+    while (node && node !== builderMain) {
+      if (node instanceof HTMLElement) {
+        if (node.dataset.preventSwipe === 'true') {
+          return true;
+        }
+        const style = window.getComputedStyle(node);
+        const overflowY = style.overflowY;
+        const overflowX = style.overflowX;
+        const canScrollY = /(auto|scroll)/.test(overflowY) && node.scrollHeight > node.clientHeight + 1;
+        const canScrollX = /(auto|scroll)/.test(overflowX) && node.scrollWidth > node.clientWidth + 1;
+        if (canScrollX || canScrollY) {
+          return true;
+        }
+      }
+      node = node.parentElement;
+    }
+    return false;
+  }
+
+  builderMain.addEventListener('pointerdown', (event) => {
+    if (!event.isPrimary) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (originatesInScrollable(event.target)) {
+      resetSwipe();
+      return;
+    }
+    swipeState = {
+      id: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      cancelled: false
+    };
+  });
+
+  builderMain.addEventListener('pointermove', (event) => {
+    if (!swipeState || swipeState.id !== event.pointerId || swipeState.cancelled) return;
+    const deltaX = event.clientX - swipeState.startX;
+    const deltaY = event.clientY - swipeState.startY;
+    if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 16) {
+      swipeState.cancelled = true;
+    }
+  });
+
+  function handlePointerEnd(event) {
+    if (!swipeState || swipeState.id !== event.pointerId) return;
+    if (!swipeState.cancelled) {
+      const deltaX = event.clientX - swipeState.startX;
+      const deltaY = event.clientY - swipeState.startY;
+      if (Math.abs(deltaY) <= VERTICAL_LIMIT && deltaX <= -SWIPE_THRESHOLD) {
+        prevStep();
+      }
+    }
+    resetSwipe();
+  }
+
+  builderMain.addEventListener('pointerup', handlePointerEnd);
+  builderMain.addEventListener('pointercancel', (event) => {
+    if (!swipeState || swipeState.id !== event.pointerId) return;
+    resetSwipe();
+  });
+  builderMain.addEventListener('pointerleave', (event) => {
+    if (!swipeState || swipeState.id !== event.pointerId) return;
+    resetSwipe();
+  });
 }
 
 function handleInput() {
@@ -7131,7 +7212,7 @@ function setupCoachMarks() {
     {
       target: '#step-indicator',
       title: 'Guided builder',
-      message: 'Follow the breadcrumb and use the Next and Back buttons to move through each section of the builder.'
+      message: 'Follow the breadcrumb and use the Next and Back buttons to move through each section of the builder. Swipe right-to-left anywhere in the builder to go back a step.'
     },
     {
       target: '#builder-pack-meta',
@@ -7314,6 +7395,7 @@ async function init() {
     importStateBtn.addEventListener('click', triggerBuilderImport);
   }
 
+  setupSwipeNavigation();
   setupFinalizeActions();
   setupSummaryToggle();
   setupAboutModal();
