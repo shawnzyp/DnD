@@ -32,6 +32,28 @@
       flex-direction: column;
     }
 
+    .skip-link {
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translate(-50%, -150%);
+      padding: 0.75rem 1.25rem;
+      border-radius: 0.75rem;
+      background: rgba(10, 14, 20, 0.94);
+      color: var(--fg);
+      border: 2px solid rgba(76, 194, 255, 0.65);
+      font-weight: 600;
+      text-decoration: none;
+      z-index: 10;
+      transition: transform 160ms ease, opacity 160ms ease;
+      opacity: 0;
+    }
+
+    .skip-link:focus-visible {
+      transform: translate(-50%, 0.75rem);
+      opacity: 1;
+    }
+
     header {
       position: sticky;
       top: 0;
@@ -671,6 +693,7 @@
   </style>
 </head>
 <body data-modules="compendium">
+  <a class="skip-link" href="#main-content">Skip to main content</a>
   <header>
     <h1>Compendium</h1>
     <p id="compendium-pack-meta" class="pack-meta" aria-live="polite">Loading SRD entries…</p>
@@ -695,7 +718,7 @@
       </div>
     </div>
   </header>
-  <main>
+  <main id="main-content" tabindex="-1">
     <div class="viewport-shell">
       <div id="list-viewport" tabindex="0" role="list" aria-live="polite">
         <div id="virtual-list" class="virtual-list"></div>
