@@ -220,6 +220,79 @@
       return classes.find(entry => entry.slug === identifier || entry.id === identifier || entry.name === identifier) || null;
     }
 
+    function formatHitDiceBreakdown(hitDice) {
+      if (!hitDice) return '';
+      const entries = Object.entries(hitDice.breakdown || {})
+        .filter(([die, count]) => die && Number.isFinite(Number(count)) && Number(count) > 0)
+        .map(([die, count]) => [die, Number(count)]);
+      if (entries.length === 1) {
+        const [die, count] = entries[0];
+        return count === 1 ? die : `${die}×${count}`;
+      }
+      if (entries.length > 1) {
+        return entries.map(([die, count]) => `${die}×${count}`).join(', ');
+      }
+      return '';
+    }
+
+    function getDerivedClasses(builderState) {
+      const entries = builderState?.derived?.classes?.entries;
+      if (Array.isArray(entries) && entries.length) {
+        return entries.filter(entry => (Number.isFinite(entry.level) ? entry.level > 0 : parseNumber(entry.level, 0) > 0));
+      }
+      const fallback = builderState?.data?.class;
+      if (fallback) {
+        return [{ value: fallback, name: fallback, level: parseNumber(builderState?.data?.level, 1) }];
+      }
+      return [];
+    }
+
+    function getPrimaryClassEntry(builderState) {
+      const classes = getDerivedClasses(builderState);
+      return classes.length ? classes[0] : null;
+    }
+
+    function getPrimaryClassMeta(builderState) {
+      const primary = getPrimaryClassEntry(builderState);
+      if (!primary) return null;
+      const identifier = primary.slug || primary.id || primary.value || primary.name;
+      if (!identifier) return null;
+      return resolveClassMeta(identifier) || null;
+    }
+
+    function getTotalLevel(builderState) {
+      const derived = Number.parseInt(builderState?.derived?.classes?.totalLevel, 10);
+      if (Number.isFinite(derived) && derived > 0) {
+        return derived;
+      }
+      return parseNumber(builderState?.data?.level, 1) || 1;
+    }
+
+    function getProficiencyBonus(builderState, level) {
+      const derived = Number.parseInt(builderState?.derived?.proficiencyBonus, 10);
+      if (Number.isFinite(derived) && derived > 0) {
+        return derived;
+      }
+      const baseLevel = Number.isFinite(level) && level > 0 ? level : 1;
+      return Math.max(2, Math.floor((baseLevel - 1) / 4) + 2);
+    }
+
+    function formatClassSummary(builderState, level) {
+      const classes = getDerivedClasses(builderState);
+      if (!classes.length) {
+        const fallback = builderState?.data?.class;
+        return fallback ? `Level ${level} ${fallback}` : null;
+      }
+      const parts = classes
+        .filter(entry => (Number.isFinite(entry.level) ? entry.level > 0 : parseNumber(entry.level, 0) > 0))
+        .map(entry => `${entry.name || entry.slug || entry.value || 'Class'} ${entry.level}`);
+      if (!parts.length) {
+        const primary = classes[0];
+        return `Level ${level} ${primary.name || primary.slug || primary.value || 'Class'}`;
+      }
+      return `Level ${level} ${parts.join(' / ')}`;
+    }
+
     function loadState(key) {
       try {
         const raw = localStorage.getItem(key);
@@ -241,14 +314,14 @@
         restLog: []
       };
 
-      const classMeta = resolveClassMeta(builderState.data?.class);
+      const totalLevel = getTotalLevel(builderState);
+      const classMeta = getPrimaryClassMeta(builderState);
       const proficientSaves = new Set((classMeta && classMeta.saving_throws) || []);
-      const level = parseNumber(builderState.data?.level, 1);
-      const proficiency = Math.max(2, Math.floor((level - 1) / 4) + 2);
+      const proficiency = getProficiencyBonus(builderState, totalLevel);
 
       document.getElementById('sheet-name').textContent = builderState.data?.name || 'Unnamed Adventurer';
       const subtitleParts = [
-        builderState.data?.class ? `Level ${builderState.data?.level || 1} ${builderState.data.class}` : null,
+        formatClassSummary(builderState, totalLevel),
         builderState.data?.subclass || null,
         builderState.data?.background ? `Background: ${builderState.data.background}` : null,
         builderState.data?.alignment ? `Alignment: ${builderState.data.alignment}` : null
@@ -277,10 +350,14 @@
       });
 
       const resourcesTable = document.getElementById('resources-table');
+      const derivedHitDice = builderState?.derived?.hitDice || builderState?.derived?.classes?.hitDice;
+      const hitDiceTotal = Number.isFinite(playState.hitDice?.total) && playState.hitDice.total > 0 ? playState.hitDice.total : (derivedHitDice?.total || totalLevel || 1);
+      const hitDiceAvailable = Number.isFinite(playState.hitDice?.available) && playState.hitDice.available >= 0 ? Math.min(hitDiceTotal, playState.hitDice.available) : hitDiceTotal;
+      const hitDiceLabel = formatHitDiceBreakdown(derivedHitDice) || playState.hitDice?.die || (classMeta?.hit_die || 'd8');
       resourcesTable.innerHTML = `
         <tr><th>Resource</th><th>Value</th><th>Notes</th></tr>
         <tr><td>Hit Points</td><td>${playState.hp.current} / ${playState.hp.max}</td><td>Temp HP: ${playState.hp.temp || 0}</td></tr>
-        <tr><td>Hit Dice</td><td>${playState.hitDice.available} / ${playState.hitDice.total}</td><td>Die: ${playState.hitDice.die || 'd8'}</td></tr>
+        <tr><td>Hit Dice</td><td>${hitDiceAvailable} / ${hitDiceTotal}</td><td>Die: ${hitDiceLabel}</td></tr>
         ${playState.wildShape && playState.wildShape.max ? `<tr><td>Wild Shape</td><td>${playState.wildShape.remaining} / ${playState.wildShape.max}</td><td>Resets on short rest</td></tr>` : ''}
       `;
 

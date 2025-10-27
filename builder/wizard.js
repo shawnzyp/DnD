@@ -18,6 +18,18 @@ const abilityNameIndex = abilityFields.reduce((map, field) => {
   return map;
 }, {});
 
+const SPELLCASTING_CLASS_SLUGS = new Set([
+  'artificer',
+  'bard',
+  'cleric',
+  'druid',
+  'paladin',
+  'ranger',
+  'sorcerer',
+  'warlock',
+  'wizard'
+]);
+
 const steps = Array.from(document.querySelectorAll('section.step'));
 const form = document.getElementById('builder-form');
 const indicator = document.getElementById('step-indicator');
@@ -91,6 +103,43 @@ const history = {
 
 const stepModules = new Map();
 
+function getStepValidity(stepId) {
+  if (!stepId) {
+    return { valid: true, messages: [] };
+  }
+  const module = stepModules.get(stepId);
+  if (module && typeof module.getValidity === 'function') {
+    try {
+      const result = module.getValidity(state);
+      if (result === false) {
+        return { valid: false, messages: [] };
+      }
+      if (result && typeof result === 'object') {
+        return {
+          valid: result.valid !== false,
+          messages: Array.isArray(result.messages) ? result.messages : []
+        };
+      }
+    } catch (error) {
+      console.warn('Step validity check failed', error);
+    }
+  }
+  return { valid: true, messages: [] };
+}
+
+function updateNavigationState() {
+  if (!nextBtn) return;
+  const stepId = steps[currentStep]?.dataset.step || '';
+  const validity = getStepValidity(stepId);
+  const canProceed = validity.valid !== false;
+  nextBtn.disabled = !canProceed;
+  if (!canProceed) {
+    nextBtn.setAttribute('aria-disabled', 'true');
+  } else {
+    nextBtn.removeAttribute('aria-disabled');
+  }
+}
+
 let packData = {
   packs: [],
   classes: [],
@@ -163,6 +212,154 @@ function abilityNameToId(name) {
   return abilityNameIndex[key] || null;
 }
 
+function computeProficiencyBonus(level) {
+  const numeric = Number.parseInt(level, 10);
+  if (!Number.isFinite(numeric) || numeric <= 0) {
+    return 2;
+  }
+  return Math.max(2, Math.floor((numeric - 1) / 4) + 2);
+}
+
+function addAbilityRequirement(target, abilityName, minimum) {
+  if (!abilityName || !Number.isFinite(minimum)) return;
+  const abilityId = abilityNameToId(abilityName);
+  const label = abilityFields.find((field) => field.id === abilityId)?.label || abilityName;
+  const key = abilityId || label.toLowerCase();
+  const requirement = target.get(key);
+  const normalizedMinimum = Math.max(0, Math.round(Number(minimum)));
+  if (!requirement || requirement.minimum < normalizedMinimum) {
+    target.set(key, {
+      ability: label,
+      abilityId,
+      minimum: normalizedMinimum
+    });
+  }
+}
+
+function collectAbilityRequirementsFromValue(value, requirements) {
+  if (!value) return;
+  if (Array.isArray(value)) {
+    value.forEach((entry) => collectAbilityRequirementsFromValue(entry, requirements));
+    return;
+  }
+  if (typeof value === 'object') {
+    if (typeof value.minimum === 'number' && (value.ability || value.name)) {
+      addAbilityRequirement(requirements, value.ability || value.name, value.minimum);
+    }
+    Object.entries(value).forEach(([key, entryValue]) => {
+      if (key === 'minimum' || key === 'ability' || key === 'name') return;
+      if (typeof entryValue === 'number') {
+        addAbilityRequirement(requirements, key, entryValue);
+      } else {
+        collectAbilityRequirementsFromValue(entryValue, requirements);
+      }
+    });
+    return;
+  }
+  if (typeof value === 'string') {
+    abilityFields.forEach((field) => {
+      const regex = new RegExp(`${field.label}\\s*(\\d{1,2})`, 'i');
+      const match = value.match(regex);
+      if (match) {
+        addAbilityRequirement(requirements, field.label, Number.parseInt(match[1], 10));
+      }
+    });
+  }
+}
+
+function extractAbilityRequirementsFromMeta(meta) {
+  if (!meta) return [];
+  const requirements = new Map();
+  const sources = [
+    meta.prerequisites,
+    meta.requirements,
+    meta.multiclassing,
+    meta.multiclassing?.prerequisites,
+    meta.multiclassing?.ability_requirements,
+    meta.multiclassing?.ability_score_prerequisites,
+    meta.multiclass_requirements
+  ];
+  sources.forEach((source) => collectAbilityRequirementsFromValue(source, requirements));
+  if (Array.isArray(meta.prerequisites)) {
+    collectAbilityRequirementsFromValue(meta.prerequisites, requirements);
+  }
+  if (Array.isArray(meta.requirements)) {
+    collectAbilityRequirementsFromValue(meta.requirements, requirements);
+  }
+  return Array.from(requirements.values());
+}
+
+function valueContainsSpellRequirement(value) {
+  if (!value) return false;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return /ability to cast|spellcasting|cast at least one spell/i.test(value);
+  }
+  if (Array.isArray(value)) {
+    return value.some((entry) => valueContainsSpellRequirement(entry));
+  }
+  if (typeof value === 'object') {
+    return Object.values(value).some((entry) => valueContainsSpellRequirement(entry));
+  }
+  return false;
+}
+
+function entryRequiresSpellcasting(meta) {
+  if (!meta) return false;
+  if (valueContainsSpellRequirement(meta.requires_spellcasting)) return true;
+  if (valueContainsSpellRequirement(meta?.prerequisites?.requires_spellcasting)) return true;
+  if (valueContainsSpellRequirement(meta?.prerequisites?.spellcasting)) return true;
+  if (valueContainsSpellRequirement(meta?.multiclassing?.requires_spellcasting)) return true;
+  if (valueContainsSpellRequirement(meta?.multiclassing?.prerequisites)) return true;
+  if (valueContainsSpellRequirement(meta?.prerequisites)) return true;
+  if (valueContainsSpellRequirement(meta?.requirements)) return true;
+  if (valueContainsSpellRequirement(meta?.prerequisite)) return true;
+  if (valueContainsSpellRequirement(meta?.prerequisite_text)) return true;
+  return false;
+}
+
+function classProvidesSpellcasting(meta, identifier) {
+  const slug = (meta?.slug || meta?.id || identifier || '').toString().toLowerCase();
+  if (slug && SPELLCASTING_CLASS_SLUGS.has(slug)) {
+    return true;
+  }
+  if (!meta) {
+    return false;
+  }
+  if (
+    meta.spellcasting ||
+    meta.spellcasting_progression ||
+    meta.pact_magic ||
+    meta.spell_slots ||
+    meta.can_cast_spells
+  ) {
+    return true;
+  }
+  if (Array.isArray(meta.features)) {
+    const hasFeature = meta.features.some((feature) => {
+      if (!feature) return false;
+      if (typeof feature === 'string') {
+        return /spellcasting/i.test(feature);
+      }
+      if (typeof feature === 'object') {
+        return /spellcasting/i.test(feature.name || feature.slug || feature.title || '');
+      }
+      return false;
+    });
+    if (hasFeature) return true;
+  }
+  if (Array.isArray(meta.tags) && meta.tags.some((tag) => /spellcasting|spell/i.test(tag))) {
+    return true;
+  }
+  if (typeof meta.summary === 'string' && /spellcasting|cast spells|spell slots/i.test(meta.summary)) {
+    return true;
+  }
+  if (typeof meta.description === 'string' && /spellcasting|cast spells|spell slots/i.test(meta.description)) {
+    return true;
+  }
+  return false;
+}
+
 function findEntry(list, value) {
   if (!Array.isArray(list) || !value) return null;
   const target = String(value).toLowerCase();
@@ -199,6 +396,51 @@ function computeAbilityBonuses(formData) {
   return bonuses;
 }
 
+function normalizeClassEntries(formData) {
+  const normalized = [];
+  const fallbackLevel = Math.max(1, Number.parseInt(formData?.level, 10) || 1);
+  const rawClasses = formData?.classes;
+  if (Array.isArray(rawClasses)) {
+    rawClasses.forEach((entry) => {
+      if (!entry) return;
+      if (typeof entry === 'object') {
+        const levelValue = Number.isFinite(entry.level) ? entry.level : Number.parseInt(entry.level, 10);
+        normalized.push({
+          value: entry.value || entry.slug || entry.id || entry.name || '',
+          slug: entry.slug || null,
+          id: entry.id || null,
+          name: entry.name || '',
+          level: Number.isFinite(levelValue) && levelValue > 0 ? levelValue : 1,
+          hitDie: entry.hitDie || entry.hit_die || null,
+          sourceId: entry.sourceId || entry.source?.id || null
+        });
+      } else if (typeof entry === 'string') {
+        normalized.push({
+          value: entry,
+          slug: null,
+          id: null,
+          name: entry,
+          level: fallbackLevel,
+          hitDie: null,
+          sourceId: null
+        });
+      }
+    });
+  }
+  if (!normalized.length && formData?.class) {
+    normalized.push({
+      value: formData.class,
+      slug: null,
+      id: null,
+      name: formData.class,
+      level: fallbackLevel,
+      hitDie: null,
+      sourceId: null
+    });
+  }
+  return normalized;
+}
+
 function computeDerivedState(formData) {
   const derived = { abilities: {} };
   const bonuses = computeAbilityBonuses(formData);
@@ -218,6 +460,56 @@ function computeDerivedState(formData) {
       }))
     };
   });
+  const classEntries = normalizeClassEntries(formData);
+  const packClasses = getPackData().classes || [];
+  const derivedClasses = [];
+  const hitDiceBreakdown = {};
+  let hitDiceTotal = 0;
+  classEntries.forEach((entry) => {
+    if (!entry.value) return;
+    const meta =
+      findEntry(packClasses, entry.value) ||
+      (entry.slug ? findEntry(packClasses, entry.slug) : null) ||
+      (entry.id ? findEntry(packClasses, entry.id) : null) ||
+      (entry.name ? findEntry(packClasses, entry.name) : null);
+    const slug = meta?.slug || entry.slug || entry.value;
+    const id = meta?.id || entry.id || slug || entry.value;
+    const level = Math.max(0, Number.isFinite(entry.level) ? entry.level : Number.parseInt(entry.level, 10) || 0);
+    const hitDie = entry.hitDie || meta?.hit_die || null;
+    const sourceId = entry.sourceId || meta?.sourceId || meta?.source?.id || null;
+    const providesSpellcasting = classProvidesSpellcasting(meta, slug || id);
+    derivedClasses.push({
+      id,
+      slug,
+      value: entry.value,
+      name: entry.name || meta?.name || (typeof entry.value === 'string' ? entry.value : 'Class'),
+      level,
+      hitDie,
+      sourceId,
+      providesSpellcasting,
+      proficiencyBonus: 0
+    });
+    if (hitDie) {
+      hitDiceBreakdown[hitDie] = (hitDiceBreakdown[hitDie] || 0) + level;
+    }
+    hitDiceTotal += level;
+  });
+  const totalLevel = Math.max(1, Number.parseInt(formData?.level, 10) || hitDiceTotal || 1);
+  const proficiencyBonus = computeProficiencyBonus(totalLevel);
+  derivedClasses.forEach((entry) => {
+    entry.proficiencyBonus = proficiencyBonus;
+  });
+  derived.classes = {
+    totalLevel,
+    proficiencyBonus,
+    entries: derivedClasses,
+    hitDice: {
+      total: hitDiceTotal || totalLevel,
+      breakdown: hitDiceBreakdown
+    }
+  };
+  derived.proficiencyBonus = proficiencyBonus;
+  derived.hitDice = derived.classes.hitDice;
   return derived;
 }
 function updateProgressIndicator() {
@@ -324,7 +616,9 @@ function populateDynamicOptions() {
   const data = getPackData();
   if (form && form.elements) {
     const classField = form.elements.namedItem('class');
-    populateSelectOptions(classField, data.classes || [], 'Choose a class');
+    if (classField instanceof HTMLSelectElement) {
+      populateSelectOptions(classField, data.classes || [], 'Choose a class');
+    }
     const raceField = form.elements.namedItem('race');
     populateSelectOptions(raceField, data.races || [], 'Choose a race');
     const familiarField = form.elements.namedItem('familiarType');
@@ -446,8 +740,24 @@ function serializeForm() {
   const formData = new FormData(form);
   const data = {};
   for (const [key, value] of formData.entries()) {
+    if (key.endsWith('[]')) {
+      const base = key.slice(0, -2);
+      if (!Array.isArray(data[base])) {
+        data[base] = [];
+      }
+      data[base].push(value);
+      continue;
+    }
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      if (!Array.isArray(data[key])) {
+        data[key] = [data[key]];
+      }
+      data[key].push(value);
+      continue;
+    }
     data[key] = value;
   }
+  notifyModules('onSerialize', data, formData);
   return data;
 }
 
@@ -525,7 +835,12 @@ async function persistState(options = {}) {
 
   const stepId = steps[currentStep]?.dataset.step || null;
   if (markCompleted && stepId) {
-    markStepCompleted(stepId);
+    const validity = getStepValidity(stepId);
+    if (validity.valid !== false) {
+      markStepCompleted(stepId);
+    } else {
+      state.completedSteps = state.completedSteps.filter((id) => id !== stepId);
+    }
   }
 
   state.currentStepIndex = currentStep;
@@ -552,6 +867,7 @@ async function persistState(options = {}) {
 
   updateProgressIndicator();
   notifyModules('onStatePersisted', state);
+  updateNavigationState();
 }
 
 function hydrateForm(data) {
@@ -570,6 +886,7 @@ function hydrateForm(data) {
   state = merged;
 
   Object.entries(state.data).forEach(([key, value]) => {
+    if (value !== null && typeof value === 'object') return;
     const field = form.elements.namedItem(key);
     if (!field) return;
     if (field instanceof RadioNodeList) {
@@ -577,13 +894,14 @@ function hydrateForm(data) {
         radio.checked = radio.value === value;
       });
     } else {
-      field.value = value;
+      field.value = value != null ? String(value) : '';
     }
   });
 
   currentStep = state.currentStepIndex || 0;
   notifyModules('onStateHydrated', state);
   updateProgressIndicator();
+  updateNavigationState();
 }
 
 async function loadState() {
@@ -631,6 +949,7 @@ function renderStep(index) {
     element: stepElement,
     title
   });
+  updateNavigationState();
 }
 
 function goToStep(index, { skipPersist = false } = {}) {
@@ -651,7 +970,23 @@ function goToStep(index, { skipPersist = false } = {}) {
 }
 
 async function nextStep() {
-  await persistState();
+  const stepId = steps[currentStep]?.dataset.step || null;
+  await persistState({ markCompleted: false });
+  const validity = getStepValidity(stepId);
+  if (validity.valid === false) {
+    updateNavigationState();
+    return;
+  }
+  if (stepId) {
+    markStepCompleted(stepId);
+    await persistState({
+      skipSerialization: true,
+      skipHistory: true,
+      skipDispatch: true,
+      markCompleted: false,
+      preserveTimestamp: true
+    });
+  }
   if (currentStep < steps.length - 1) {
     goToStep(currentStep + 1);
   } else {
@@ -782,46 +1117,568 @@ const identityModule = (() => {
 })();
 
 const classModule = (() => {
+  let section = null;
   let summaryNode = null;
-  let classSelect = null;
+  let listNode = null;
+  let addButton = null;
+  let warningsNode = null;
+  let levelInput = null;
+  const rows = [];
+  let lastValidation = { valid: false, messages: [] };
 
-  function render(data) {
+  function getTotalLevel() {
+    if (!levelInput) return 1;
+    const parsed = Number.parseInt(levelInput.value, 10);
+    const clamped = Number.isFinite(parsed) ? Math.min(20, Math.max(1, parsed)) : 1;
+    if (String(clamped) !== levelInput.value) {
+      levelInput.value = String(clamped);
+    }
+    return clamped;
+  }
+
+  function updateRowOrder() {
+    rows.forEach((row, index) => {
+      row.node.dataset.primary = index === 0 ? 'true' : 'false';
+    });
+  }
+
+  function updateRemoveButtons() {
+    rows.forEach((row, index) => {
+      if (!row.removeButton) return;
+      const hide = rows.length <= 1 || index === 0;
+      row.removeButton.hidden = hide;
+      row.removeButton.disabled = hide;
+    });
+  }
+
+  function updateAddButtonState() {
+    if (!addButton) return;
+    const total = getTotalLevel();
+    const canAdd = total >= 2 && rows.length < total;
+    addButton.hidden = !canAdd;
+    addButton.disabled = !canAdd;
+  }
+
+  function updateSelectOptions(row, preferredValue, preferredLabel) {
+    if (!row || !row.select) return;
+    const select = row.select;
+    const { classes = [] } = getPackData();
+    const currentValue = preferredValue ?? row.storedValue ?? select.value ?? '';
+    const currentLabel = preferredLabel ?? row.customLabel ?? select.selectedOptions[0]?.textContent || '';
+    const scrollTop = select.scrollTop;
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Choose a class';
+    select.appendChild(placeholder);
+    classes.forEach((entry) => {
+      const option = document.createElement('option');
+      option.value = entry.slug || entry.id || entry.name;
+      option.textContent = entry.name || option.value;
+      if (entry.source && entry.source.name) {
+        option.dataset.source = entry.source.name;
+      }
+      select.appendChild(option);
+    });
+    if (currentValue) {
+      select.value = currentValue;
+      if (select.value !== currentValue) {
+        const custom = document.createElement('option');
+        custom.value = currentValue;
+        custom.textContent = currentLabel || currentValue;
+        custom.dataset.custom = 'true';
+        select.appendChild(custom);
+        select.value = currentValue;
+      }
+    } else {
+      select.value = '';
+    }
+    row.storedValue = select.value;
+    row.customLabel = select.selectedOptions[0]?.textContent || currentLabel || '';
+    select.scrollTop = scrollTop;
+  }
+
+  function createRow(initial = {}) {
+    if (!listNode) return null;
+    const node = document.createElement('div');
+    node.className = 'class-row';
+
+    const fields = document.createElement('div');
+    fields.className = 'class-row-fields';
+
+    const classLabel = document.createElement('label');
+    classLabel.textContent = 'Class';
+    const select = document.createElement('select');
+    select.name = 'classes[]';
+    classLabel.appendChild(select);
+
+    const levelLabel = document.createElement('label');
+    levelLabel.textContent = 'Levels';
+    const levelField = document.createElement('input');
+    levelField.type = 'number';
+    levelField.name = 'classLevels[]';
+    levelField.min = '1';
+    levelField.max = '20';
+    levelField.step = '1';
+    levelField.value = String(Math.max(1, Number.parseInt(initial.level, 10) || 1));
+    levelLabel.appendChild(levelField);
+
+    fields.append(classLabel, levelLabel);
+
+    const actions = document.createElement('div');
+    actions.className = 'class-row-actions';
+    const removeButton = document.createElement('button');
+    removeButton.type = 'button';
+    removeButton.className = 'class-row-remove';
+    removeButton.dataset.removeClass = 'true';
+    removeButton.textContent = 'Remove';
+    actions.appendChild(removeButton);
+
+    const warning = document.createElement('p');
+    warning.className = 'class-row-warning';
+    warning.hidden = true;
+
+    node.append(fields, actions, warning);
+    listNode.appendChild(node);
+
+    const row = {
+      node,
+      select,
+      levelInput: levelField,
+      removeButton,
+      warning,
+      customLabel: initial.name || '',
+      storedValue: initial.value || initial.slug || initial.id || ''
+    };
+
+    updateSelectOptions(row, row.storedValue, row.customLabel);
+
+    if (initial.value || initial.slug || initial.id) {
+      const targetValue = initial.value || initial.slug || initial.id;
+      select.value = targetValue;
+      if (select.value !== targetValue) {
+        if (initial.slug) {
+          select.value = initial.slug;
+        }
+        if (select.value !== targetValue) {
+          const custom = document.createElement('option');
+          custom.value = targetValue;
+          custom.textContent = initial.name || targetValue || 'Custom class';
+          custom.dataset.custom = 'true';
+          select.appendChild(custom);
+          select.value = targetValue;
+        }
+      }
+    }
+
+    row.storedValue = select.value;
+    row.customLabel = select.selectedOptions[0]?.textContent || row.customLabel || '';
+
+    removeButton.addEventListener('click', () => handleRowRemoval(row));
+    select.addEventListener('change', () => {
+      row.storedValue = select.value;
+      row.customLabel = select.selectedOptions[0]?.textContent || row.customLabel || '';
+      refreshWithCurrentForm({ immediate: true });
+    });
+    levelField.addEventListener('input', () => {
+      normalizeLevels();
+      refreshWithCurrentForm({ immediate: true });
+    });
+    levelField.addEventListener('change', () => {
+      normalizeLevels();
+      refreshWithCurrentForm({ immediate: true });
+    });
+
+    rows.push(row);
+    updateRemoveButtons();
+    updateRowOrder();
+    return row;
+  }
+
+  function handleRowRemoval(row) {
+    if (rows.length <= 1) return;
+    const index = rows.indexOf(row);
+    if (index === -1) return;
+    rows.splice(index, 1);
+    row.node.remove();
+    normalizeLevels();
+    refreshWithCurrentForm({ immediate: true });
+  }
+
+  function ensureAtLeastOneRow() {
+    if (!rows.length) {
+      createRow({ level: getTotalLevel() });
+    }
+  }
+
+  function updateAllOptions() {
+    rows.forEach((row) => {
+      updateSelectOptions(row, row.select.value, row.customLabel);
+    });
+  }
+
+  function normalizeLevels() {
+    if (!rows.length) return;
+    const total = getTotalLevel();
+    while (rows.length > total && rows.length > 1) {
+      const row = rows.pop();
+      row.node.remove();
+    }
+    const minPerRow = 1;
+    let remaining = total;
+    rows.forEach((row, index) => {
+      const remainingRows = rows.length - index - 1;
+      const minRemaining = remainingRows * minPerRow;
+      let value = Number.parseInt(row.levelInput.value, 10);
+      if (!Number.isFinite(value)) {
+        value = minPerRow;
+      }
+      let maxAllowed = remaining - minRemaining;
+      if (maxAllowed < minPerRow) {
+        maxAllowed = minPerRow;
+      }
+      value = Math.max(minPerRow, Math.min(value, maxAllowed));
+      row.levelInput.value = String(value);
+      row.levelInput.min = String(minPerRow);
+      row.levelInput.max = String(Math.max(minPerRow, maxAllowed));
+      remaining -= value;
+    });
+    if (remaining > 0 && rows.length) {
+      const first = rows[0];
+      const current = Number.parseInt(first.levelInput.value, 10) || minPerRow;
+      first.levelInput.value = String(current + remaining);
+    }
+    updateRemoveButtons();
+    updateAddButtonState();
+  }
+
+  function getSerializableClasses() {
+    return rows.map((row) => {
+      const value = row.select.value || '';
+      const label = row.customLabel || row.select.selectedOptions[0]?.textContent || '';
+      const classes = getPackData().classes || [];
+      const meta =
+        (value ? findEntry(classes, value) : null) ||
+        (label ? findEntry(classes, label) : null);
+      const resolvedValue = value || (meta ? (meta.slug || meta.id || meta.name || '') : '');
+      const level = Number.parseInt(row.levelInput.value, 10);
+      return {
+        value: resolvedValue,
+        slug: meta?.slug || (resolvedValue || null),
+        id: meta?.id || null,
+        name: label || meta?.name || resolvedValue,
+        level: Number.isFinite(level) && level > 0 ? level : 1,
+        hitDie: meta?.hit_die || null,
+        sourceId: meta?.sourceId || meta?.source?.id || null
+      };
+    });
+  }
+
+  function annotateClasses(classes) {
+    const dataset = getPackData().classes || [];
+    return classes.map((entry, index) => {
+      const value = entry?.value || '';
+      const meta =
+        (value ? findEntry(dataset, value) : null) ||
+        (entry?.slug ? findEntry(dataset, entry.slug) : null) ||
+        (entry?.id ? findEntry(dataset, entry.id) : null) ||
+        (entry?.name ? findEntry(dataset, entry.name) : null);
+      const slug = meta?.slug || entry?.slug || value;
+      const id = meta?.id || entry?.id || slug || value;
+      const level = Math.max(0, Number.isFinite(entry?.level) ? entry.level : Number.parseInt(entry?.level, 10) || 0);
+      const hitDie = entry?.hitDie || meta?.hit_die || null;
+      const name = entry?.name || meta?.name || (slug ? slug.replace(/[-_]/g, ' ') : 'Class');
+      const providesSpellcasting = classProvidesSpellcasting(meta, slug || id);
+      return {
+        index,
+        value,
+        slug,
+        id,
+        name,
+        level,
+        hitDie,
+        meta,
+        providesSpellcasting,
+        hasSelection: Boolean(value)
+      };
+    });
+  }
+
+  function updateSummary(entries, derived) {
     if (!summaryNode) return;
-    const classValue = data?.class || (classSelect ? classSelect.value : '');
-    if (!classValue) {
-      summaryNode.textContent = 'Pick a class to view hit die and proficiencies.';
+    const selected = entries.filter((entry) => entry.hasSelection && entry.level > 0);
+    if (!selected.length) {
+      summaryNode.textContent = 'Pick a class to view hit dice, proficiencies, and proficiency bonus.';
       summaryNode.dataset.state = '';
       return;
     }
-    const entry = findEntry(getPackData().classes || [], classValue);
-    if (!entry) {
-      summaryNode.textContent = 'Custom class selected. Review proficiencies manually.';
-      summaryNode.dataset.state = 'warn';
-      return;
+    const proficiency = derived?.classes?.proficiencyBonus ?? computeProficiencyBonus(getTotalLevel());
+    const classParts = selected.map((entry) => {
+      const hitDie = entry.hitDie ? ` (${entry.hitDie})` : '';
+      return `${entry.name || 'Class'} Lv ${entry.level}${hitDie}`;
+    });
+    const breakdownEntries = derived?.classes?.hitDice?.breakdown && typeof derived.classes.hitDice.breakdown === 'object'
+      ? Object.entries(derived.classes.hitDice.breakdown).filter(([, count]) => count > 0)
+      : [];
+    const hitDiceSummary = breakdownEntries.length
+      ? breakdownEntries.map(([die, count]) => `${count}${die}`).join(', ')
+      : selected
+          .filter((entry) => entry.hitDie)
+          .map((entry) => `${entry.level}${entry.hitDie}`)
+          .join(', ');
+    const detailParts = [];
+    if (hitDiceSummary) {
+      detailParts.push(`Hit Dice ${hitDiceSummary}`);
     }
-    const hitDie = entry.hit_die ? `Hit die ${entry.hit_die}` : 'Hit die —';
-    const saves = Array.isArray(entry.saving_throws) && entry.saving_throws.length ? entry.saving_throws.join(', ') : 'None';
-    const weapons = Array.isArray(entry.weapon_proficiencies) && entry.weapon_proficiencies.length ? entry.weapon_proficiencies.join(', ') : 'None';
-    summaryNode.textContent = `${hitDie} · Saves: ${saves} · Weapons: ${weapons}`;
-    summaryNode.dataset.state = 'ok';
+    detailParts.push(`Proficiency +${proficiency}`);
+    summaryNode.textContent = `${classParts.join(' · ')} · ${detailParts.join(' · ')}`;
+  }
+
+  function evaluateValidation(entries, derived) {
+    const abilityTotals = derived?.abilities || {};
+    const totalLevel = getTotalLevel();
+    const rowResults = [];
+    const aggregated = [];
+    let blocking = false;
+    let hasSelection = false;
+    const totalAssigned = entries.reduce((sum, entry) => sum + Math.max(0, entry.level), 0);
+    entries.forEach((entry, index) => {
+      const label = entry.name || `Class ${index + 1}`;
+      const messages = [];
+      if (!entry.hasSelection) {
+        messages.push({ type: 'error', text: 'Select a class for this row.' });
+      } else {
+        hasSelection = true;
+        if (!entry.meta) {
+          messages.push({ type: 'warn', text: 'Class not found in loaded packs. Check prerequisites manually.' });
+        } else {
+          const requirements = extractAbilityRequirementsFromMeta(entry.meta);
+          requirements.forEach((requirement) => {
+            const abilityId = requirement.abilityId || abilityNameToId(requirement.ability);
+            const abilityLabel = abilityFields.find((field) => field.id === abilityId)?.label || requirement.ability || 'Ability';
+            const abilityScore = abilityId ? abilityTotals?.[abilityId]?.total : null;
+            if (abilityScore == null) {
+              messages.push({ type: 'warn', text: `Verify ${abilityLabel} ${requirement.minimum}+ manually.` });
+            } else if (abilityScore < requirement.minimum) {
+              messages.push({ type: 'error', text: `${abilityLabel} ${requirement.minimum}+ required (current ${abilityScore}).` });
+            }
+          });
+          if (entryRequiresSpellcasting(entry.meta)) {
+            const canCast = entries.some((candidate) => candidate.providesSpellcasting);
+            if (!canCast) {
+              messages.push({ type: 'error', text: 'Requires the ability to cast spells.' });
+            }
+          }
+        }
+      }
+      if (entry.level < 1) {
+        messages.push({ type: 'error', text: 'Assign at least 1 level to this class.' });
+      }
+      rowResults.push({ label, messages });
+      messages.forEach((message) => {
+        aggregated.push(`${label}: ${message.text}`);
+        if (message.type === 'error') {
+          blocking = true;
+        }
+      });
+    });
+    if (!entries.length) {
+      aggregated.push('Add at least one class to continue.');
+      blocking = true;
+    }
+    if (!hasSelection) {
+      aggregated.push('Select a class to continue.');
+      blocking = true;
+    }
+    if (totalAssigned !== totalLevel) {
+      aggregated.push(`Assigned levels (${totalAssigned}) do not match total level (${totalLevel}).`);
+      blocking = true;
+    }
+    return {
+      valid: !blocking && hasSelection && entries.length > 0 && totalAssigned === totalLevel,
+      messages: aggregated,
+      rows: rowResults
+    };
+  }
+
+  function applyValidation(validation, entries) {
+    rows.forEach((row, index) => {
+      const result = validation.rows[index];
+      if (!result || !result.messages.length) {
+        row.warning.textContent = '';
+        row.warning.hidden = true;
+        row.node.dataset.state = '';
+        return;
+      }
+      const hasError = result.messages.some((message) => message.type === 'error');
+      row.warning.innerHTML = result.messages
+        .map((message) => `${message.type === 'error' ? '⚠️' : 'ℹ️'} ${message.text}`)
+        .join('<br />');
+      row.warning.hidden = false;
+      row.node.dataset.state = hasError ? 'error' : 'warn';
+    });
+    if (warningsNode) {
+      if (validation.messages.length) {
+        warningsNode.innerHTML = '';
+        validation.messages.forEach((message) => {
+          const item = document.createElement('li');
+          item.textContent = message;
+          warningsNode.appendChild(item);
+        });
+        warningsNode.hidden = false;
+      } else {
+        warningsNode.innerHTML = '';
+        warningsNode.hidden = true;
+      }
+    }
+    if (summaryNode) {
+      if (validation.valid && entries.some((entry) => entry.hasSelection)) {
+        summaryNode.dataset.state = 'ok';
+      } else if (validation.messages.length) {
+        summaryNode.dataset.state = 'warn';
+      } else {
+        summaryNode.dataset.state = '';
+      }
+    }
+    lastValidation = validation;
+  }
+
+  function refresh(snapshot = null, { immediate = false } = {}) {
+    if (!section) return;
+    const base = snapshot ? { ...snapshot } : { ...state.data };
+    if (!Array.isArray(base.classes)) {
+      base.classes = getSerializableClasses().map((entry) => ({ ...entry }));
+    } else {
+      base.classes = base.classes.map((entry) => ({ ...entry }));
+    }
+    const annotated = annotateClasses(base.classes);
+    const derived = immediate ? computeDerivedState(base) : (snapshot ? computeDerivedState(base) : state.derived);
+    updateSummary(annotated, derived);
+    const validation = evaluateValidation(annotated, derived);
+    applyValidation(validation, annotated);
+    updateRemoveButtons();
+    updateAddButtonState();
+    updateRowOrder();
+    updateNavigationState();
+  }
+
+  function refreshWithCurrentForm({ immediate = false } = {}) {
+    const snapshot = serializeForm();
+    refresh(snapshot, { immediate });
+  }
+
+  function applyState(data) {
+    if (!listNode) return;
+    while (rows.length) {
+      const row = rows.pop();
+      row.node.remove();
+    }
+    const storedClasses = Array.isArray(data?.classes) ? data.classes : [];
+    if (storedClasses.length) {
+      storedClasses.forEach((entry) => {
+        createRow({
+          value: entry?.value || entry?.slug || entry?.id || entry?.name || '',
+          slug: entry?.slug || null,
+          id: entry?.id || null,
+          name: entry?.name || '',
+          level: entry?.level
+        });
+      });
+    } else {
+      createRow({
+        value: data?.class || '',
+        name: data?.className || '',
+        level: Number.parseInt(data?.level, 10) || 1
+      });
+    }
+    ensureAtLeastOneRow();
+    normalizeLevels();
+    updateAllOptions();
+    refresh({ ...(data || {}), classes: getSerializableClasses() }, { immediate: false });
+  }
+
+  function handleAddRow() {
+    const row = createRow({ level: 1 });
+    normalizeLevels();
+    refreshWithCurrentForm({ immediate: true });
+    if (row && row.select) {
+      row.select.focus();
+    }
   }
 
   return {
-    setup(section) {
+    setup(sectionNode) {
+      section = sectionNode;
       summaryNode = section.querySelector('[data-class-summary]');
-      classSelect = section.querySelector('select[name="class"]');
-      render(state.data);
+      listNode = section.querySelector('[data-class-list]');
+      addButton = section.querySelector('[data-add-class]');
+      warningsNode = section.querySelector('[data-class-warnings]');
+      levelInput = section.querySelector('input[name="level"]');
+      if (warningsNode) {
+        warningsNode.hidden = true;
+        warningsNode.innerHTML = '';
+      }
+      if (listNode) {
+        listNode.innerHTML = '';
+      }
+      rows.length = 0;
+      createRow({ level: Number.parseInt(state.data?.level, 10) || 1 });
+      ensureAtLeastOneRow();
+      normalizeLevels();
+      updateAllOptions();
+      if (addButton) {
+        addButton.addEventListener('click', handleAddRow);
+      }
+      if (levelInput) {
+        levelInput.addEventListener('input', () => {
+          normalizeLevels();
+          refreshWithCurrentForm({ immediate: true });
+        });
+        levelInput.addEventListener('change', () => {
+          normalizeLevels();
+          refreshWithCurrentForm({ immediate: true });
+        });
+      }
+      refresh({ ...(state.data || {}), classes: getSerializableClasses() }, { immediate: false });
     },
     onPackData() {
-      render(state.data);
+      updateAllOptions();
+      refresh({ ...(state.data || {}), classes: getSerializableClasses() }, { immediate: false });
     },
     onStateHydrated(currentState) {
-      render(currentState?.data || state.data);
+      applyState(currentState?.data || state.data);
+    },
+    onFormInput(event) {
+      if (!event.target) return;
+      if (event.target.name === 'classLevels[]' || event.target.name === 'classes[]' || event.target.name === 'level') {
+        if (event.target.name === 'level') {
+          normalizeLevels();
+        }
+        refreshWithCurrentForm({ immediate: true });
+      }
     },
     onFormChange(event) {
-      if (event.target && event.target.name === 'class') {
-        render(serializeForm());
+      if (!event.target) return;
+      if (event.target.name === 'classLevels[]' || event.target.name === 'classes[]' || event.target.name === 'level') {
+        if (event.target.name === 'level') {
+          normalizeLevels();
+        }
+        refreshWithCurrentForm({ immediate: true });
       }
+    },
+    onStatePersisted() {
+      refresh(null, { immediate: false });
+    },
+    onSerialize(data) {
+      const classes = getSerializableClasses();
+      data.classes = classes.map((entry) => ({ ...entry }));
+      delete data.classLevels;
+      const primary = classes.find((entry) => entry.value);
+      data.class = primary ? (primary.slug || primary.id || primary.value) : '';
+      data.className = primary ? primary.name : '';
+    },
+    getValidity() {
+      return lastValidation;
     }
   };
 })();
@@ -994,7 +1851,11 @@ const featsModule = (() => {
     },
     onFormChange(event) {
       if (!event.target) return;
-      if (event.target.name === 'signatureFeat' || event.target.name === 'class') {
+      if (
+        event.target.name === 'signatureFeat' ||
+        event.target.name === 'class' ||
+        event.target.name === 'classes[]'
+      ) {
         render(serializeForm());
       }
     }

@@ -772,6 +772,76 @@
       font-size: 0.78rem;
       color: var(--muted);
     }
+    .class-rows {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .class-row {
+      display: grid;
+      gap: 0.5rem;
+      padding: 0.85rem;
+      border-radius: 0.9rem;
+      background: rgba(91, 214, 160, 0.08);
+      border: 1px solid rgba(91, 214, 160, 0.25);
+    }
+    .class-row[data-state="error"] {
+      border-color: rgba(255, 124, 124, 0.6);
+      background: rgba(255, 124, 124, 0.1);
+    }
+    .class-row[data-state="warn"] {
+      border-color: rgba(240, 168, 112, 0.45);
+    }
+    .class-row-fields {
+      display: grid;
+      gap: 0.6rem;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      align-items: end;
+    }
+    .class-row-actions {
+      display: flex;
+      justify-content: flex-end;
+    }
+    .class-row-remove {
+      align-self: center;
+      padding: 0.35rem 0.75rem;
+      border-radius: 0.7rem;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+    .class-row-remove:hover,
+    .class-row-remove:focus-visible {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.26);
+      color: var(--fg);
+    }
+    .class-row-warning {
+      margin: 0;
+      font-size: 0.76rem;
+      color: #f0a870;
+    }
+    .class-row-warning[hidden] {
+      display: none;
+    }
+    .class-add {
+      justify-self: start;
+      margin-top: 0.25rem;
+    }
+    .class-prereqs {
+      margin: 0;
+      padding-left: 1.2rem;
+      font-size: 0.76rem;
+      color: #f0a870;
+      display: grid;
+      gap: 0.35rem;
+    }
+    .class-prereqs[hidden] {
+      display: none;
+    }
     .sticky-nav {
       flex-wrap: wrap;
       align-items: center;
@@ -893,19 +963,17 @@
       <section class="step" data-step="classLevel">
         <h2>Class &amp; Level</h2>
         <div class="grid two">
-          <label>Primary class
-            <select name="class">
-              <option value="">Choose a class</option>
-            </select>
-          </label>
-          <label>Level
+          <label>Total level
             <input type="number" min="1" max="20" name="level" value="1" />
           </label>
+          <label>Subclass focus
+            <input type="text" name="subclass" placeholder="Circle of Stars" />
+          </label>
         </div>
-        <label>Subclass focus
-          <input type="text" name="subclass" placeholder="Circle of Stars" />
-        </label>
-        <p class="step-hint" data-class-summary aria-live="polite">Pick a class to view hit die and proficiencies.</p>
+        <div class="class-rows" data-class-list></div>
+        <button type="button" class="pill-button class-add" data-add-class hidden>Add another class</button>
+        <p class="step-hint" data-class-summary aria-live="polite">Pick a class to view hit dice, proficiencies, and proficiency bonus.</p>
+        <ul class="class-prereqs" data-class-warnings aria-live="polite" hidden></ul>
       </section>
       <section class="step" data-step="abilities">
         <h2>Ability Scores</h2>

@@ -12,6 +12,21 @@ function getPackData() {
   return window.dndBuilderData || window.dndData || { classes: [], backgrounds: [], feats: [], items: [], companions: [] };
 }
 
+function formatHitDiceBreakdown(hitDice) {
+  if (!hitDice) return '';
+  const entries = Object.entries(hitDice.breakdown || {})
+    .filter(([die, count]) => die && Number.isFinite(Number(count)) && Number(count) > 0)
+    .map(([die, count]) => [die, Number(count)]);
+  if (entries.length === 1) {
+    const [die, count] = entries[0];
+    return count === 1 ? die : `${die}×${count}`;
+  }
+  if (entries.length > 1) {
+    return entries.map(([die, count]) => `${die}×${count}`).join(', ');
+  }
+  return '';
+}
+
 function resolveClassMeta(identifier) {
   const { classes = [] } = getPackData();
   return classes.find(entry => entry.slug === identifier || entry.id === identifier || entry.name === identifier) || null;
@@ -165,18 +180,28 @@ class SummaryUI {
     if (!Number.isFinite(this.playState.hp.current)) {
       this.playState.hp.current = this.playState.hp.max;
     }
+    const derivedHitDice = this.builderState?.derived?.hitDice || this.builderState?.derived?.classes?.hitDice;
+    const hitDiceLabel = formatHitDiceBreakdown(derivedHitDice);
+    const derivedTotal = Number.parseInt(derivedHitDice?.total, 10);
+    const nextTotal = Number.isFinite(derivedTotal) && derivedTotal > 0 ? derivedTotal : Math.max(1, level);
     if (!Number.isFinite(this.playState.hitDice.total) || this.playState.hitDice.total <= 0) {
-      this.playState.hitDice.total = Math.max(1, level);
+      this.playState.hitDice.total = nextTotal;
+    } else {
+      this.playState.hitDice.total = Math.max(1, nextTotal);
     }
     if (!Number.isFinite(this.playState.hitDice.available)) {
       this.playState.hitDice.available = this.playState.hitDice.total;
     }
     this.playState.hitDice.available = Math.min(this.playState.hitDice.total, this.playState.hitDice.available);
-    const classMeta = this.getClassMeta();
-    if (classMeta && classMeta.hit_die) {
+    const classMeta = this.getPrimaryClassMeta();
+    if (hitDiceLabel) {
+      this.playState.hitDice.die = hitDiceLabel;
+    } else if (classMeta && classMeta.hit_die) {
       this.playState.hitDice.die = classMeta.hit_die;
     }
-    const isDruid = (classMeta && classMeta.slug === 'druid') || (this.builderState && /druid/i.test(this.builderState.data?.class || ''));
+    const isDruid = this.getDerivedClasses().some((entry) => (entry.slug || entry.id || entry.value || '').toLowerCase() === 'druid') ||
+      (classMeta && classMeta.slug === 'druid') ||
+      (this.builderState && /druid/i.test(this.builderState.data?.class || ''));
     if (isDruid) {
       if (!Number.isFinite(this.playState.wildShape.max) || this.playState.wildShape.max < 2) {
         this.playState.wildShape.max = 2;
@@ -254,18 +279,44 @@ class SummaryUI {
 
   getLevel() {
     if (!this.builderState) return parseNumber(this.playState.levelOverride, 1);
+    const derivedLevel = Number.parseInt(this.builderState?.derived?.classes?.totalLevel, 10);
+    if (Number.isFinite(derivedLevel) && derivedLevel > 0) {
+      return derivedLevel;
+    }
     const level = parseNumber(this.builderState.data?.level, 1);
     return level > 0 ? level : 1;
   }
 
-  getClassMeta() {
-    if (!this.builderState) return null;
-    const cls = this.builderState.data?.class;
-    if (!cls) return null;
-    return resolveClassMeta(cls);
+  getDerivedClasses() {
+    const entries = this.builderState?.derived?.classes?.entries;
+    if (Array.isArray(entries) && entries.length) {
+      return entries.filter((entry) => Number.isFinite(entry.level) ? entry.level > 0 : parseNumber(entry.level, 0) > 0);
+    }
+    const fallbackClass = this.builderState?.data?.class;
+    if (fallbackClass) {
+      return [{ value: fallbackClass, name: fallbackClass, level: parseNumber(this.builderState?.data?.level, 1) }];
+    }
+    return [];
+  }
+
+  getPrimaryClassEntry() {
+    const [first] = this.getDerivedClasses();
+    return first || null;
+  }
+
+  getPrimaryClassMeta() {
+    const primary = this.getPrimaryClassEntry();
+    if (!primary) return null;
+    const identifier = primary.slug || primary.id || primary.value || primary.name;
+    if (!identifier) return null;
+    return resolveClassMeta(identifier) || null;
   }
 
   getProficiencyBonus() {
+    const derived = Number.parseInt(this.builderState?.derived?.proficiencyBonus, 10);
+    if (Number.isFinite(derived) && derived > 0) {
+      return derived;
+    }
     const level = this.getLevel();
     return Math.max(2, Math.floor((level - 1) / 4) + 2);
   }
@@ -470,13 +521,27 @@ class SummaryUI {
 
   getIdentityMarkup() {
     const name = this.builderState?.data?.name || 'Unnamed adventurer';
-    const cls = this.builderState?.data?.class || 'Classless';
+    const classes = this.getDerivedClasses();
     const subclass = this.builderState?.data?.subclass;
-    const level = this.builderState?.data?.level || '1';
+    const level = this.getLevel();
+    const classSummary = (() => {
+      if (!classes.length) {
+        const fallback = this.builderState?.data?.class || 'Classless';
+        return `Level ${level} ${fallback}`;
+      }
+      const parts = classes
+        .filter((entry) => (Number.isFinite(entry.level) ? entry.level > 0 : parseNumber(entry.level, 0) > 0))
+        .map((entry) => `${entry.name || entry.slug || entry.value || 'Class'} ${entry.level}`);
+      if (!parts.length) {
+        const primary = classes[0];
+        return `Level ${level} ${primary.name || primary.slug || primary.value || 'Class'}`;
+      }
+      return `Level ${level} ${parts.join(' / ')}`;
+    })();
     const background = this.builderState?.data?.background;
     const alignment = this.builderState?.data?.alignment;
     const subtitle = [
-      `Level ${level} ${cls}`,
+      classSummary,
       subclass ? subclass : null,
       background ? `Background: ${background}` : null,
       alignment ? `Alignment: ${alignment}` : null
@@ -492,7 +557,7 @@ class SummaryUI {
     if (!container) return;
     container.innerHTML = '';
     const proficiency = this.getProficiencyBonus();
-    const classMeta = this.getClassMeta();
+    const classMeta = this.getPrimaryClassMeta();
     const proficientSaves = new Set((classMeta && classMeta.saving_throws) || []);
     const abilityNameMap = {
       str: 'Strength', dex: 'Dexterity', con: 'Constitution', int: 'Intelligence', wis: 'Wisdom', cha: 'Charisma'
