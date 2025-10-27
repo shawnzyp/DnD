@@ -1997,6 +1997,15 @@ function setupSwipeNavigation() {
     swipeState = null;
   }
 
+  function originatesInEditableControl(target) {
+    if (!(target instanceof Element)) return false;
+    const editableAncestor = target.closest('[contenteditable]');
+    if (editableAncestor && editableAncestor.getAttribute('contenteditable') !== 'false') {
+      return true;
+    }
+    return Boolean(target.closest('input, textarea, select'));
+  }
+
   function originatesInScrollable(target) {
     if (!(target instanceof Element)) return false;
     let node = target;
@@ -2022,6 +2031,10 @@ function setupSwipeNavigation() {
   builderMain.addEventListener('pointerdown', (event) => {
     if (!event.isPrimary) return;
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+    if (originatesInEditableControl(event.target)) {
+      resetSwipe();
+      return;
+    }
     if (originatesInScrollable(event.target)) {
       resetSwipe();
       return;
