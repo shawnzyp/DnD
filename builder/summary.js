@@ -671,7 +671,7 @@ class SummaryUI {
 
   defaultPlayState() {
     return {
-      hp: { current: 10, max: 10, temp: 0 },
+      hp: { current: 10, max: 10, temp: 0, log: [] },
       hitDice: { total: 1, available: 1, die: 'd8' },
       classCounters: [],
       wildShape: { max: 0, remaining: 0 },
@@ -792,6 +792,15 @@ class SummaryUI {
         this.handleCounterAction(counterAction, id);
         return;
       }
+      const hpAction = target.dataset.hpAction;
+      if (hpAction) {
+        this.handleHpAction(hpAction, target);
+        return;
+      }
+      if (target.dataset.hpAdjust !== undefined) {
+        this.handleHpAdjust(target.dataset.hpAdjust, target);
+        return;
+      }
       const resourceAction = target.dataset.resourceAction;
       if (resourceAction) {
         this.handleResourceAction(resourceAction, target);
@@ -865,6 +874,14 @@ class SummaryUI {
     }
     if (!Number.isFinite(this.playState.hp.current)) {
       this.playState.hp.current = this.playState.hp.max;
+    }
+    this.playState.hp.current = Math.max(0, Math.min(this.playState.hp.max, this.playState.hp.current));
+    if (!Number.isFinite(this.playState.hp.temp)) {
+      this.playState.hp.temp = 0;
+    }
+    this.playState.hp.temp = Math.max(0, this.playState.hp.temp);
+    if (!Array.isArray(this.playState.hp.log)) {
+      this.playState.hp.log = [];
     }
     if (!Number.isFinite(this.playState.hitDice.total) || this.playState.hitDice.total <= 0) {
       this.playState.hitDice.total = Math.max(1, level);
@@ -1841,6 +1858,235 @@ class SummaryUI {
     this.render();
   }
 
+  ensureHpState() {
+    if (!this.playState.hp || typeof this.playState.hp !== 'object') {
+      this.playState.hp = { current: 0, max: 0, temp: 0, log: [] };
+    }
+    const hp = this.playState.hp;
+    hp.max = Number.isFinite(hp.max) && hp.max > 0 ? hp.max : 1;
+    if (!Number.isFinite(hp.current)) {
+      hp.current = hp.max;
+    }
+    hp.current = clamp(hp.current, 0, hp.max);
+    if (!Number.isFinite(hp.temp)) {
+      hp.temp = 0;
+    }
+    hp.temp = Math.max(0, hp.temp);
+    if (!Array.isArray(hp.log)) {
+      hp.log = [];
+    }
+    return hp;
+  }
+
+  pushHpLog(entry) {
+    const hp = this.ensureHpState();
+    const record = {
+      ...entry,
+      before: entry.before ? { ...entry.before } : null,
+      after: entry.after ? { ...entry.after } : null,
+      at: new Date().toISOString()
+    };
+    hp.log.unshift(record);
+    hp.log = hp.log.slice(0, 20);
+  }
+
+  formatHpAmount(value) {
+    if (!Number.isFinite(value)) return '0';
+    const rounded = Math.round(value * 100) / 100;
+    if (Number.isInteger(rounded)) {
+      return String(Math.trunc(rounded));
+    }
+    return rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  getHpStatusText() {
+    const hp = this.ensureHpState();
+    const tempPart = hp.temp > 0 ? ` with ${this.formatHpAmount(hp.temp)} temp` : '';
+    return `${this.formatHpAmount(hp.current)}/${this.formatHpAmount(hp.max)} HP${tempPart}`;
+  }
+
+  createHpUndo(previous, message = 'Hit point change undone.') {
+    return () => {
+      const hp = this.ensureHpState();
+      const before = { current: hp.current, temp: hp.temp, max: hp.max };
+      const targetCurrent = Number.isFinite(previous.current) ? previous.current : hp.current;
+      const targetTemp = Number.isFinite(previous.temp) ? previous.temp : 0;
+      hp.current = clamp(targetCurrent, 0, hp.max);
+      hp.temp = Math.max(0, targetTemp);
+      this.pushHpLog({
+        type: 'undo',
+        source: 'undo',
+        before,
+        after: { current: hp.current, temp: hp.temp, max: hp.max }
+      });
+      savePlayState(this.playState);
+      this.render();
+      this.toast(message);
+    };
+  }
+
+  applyHpDamage(amount, { source = '' } = {}) {
+    const hp = this.ensureHpState();
+    const numeric = Number.parseFloat(amount);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return { changed: false, message: 'Enter a positive damage amount.' };
+    }
+    if (hp.current <= 0 && hp.temp <= 0) {
+      return { changed: false, message: 'Already at 0 hit points.' };
+    }
+    const previous = { current: hp.current, temp: hp.temp, max: hp.max };
+    let remaining = numeric;
+    let tempSpent = 0;
+    if (hp.temp > 0) {
+      tempSpent = Math.min(hp.temp, remaining);
+      hp.temp -= tempSpent;
+      remaining -= tempSpent;
+    }
+    const hpLost = Math.min(hp.current, remaining);
+    hp.current = clamp(hp.current - hpLost, 0, hp.max);
+    const applied = tempSpent + hpLost;
+    if (applied <= 0) {
+      return { changed: false, message: 'No damage to apply.' };
+    }
+    const after = { current: hp.current, temp: hp.temp, max: hp.max };
+    this.pushHpLog({
+      type: 'damage',
+      source: source || 'manual',
+      amount: applied,
+      rawAmount: numeric,
+      tempSpent,
+      hpLost,
+      before: previous,
+      after
+    });
+    const parts = [];
+    if (tempSpent) parts.push(`${this.formatHpAmount(tempSpent)} temp`);
+    if (hpLost) parts.push(`${this.formatHpAmount(hpLost)} HP`);
+    const detail = parts.length ? ` (${parts.join(', ')})` : '';
+    const message = `Took ${this.formatHpAmount(applied)} damage${detail}. Now at ${this.getHpStatusText()}.`;
+    return {
+      changed: true,
+      message,
+      undo: this.createHpUndo(previous, 'Damage undone.'),
+      undoLabel: 'Undo'
+    };
+  }
+
+  applyHpHealing(amount, { source = '' } = {}) {
+    const hp = this.ensureHpState();
+    const numeric = Number.parseFloat(amount);
+    if (!Number.isFinite(numeric) || numeric <= 0) {
+      return { changed: false, message: 'Enter a positive healing amount.' };
+    }
+    const missing = Math.max(0, hp.max - hp.current);
+    if (missing <= 0) {
+      return { changed: false, message: 'Already at full hit points.' };
+    }
+    const previous = { current: hp.current, temp: hp.temp, max: hp.max };
+    const healed = Math.min(missing, numeric);
+    hp.current = clamp(hp.current + healed, 0, hp.max);
+    const overhealRaw = Math.max(0, numeric - healed);
+    const after = { current: hp.current, temp: hp.temp, max: hp.max };
+    this.pushHpLog({
+      type: 'healing',
+      source: source || 'manual',
+      amount: healed,
+      rawAmount: numeric,
+      overheal: overhealRaw,
+      before: previous,
+      after
+    });
+    const parts = [];
+    if (overhealRaw > 0) {
+      parts.push(`${this.formatHpAmount(overhealRaw)} overheal`);
+    }
+    const detail = parts.length ? ` (${parts.join(', ')})` : '';
+    const message = `Recovered ${this.formatHpAmount(healed)} HP${detail}. Now at ${this.getHpStatusText()}.`;
+    return {
+      changed: true,
+      message,
+      undo: this.createHpUndo(previous, 'Healing undone.'),
+      undoLabel: 'Undo'
+    };
+  }
+
+  finalizeHpChange(result) {
+    if (!result) return;
+    if (!result.changed) {
+      if (result.message) {
+        this.toast(result.message);
+      }
+      return;
+    }
+    savePlayState(this.playState);
+    this.render();
+    const toastOptions = {};
+    if (typeof result.undo === 'function') {
+      toastOptions.undo = result.undo;
+      toastOptions.undoLabel = result.undoLabel || 'Undo';
+    }
+    this.toast(result.message, toastOptions);
+  }
+
+  handleHpAction(action, target) {
+    if (!action) return;
+    const promptMessage = target?.dataset?.hpPrompt || (action === 'damage' ? 'How much damage?' : 'How much healing?');
+    const defaultValue = target?.dataset?.hpDefault || '1';
+    const response = window.prompt(promptMessage, defaultValue);
+    if (response === null) {
+      return;
+    }
+    const source = target?.dataset?.hpSource || action;
+    if (action === 'damage') {
+      const result = this.applyHpDamage(response, { source });
+      this.finalizeHpChange(result);
+    } else if (action === 'heal') {
+      const result = this.applyHpHealing(response, { source });
+      this.finalizeHpChange(result);
+    }
+  }
+
+  handleHpAdjust(value, target) {
+    if (value === undefined || value === null) return;
+    const numeric = Number.parseFloat(value);
+    if (!Number.isFinite(numeric) || numeric === 0) {
+      return;
+    }
+    const source = target?.dataset?.hpSource || 'adjust';
+    if (numeric < 0) {
+      const result = this.applyHpDamage(Math.abs(numeric), { source });
+      this.finalizeHpChange(result);
+    } else {
+      const result = this.applyHpHealing(numeric, { source });
+      this.finalizeHpChange(result);
+    }
+  }
+
+  resetHpForLongRest() {
+    const hp = this.ensureHpState();
+    const previous = { current: hp.current, temp: hp.temp, max: hp.max };
+    let changed = false;
+    if (hp.current !== hp.max) {
+      hp.current = hp.max;
+      changed = true;
+    }
+    if (hp.temp !== 0) {
+      hp.temp = 0;
+      changed = true;
+    }
+    if (changed) {
+      this.pushHpLog({
+        type: 'rest',
+        source: 'long-rest',
+        healed: Math.max(0, previous.max - previous.current),
+        tempLost: previous.temp,
+        before: previous,
+        after: { current: hp.current, temp: hp.temp, max: hp.max }
+      });
+    }
+    return changed;
+  }
+
   updateSkillToggle(skillId, field, value) {
     if (!skillId || !['proficient', 'expertise'].includes(field)) return;
     const state = this.getSkillState(skillId);
@@ -2157,7 +2403,7 @@ class SummaryUI {
       this.toast('Short rest complete. Update hit dice and reset features.');
     }
     if (type === 'long') {
-      this.playState.hp.current = this.playState.hp.max;
+      this.resetHpForLongRest();
       const recovery = Math.max(1, Math.floor(this.playState.hitDice.total / 2));
       this.playState.hitDice.available = Math.min(this.playState.hitDice.total, this.playState.hitDice.available + recovery);
       if (this.playState.spellcasting && this.playState.spellcasting.slots) {
@@ -2178,7 +2424,6 @@ class SummaryUI {
         this.playState.deathSaves.success = 0;
         this.playState.deathSaves.failure = 0;
       }
-      this.playState.hp.temp = 0;
       this.toast('Long rest complete. Fully restore hit points and resources.');
     }
     this.applyRestToClassResources(type, resourceDefs);
@@ -2209,16 +2454,48 @@ class SummaryUI {
     });
   }
 
-  toast(message) {
+  toast(message, { undo = null, undoLabel = 'Undo', duration = 5000 } = {}) {
     const node = this.root.querySelector('[data-summary-toast]');
     if (!node) return;
-    node.textContent = message;
+    node.innerHTML = '';
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
+      this.toastTimer = null;
     }
+    const text = document.createElement('span');
+    text.textContent = message;
+    node.appendChild(text);
+    if (typeof undo === 'function') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = undoLabel || 'Undo';
+      button.className = 'summary-toast-undo';
+      button.style.marginLeft = '0.5rem';
+      button.style.padding = '0.2rem 0.6rem';
+      button.style.fontSize = '0.72rem';
+      button.style.borderRadius = '999px';
+      button.style.border = '1px solid rgba(255,255,255,0.2)';
+      button.style.background = 'rgba(255,255,255,0.08)';
+      button.style.color = 'var(--fg)';
+      button.style.cursor = 'pointer';
+      button.addEventListener('click', () => {
+        if (this.toastTimer) {
+          clearTimeout(this.toastTimer);
+          this.toastTimer = null;
+        }
+        try {
+          undo();
+        } catch (error) {
+          console.warn('Failed to undo hit point change', error);
+        }
+      }, { once: true });
+      node.appendChild(button);
+    }
+    const timeout = Number.isFinite(duration) && duration > 0 ? duration : 5000;
     this.toastTimer = setTimeout(() => {
-      node.textContent = '';
-    }, 5000);
+      node.innerHTML = '';
+      this.toastTimer = null;
+    }, timeout);
   }
 
   render() {
@@ -2583,14 +2860,28 @@ class SummaryUI {
     if (!container) return;
     container.innerHTML = '';
     this.ensureClassResourceDefaults();
+    const hp = this.ensureHpState();
+    const tempHp = hp.temp || 0;
 
     const resourceGrid = createElement('div', 'resource-grid');
     const hpCard = createElement('div', 'resource-card');
     hpCard.innerHTML = `
       <h4>Hit Points</h4>
-      <label>Current <input type="number" data-type="number" data-track="hp.current" value="${this.playState.hp.current}" min="0"></label>
-      <label>Maximum <input type="number" data-type="number" data-track="hp.max" value="${this.playState.hp.max}" min="1"></label>
-      <label>Temporary <input type="number" data-type="number" data-track="hp.temp" value="${this.playState.hp.temp || 0}" min="0"></label>
+      <div class="resource-metric">
+        <strong>${this.formatHpAmount(hp.current)}</strong>
+        <span>of ${this.formatHpAmount(hp.max)} maximum${tempHp ? ` · ${this.formatHpAmount(tempHp)} temp` : ''}</span>
+      </div>
+      <div class="resource-inputs">
+        <label>Current <input type="number" data-type="number" data-track="hp.current" value="${hp.current}" min="0"></label>
+        <label>Maximum <input type="number" data-type="number" data-track="hp.max" value="${hp.max}" min="1"></label>
+        <label>Temporary <input type="number" data-type="number" data-track="hp.temp" value="${tempHp}" min="0"></label>
+      </div>
+      <div class="resource-buttons hp-adjust-buttons">
+        <button type="button" data-hp-adjust="-1" data-hp-source="quick" aria-label="Take 1 damage">−1</button>
+        <button type="button" data-hp-action="damage" data-hp-source="prompt" data-hp-default="1" data-hp-prompt="How much damage?">Damage…</button>
+        <button type="button" data-hp-action="heal" data-hp-source="prompt" data-hp-default="1" data-hp-prompt="How much healing?">Heal…</button>
+        <button type="button" data-hp-adjust="1" data-hp-source="quick" aria-label="Heal 1 hit point">+1</button>
+      </div>
     `;
     resourceGrid.appendChild(hpCard);
 
