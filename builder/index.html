@@ -392,6 +392,222 @@
       font-size: 0.8rem;
       color: var(--muted);
     }
+    .companion-picker {
+      display: grid;
+      gap: 0.9rem;
+    }
+    .companion-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .companion-toolbar label {
+      display: grid;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .companion-toolbar select {
+      min-width: 160px;
+    }
+    .companion-features {
+      margin: 0;
+      padding: 0.6rem 0.75rem;
+      border-radius: 0.9rem;
+      border: 1px solid var(--surface-border);
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+    .companion-features legend {
+      margin: 0;
+      padding: 0 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      color: var(--muted);
+    }
+    .companion-features label {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .companion-grid {
+      display: grid;
+      gap: 0.65rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    }
+    .companion-card {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.8rem 0.9rem;
+      border-radius: 0.9rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 18, 30, 0.55);
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+    }
+    .companion-card:hover,
+    .companion-card:focus-visible {
+      border-color: color-mix(in srgb, var(--accent) 35%, rgba(255, 255, 255, 0.18) 65%);
+      background: color-mix(in srgb, var(--accent) 18%, rgba(12, 18, 30, 0.55) 82%);
+      transform: translateY(-1px);
+    }
+    .companion-card[aria-selected="true"] {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 20%, rgba(12, 18, 30, 0.65) 80%);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent 45%);
+    }
+    .companion-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.5rem;
+    }
+    .companion-card-header strong {
+      font-size: 0.92rem;
+    }
+    .companion-card-header span {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+    .companion-card-meta {
+      margin: 0;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+    .companion-card-summary {
+      margin: 0;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+    .companion-empty {
+      margin: 0;
+      padding: 0.9rem;
+      border-radius: 0.85rem;
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      background: rgba(12, 18, 30, 0.45);
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .companion-detail {
+      display: grid;
+      gap: 0.75rem;
+      padding: 0.95rem;
+      border-radius: 0.95rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 18, 30, 0.55);
+    }
+    .companion-detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+    .companion-detail-header h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .companion-meta {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .companion-summary {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .companion-chips,
+    .companion-card-chips,
+    .summary-companion-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+    }
+    .stat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.35rem 0.6rem;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      font-size: 0.72rem;
+      color: var(--muted-strong);
+      white-space: nowrap;
+    }
+    .stat-chip span {
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .stat-chip strong {
+      font-size: 0.84rem;
+      color: var(--fg);
+    }
+    .stat-chip small {
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-left: 0.35rem;
+    }
+    .stat-chip[data-override="true"] {
+      border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.16) 45%);
+      background: color-mix(in srgb, var(--accent) 20%, rgba(255, 255, 255, 0.06) 80%);
+      color: var(--accent-contrast);
+    }
+    .stat-chip[data-override="true"] strong {
+      color: var(--accent-contrast);
+    }
+    .companion-overrides {
+      display: grid;
+      gap: 0.65rem;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    }
+    .companion-overrides label {
+      display: grid;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .companion-notes {
+      display: grid;
+      gap: 0.3rem;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .companion-clear {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      transition: color 140ms ease, background 140ms ease, border-color 140ms ease;
+    }
+    .companion-clear:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    .companion-clear:not(:disabled):hover,
+    .companion-clear:not(:disabled):focus-visible {
+      color: var(--accent-contrast);
+      background: color-mix(in srgb, var(--accent) 28%, transparent 72%);
+      border-color: color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.18) 45%);
+    }
     [data-equipment-feedback][data-state="warn"] {
       color: #ffd7c2;
     }
@@ -549,6 +765,41 @@
       display: grid;
       gap: 0.6rem;
       font-size: 0.82rem;
+    }
+    .summary-companion {
+      display: grid;
+      gap: 0.6rem;
+      padding: 0.85rem;
+      border-radius: 0.85rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(12, 18, 30, 0.55);
+    }
+    .summary-companion header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 0.75rem;
+    }
+    .summary-companion h4 {
+      margin: 0;
+      font-size: 1rem;
+    }
+    .summary-companion header p {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .summary-companion-notes,
+    .summary-companion-summary {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+    .summary-companion-alert {
+      margin: 0;
+      font-size: 0.78rem;
+      color: #facc15;
     }
     .summary-equipment-status {
       display: flex;
@@ -1264,17 +1515,51 @@
       </section>
       <section class="step" data-step="familiar">
         <h2>Companions &amp; Familiars</h2>
-        <label>Companion name
-          <input type="text" name="familiarName" placeholder="Nimbus" />
-        </label>
-        <label>Creature type
-          <select name="familiarType">
-            <option value="">Select a creature</option>
-          </select>
-        </label>
-        <label>Notes
-          <textarea name="familiarNotes" placeholder="Track hit points, special abilities, and personality"></textarea>
-        </label>
+        <p class="step-hint" data-companion-feedback aria-live="polite">Load a data pack with companions to get started.</p>
+        <div class="companion-picker" data-companion-root>
+          <div class="companion-toolbar">
+            <label>Challenge rating
+              <select data-companion-filter="cr">
+                <option value="">All CRs</option>
+              </select>
+            </label>
+            <fieldset class="companion-features">
+              <legend>Movement requirements</legend>
+              <label><input type="checkbox" value="fly" data-companion-feature /> Fly</label>
+              <label><input type="checkbox" value="swim" data-companion-feature /> Swim</label>
+              <label><input type="checkbox" value="climb" data-companion-feature /> Climb</label>
+              <label><input type="checkbox" value="burrow" data-companion-feature /> Burrow</label>
+            </fieldset>
+          </div>
+          <div class="companion-grid" data-companion-list role="listbox" aria-label="Available companions"></div>
+        </div>
+        <div class="companion-detail" data-companion-detail>
+          <div class="companion-detail-header">
+            <h3 data-companion-name>No companion selected</h3>
+            <button type="button" class="companion-clear" data-companion-clear disabled>Remove</button>
+          </div>
+          <p class="companion-meta" data-companion-meta>Choose a creature from the list to track it.</p>
+          <div class="companion-chips" data-companion-chips></div>
+          <p class="companion-summary" data-companion-summary>Select a creature to view armor class, hit points, and speeds.</p>
+          <div class="companion-overrides">
+            <label>Nickname
+              <input type="text" data-companion-alias placeholder="Nimbus" autocomplete="off" disabled />
+            </label>
+            <label>Armor Class override
+              <input type="text" data-companion-override="ac" placeholder="13 (with barding)" disabled />
+            </label>
+            <label>Hit points override
+              <input type="text" data-companion-override="hp" placeholder="12 (2d8 + 3)" disabled />
+            </label>
+            <label>Speed override
+              <input type="text" data-companion-override="speed" placeholder="40 ft., fly 60 ft." disabled />
+            </label>
+          </div>
+          <label class="companion-notes">Notes
+            <textarea data-companion-notes placeholder="Track hit points, special abilities, and personality"></textarea>
+          </label>
+        </div>
+        <input type="hidden" name="familiar" data-companion-field disabled />
       </section>
       <section class="step" data-step="finalize" id="finalize">
         <h2>Finalize &amp; Export</h2>

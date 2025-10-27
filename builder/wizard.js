@@ -923,8 +923,6 @@ function populateDynamicOptions() {
   if (form && form.elements) {
     const raceField = form.elements.namedItem('race');
     populateSelectOptions(raceField, data.races || [], 'Choose a race');
-    const familiarField = form.elements.namedItem('familiarType');
-    populateSelectOptions(familiarField, data.companions || [], 'Select a creature');
   }
   populateDatalist('background-options', data.backgrounds || []);
   populateDatalist('feat-options', data.feats || []);
@@ -1079,6 +1077,22 @@ function serializeForm() {
     data.class = data.class || '';
   }
   data.proficiencyBonus = String(calculateProficiencyBonus(totalLevel));
+
+  if ('familiar' in data) {
+    const parsed = parseJsonValue(data.familiar);
+    if (parsed && typeof parsed === 'object') {
+      data.familiar = parsed;
+    } else {
+      data.familiar = null;
+    }
+  } else {
+    data.familiar = null;
+  }
+
+  delete data.familiarType;
+  delete data.familiarName;
+  delete data.familiarNotes;
+
   return data;
 }
 
@@ -2953,18 +2967,768 @@ const equipmentModule = (() => {
 })();
 
 const familiarModule = (() => {
+  const MOVEMENT_FEATURES = ['fly', 'swim', 'climb', 'burrow'];
+
   let section = null;
-  function render() {
-    if (!section) return;
-    section.dataset.companionCount = String((getPackData().companions || []).length);
+  let feedbackNode = null;
+  let listNode = null;
+  let nameNode = null;
+  let metaNode = null;
+  let summaryNode = null;
+  let chipsNode = null;
+  let aliasField = null;
+  let notesField = null;
+  let clearButton = null;
+  let hiddenField = null;
+  let crFilter = null;
+  let featureChecks = [];
+  const overrideFields = new Map();
+
+  let companions = [];
+  const companionIndex = new Map();
+  const filters = { cr: '', features: new Set() };
+  let familiarState = null;
+
+  function createNode(tag, className, textContent) {
+    const el = document.createElement(tag);
+    if (className) {
+      el.className = className;
+    }
+    if (textContent !== undefined) {
+      el.textContent = textContent;
+    }
+    return el;
   }
+
+  function coerceString(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    return String(value);
+  }
+
+  function parseChallengeRating(raw) {
+    if (raw === null || raw === undefined) {
+      return { raw: '', display: '—', filter: '__unknown', sort: Number.POSITIVE_INFINITY };
+    }
+    const initial = typeof raw === 'number' ? String(raw) : coerceString(raw).trim();
+    if (!initial) {
+      return { raw: '', display: '—', filter: '__unknown', sort: Number.POSITIVE_INFINITY };
+    }
+    const normalized = initial.replace(/^CR\s*/i, '').trim();
+    const cleaned = normalized || initial;
+    const sanitized = cleaned === '—' ? '' : cleaned;
+    const filter = sanitized ? sanitized : '__unknown';
+    let sort = Number.POSITIVE_INFINITY;
+    const fraction = sanitized.match(/^(\d+)\s*\/\s*(\d+)$/);
+    if (fraction) {
+      const numerator = Number.parseFloat(fraction[1]);
+      const denominator = Number.parseFloat(fraction[2]);
+      if (Number.isFinite(numerator) && Number.isFinite(denominator) && denominator !== 0) {
+        sort = numerator / denominator;
+      }
+    } else {
+      const numeric = Number.parseFloat(sanitized.replace(/[^0-9.]/g, ''));
+      if (Number.isFinite(numeric)) {
+        sort = numeric;
+      }
+    }
+    const display = sanitized || cleaned || '—';
+    return { raw: initial, display, filter, sort };
+  }
+
+  function getSpeedText(value) {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (Array.isArray(value)) {
+      return value
+        .map((entry) => coerceString(entry).trim())
+        .filter(Boolean)
+        .join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = [];
+      Object.entries(value).forEach(([key, val]) => {
+        if (val === null || val === undefined || val === '') return;
+        const label = coerceString(key).replace(/_/g, ' ');
+        entries.push(`${label} ${coerceString(val)}`.trim());
+      });
+      return entries.join(', ');
+    }
+    return coerceString(value);
+  }
+
+  function extractMovementFeatures(entry, speedText) {
+    const features = new Set();
+    const scan = (text) => {
+      if (!text && text !== 0) return;
+      const lower = coerceString(text).toLowerCase();
+      MOVEMENT_FEATURES.forEach((feature) => {
+        if (lower.includes(feature)) {
+          features.add(feature);
+        }
+      });
+    };
+    if (entry && typeof entry === 'object') {
+      scan(entry.speed);
+      if (Array.isArray(entry.speeds)) {
+        entry.speeds.forEach(scan);
+      }
+      if (entry.speed && typeof entry.speed === 'object' && !Array.isArray(entry.speed)) {
+        Object.values(entry.speed).forEach(scan);
+        Object.keys(entry.speed).forEach((key) => {
+          MOVEMENT_FEATURES.forEach((feature) => {
+            if (key.toLowerCase().includes(feature) && entry.speed[key]) {
+              features.add(feature);
+            }
+          });
+        });
+      }
+    }
+    scan(speedText);
+    return Array.from(features);
+  }
+
+  function normalizeCompanion(entry) {
+    if (!entry) return null;
+    const identifier = entry.id || entry.slug || entry.name;
+    if (!identifier) return null;
+    const name = entry.name || entry.slug || 'Unnamed companion';
+    const challenge = parseChallengeRating(
+      entry.challenge_rating ?? entry.challengeRating ?? entry.cr ?? entry.challenge ?? entry.cr_value
+    );
+    const speed = getSpeedText(entry.speed ?? entry.speeds);
+    const features = extractMovementFeatures(entry, speed);
+    const sourceName = entry.source?.name || entry.sourceName || coerceString(entry.source).trim();
+    return {
+      id: entry.id || null,
+      slug: entry.slug || null,
+      key: coerceString(identifier).toLowerCase(),
+      name,
+      size: entry.size ? coerceString(entry.size) : '',
+      alignment: entry.alignment ? coerceString(entry.alignment) : '',
+      type: entry.creature_type ? coerceString(entry.creature_type) : entry.type ? coerceString(entry.type) : '',
+      summary: entry.summary || entry.description || '',
+      sourceName: sourceName || '',
+      sourceId: entry.sourceId || entry.source?.id || null,
+      ac: entry.armor_class ?? entry.armorClass ?? entry.ac ?? null,
+      hp: entry.hit_points ?? entry.hitPoints ?? entry.hp ?? null,
+      speed,
+      features,
+      crDisplay: challenge.display,
+      crFilter: challenge.filter,
+      crSort: challenge.sort,
+      hasCr: challenge.filter !== '__unknown',
+      raw: entry
+    };
+  }
+
+  function rebuildCompanionIndex() {
+    companionIndex.clear();
+    companions.forEach((meta) => {
+      const candidates = [meta.id, meta.slug, meta.name, meta.key];
+      candidates
+        .filter(Boolean)
+        .map((value) => coerceString(value).toLowerCase())
+        .forEach((key) => {
+          if (!companionIndex.has(key)) {
+            companionIndex.set(key, meta);
+          }
+        });
+    });
+  }
+
+  function findCompanionByValue(value) {
+    if (!value && value !== 0) return null;
+    return companionIndex.get(coerceString(value).toLowerCase()) || null;
+  }
+
+  function normalizeOverrides(raw) {
+    const result = { ac: '', hp: '', speed: '' };
+    if (!raw || typeof raw !== 'object') {
+      return result;
+    }
+    ['ac', 'hp', 'speed'].forEach((key) => {
+      const value = raw[key];
+      if (value || value === 0) {
+        result[key] = coerceString(value);
+      }
+    });
+    return result;
+  }
+
+  function normalizeStats(raw) {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const ac = source.ac ?? source.armor_class ?? source.armorClass ?? null;
+    const hp = source.hp ?? source.hit_points ?? source.hitPoints ?? null;
+    const baseSpeed = source.speed ?? source.speeds ?? '';
+    const speed = getSpeedText(baseSpeed);
+    return { ac, hp, speed };
+  }
+
+  function normalizeFeatures(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((entry) => coerceString(entry).toLowerCase())
+      .filter(Boolean);
+  }
+
+  function normalizePayload(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const payload = {
+      id: raw.id || raw.slug || raw.name || null,
+      slug: raw.slug || null,
+      name: raw.name ? coerceString(raw.name) : raw.slug || raw.id || null,
+      source: raw.source?.name || raw.sourceName || (typeof raw.source === 'string' ? raw.source : ''),
+      sourceId: raw.sourceId || raw.source?.id || null,
+      size: raw.size ? coerceString(raw.size) : '',
+      alignment: raw.alignment ? coerceString(raw.alignment) : '',
+      type: raw.type ? coerceString(raw.type) : raw.creature_type ? coerceString(raw.creature_type) : '',
+      cr: raw.cr ?? raw.challenge_rating ?? raw.challengeRating ?? raw.challenge ?? '',
+      summary: raw.summary || raw.description || '',
+      stats: normalizeStats(raw.stats || raw),
+      features: normalizeFeatures(raw.features),
+      alias: raw.alias ? coerceString(raw.alias) : '',
+      notes: raw.notes ? coerceString(raw.notes) : '',
+      overrides: normalizeOverrides(raw.overrides)
+    };
+    return payload;
+  }
+
+  function createPayloadFromMeta(meta) {
+    if (!meta) return null;
+    return {
+      id: meta.id || meta.slug || meta.name || null,
+      slug: meta.slug || null,
+      name: meta.name || null,
+      source: meta.sourceName || '',
+      sourceId: meta.sourceId || null,
+      size: meta.size || '',
+      alignment: meta.alignment || '',
+      type: meta.type || '',
+      cr: meta.crDisplay || '',
+      summary: meta.summary || '',
+      stats: { ac: meta.ac ?? null, hp: meta.hp ?? null, speed: meta.speed || '' },
+      features: Array.from(meta.features || []),
+      alias: '',
+      notes: '',
+      overrides: { ac: '', hp: '', speed: '' }
+    };
+  }
+
+  function getSerializableState() {
+    if (!familiarState) return null;
+    const payload = {
+      id: familiarState.id || null,
+      slug: familiarState.slug || null,
+      name: familiarState.name || null,
+      source: familiarState.source || '',
+      sourceId: familiarState.sourceId || null,
+      size: familiarState.size || '',
+      alignment: familiarState.alignment || '',
+      type: familiarState.type || '',
+      cr: familiarState.cr || '',
+      summary: familiarState.summary || '',
+      stats: familiarState.stats ? { ...familiarState.stats } : { ac: null, hp: null, speed: '' },
+      features: Array.isArray(familiarState.features) ? [...familiarState.features] : [],
+      alias: familiarState.alias || '',
+      notes: familiarState.notes || '',
+      overrides: familiarState.overrides ? { ...familiarState.overrides } : { ac: '', hp: '', speed: '' }
+    };
+    return payload;
+  }
+
+  function updateHiddenField({ skipEvent = false } = {}) {
+    if (!hiddenField) return;
+    const payload = getSerializableState();
+    if (payload) {
+      hiddenField.disabled = false;
+      hiddenField.value = JSON.stringify(payload);
+      if (state && state.data) {
+        state.data.familiar = cloneState ? cloneState(payload) : JSON.parse(JSON.stringify(payload));
+      }
+    } else {
+      hiddenField.value = '';
+      hiddenField.disabled = true;
+      if (state && state.data) {
+        state.data.familiar = null;
+      }
+    }
+    if (!skipEvent) {
+      hiddenField.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  }
+
+  function updateControlsEnabled(enabled) {
+    const flag = Boolean(enabled);
+    if (aliasField) aliasField.disabled = !flag;
+    if (notesField) notesField.disabled = !flag;
+    overrideFields.forEach((input) => {
+      input.disabled = !flag;
+    });
+    if (clearButton) clearButton.disabled = !flag;
+  }
+
+  function findCompanionFromState(stateSnapshot) {
+    if (!stateSnapshot) return null;
+    const candidates = [stateSnapshot.id, stateSnapshot.slug, stateSnapshot.name];
+    for (const candidate of candidates) {
+      const match = findCompanionByValue(candidate);
+      if (match) return match;
+    }
+    return null;
+  }
+
+  function getMetaSnapshot() {
+    if (!familiarState) return null;
+    const live = findCompanionFromState(familiarState);
+    const baseStats = familiarState.stats ? { ...familiarState.stats } : { ac: null, hp: null, speed: '' };
+    if (live) {
+      if (live.ac !== undefined) baseStats.ac = live.ac;
+      if (live.hp !== undefined) baseStats.hp = live.hp;
+      if (live.speed !== undefined) baseStats.speed = live.speed;
+    }
+    const overrides = familiarState.overrides ? { ...familiarState.overrides } : { ac: '', hp: '', speed: '' };
+    return {
+      baseName: live?.name || familiarState.name || '',
+      size: live?.size || familiarState.size || '',
+      alignment: live?.alignment || familiarState.alignment || '',
+      type: live?.type || familiarState.type || '',
+      cr: live?.crDisplay || familiarState.cr || '',
+      source: live?.sourceName || familiarState.source || '',
+      summary: live?.summary || familiarState.summary || '',
+      baseStats,
+      overrides,
+      features: live ? Array.from(live.features || []) : Array.from(familiarState.features || []),
+      missing: !live && Boolean(familiarState.id || familiarState.slug || familiarState.name)
+    };
+  }
+
+  function createStatChip(label, finalValue, baseValue, isOverride) {
+    const chip = createNode('span', 'stat-chip');
+    if (isOverride) {
+      chip.dataset.override = 'true';
+    }
+    const labelEl = createNode('span', null, label);
+    const valueEl = createNode('strong', null, finalValue || '—');
+    chip.append(labelEl, valueEl);
+    if (isOverride && baseValue && baseValue !== finalValue) {
+      chip.appendChild(createNode('small', null, `Base ${baseValue}`));
+    }
+    return chip;
+  }
+
+  function renderChips(snapshot) {
+    if (!chipsNode) return;
+    chipsNode.innerHTML = '';
+    if (!snapshot) return;
+    const baseAc = coerceString(snapshot.baseStats.ac).trim();
+    const overrideAc = coerceString(snapshot.overrides.ac).trim();
+    const finalAc = overrideAc || baseAc;
+    const baseHp = coerceString(snapshot.baseStats.hp).trim();
+    const overrideHp = coerceString(snapshot.overrides.hp).trim();
+    const finalHp = overrideHp || baseHp;
+    const baseSpeed = coerceString(snapshot.baseStats.speed).trim();
+    const overrideSpeed = coerceString(snapshot.overrides.speed).trim();
+    const finalSpeed = overrideSpeed || baseSpeed;
+    chipsNode.append(
+      createStatChip('AC', finalAc || '—', baseAc, Boolean(overrideAc)),
+      createStatChip('HP', finalHp || '—', baseHp, Boolean(overrideHp)),
+      createStatChip('Speed', finalSpeed || '—', baseSpeed, Boolean(overrideSpeed))
+    );
+  }
+
+  function renderDetail() {
+    if (!section) return;
+    const snapshot = getMetaSnapshot();
+    if (!familiarState || !snapshot) {
+      updateControlsEnabled(false);
+      if (nameNode) nameNode.textContent = 'No companion selected';
+      if (metaNode) metaNode.textContent = 'Choose a creature from the list to track it.';
+      if (summaryNode) summaryNode.textContent = 'Select a creature to view armor class, hit points, and speeds.';
+      renderChips(null);
+      if (aliasField && aliasField.value) aliasField.value = '';
+      overrideFields.forEach((input) => {
+        if (input.value) input.value = '';
+      });
+      if (notesField) notesField.value = familiarState ? familiarState.notes || '' : '';
+      return;
+    }
+
+    updateControlsEnabled(true);
+    if (aliasField && aliasField.value !== familiarState.alias) {
+      aliasField.value = familiarState.alias || '';
+    }
+    overrideFields.forEach((input, key) => {
+      const value = familiarState.overrides?.[key] || '';
+      if (input.value !== value) {
+        input.value = value;
+      }
+    });
+    if (notesField && notesField.value !== familiarState.notes) {
+      notesField.value = familiarState.notes || '';
+    }
+
+    const aliasTrimmed = familiarState.alias ? familiarState.alias.trim() : '';
+    const displayName = aliasTrimmed || snapshot.baseName || 'Tracked companion';
+    if (nameNode) nameNode.textContent = displayName;
+
+    const metaParts = [];
+    if (snapshot.size) metaParts.push(snapshot.size);
+    if (snapshot.alignment) metaParts.push(snapshot.alignment);
+    if (snapshot.cr) metaParts.push(`CR ${snapshot.cr}`);
+    if (snapshot.source) metaParts.push(snapshot.source);
+    if (snapshot.missing) metaParts.push('Unavailable in current packs');
+    if (metaNode) metaNode.textContent = metaParts.length ? metaParts.join(' · ') : '—';
+
+    if (summaryNode) {
+      const summaryText = snapshot.summary || 'Use the notes area to track this companion\'s abilities and health.';
+      summaryNode.textContent = summaryText;
+    }
+
+    renderChips(snapshot);
+  }
+
+  function companionMatchesState(meta) {
+    if (!meta || !familiarState) return false;
+    const candidates = new Set([
+      familiarState.id ? coerceString(familiarState.id).toLowerCase() : null,
+      familiarState.slug ? coerceString(familiarState.slug).toLowerCase() : null,
+      familiarState.name ? coerceString(familiarState.name).toLowerCase() : null
+    ].filter(Boolean));
+    if (!candidates.size) return false;
+    const keys = [meta.id, meta.slug, meta.name, meta.key];
+    return keys
+      .filter(Boolean)
+      .map((value) => coerceString(value).toLowerCase())
+      .some((key) => candidates.has(key));
+  }
+
+  function matchesFilters(meta) {
+    if (!meta) return false;
+    if (filters.cr && meta.crFilter !== filters.cr) return false;
+    if (filters.features.size) {
+      const featureSet = new Set((meta.features || []).map((entry) => coerceString(entry).toLowerCase()));
+      for (const feature of filters.features) {
+        if (!featureSet.has(feature)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  function getFilteredCompanions() {
+    return companions.filter((meta) => matchesFilters(meta));
+  }
+
+  function updateFeedback(filtered) {
+    if (!feedbackNode) return;
+    if (!companions.length) {
+      feedbackNode.textContent = 'Load a data pack with companions to get started.';
+      feedbackNode.dataset.state = 'warn';
+      return;
+    }
+    if (!filtered.length) {
+      feedbackNode.textContent = 'No companions match your filters. Adjust challenge rating or movement requirements.';
+      feedbackNode.dataset.state = 'warn';
+      return;
+    }
+    feedbackNode.textContent = filtered.length === companions.length
+      ? 'Select a companion to view its details.'
+      : `Showing ${filtered.length} of ${companions.length} companions.`;
+    delete feedbackNode.dataset.state;
+  }
+
+  function updateCrOptions() {
+    if (!crFilter) return;
+    const previous = crFilter.value;
+    crFilter.innerHTML = '';
+    const allOption = createNode('option');
+    allOption.value = '';
+    allOption.textContent = 'All CRs';
+    crFilter.appendChild(allOption);
+    const map = new Map();
+    companions.forEach((meta) => {
+      if (!meta || !meta.crFilter || meta.crFilter === '__unknown') return;
+      if (!map.has(meta.crFilter)) {
+        map.set(meta.crFilter, { label: meta.crDisplay || meta.crFilter, sort: meta.crSort });
+      }
+    });
+    const entries = Array.from(map.entries()).sort((a, b) => {
+      const sortA = Number.isFinite(a[1].sort) ? a[1].sort : Number.POSITIVE_INFINITY;
+      const sortB = Number.isFinite(b[1].sort) ? b[1].sort : Number.POSITIVE_INFINITY;
+      if (sortA !== sortB) return sortA - sortB;
+      return a[1].label.localeCompare(b[1].label, 'en', { sensitivity: 'base' });
+    });
+    entries.forEach(([value, info]) => {
+      const option = createNode('option');
+      option.value = value;
+      option.textContent = `CR ${info.label}`;
+      crFilter.appendChild(option);
+    });
+    if (companions.some((meta) => meta.crFilter === '__unknown')) {
+      const option = createNode('option');
+      option.value = '__unknown';
+      option.textContent = 'No listed CR';
+      crFilter.appendChild(option);
+    }
+    if (previous && Array.from(crFilter.options).some((opt) => opt.value === previous)) {
+      crFilter.value = previous;
+      filters.cr = previous;
+    } else {
+      crFilter.value = '';
+      filters.cr = '';
+    }
+  }
+
+  function renderList() {
+    if (!listNode) return;
+    listNode.innerHTML = '';
+    section.dataset.companionCount = String(companions.length);
+    const filtered = getFilteredCompanions();
+    updateFeedback(filtered);
+    if (!companions.length) {
+      listNode.appendChild(createNode('p', 'companion-empty', 'No companion data loaded. Import a pack to begin.'));
+      return;
+    }
+    if (!filtered.length) {
+      listNode.appendChild(createNode('p', 'companion-empty', 'No companions meet the current filters.'));
+      return;
+    }
+    filtered.forEach((meta) => {
+      const card = createNode('button', 'companion-card');
+      card.type = 'button';
+      card.setAttribute('role', 'option');
+      card.dataset.companionKey = meta.key;
+      if (meta.id) card.dataset.companionId = meta.id;
+      if (meta.slug) card.dataset.companionSlug = meta.slug;
+      card.setAttribute('aria-selected', companionMatchesState(meta) ? 'true' : 'false');
+
+      const header = createNode('div', 'companion-card-header');
+      header.appendChild(createNode('strong', null, meta.name));
+      const crLabel = meta.crDisplay ? `CR ${meta.crDisplay}` : 'No CR';
+      header.appendChild(createNode('span', null, crLabel));
+
+      const metaLineParts = [];
+      if (meta.size) metaLineParts.push(meta.size);
+      if (meta.alignment) metaLineParts.push(meta.alignment);
+      if (meta.sourceName) metaLineParts.push(meta.sourceName);
+      if (metaLineParts.length) {
+        card.appendChild(header);
+        card.appendChild(createNode('p', 'companion-card-meta', metaLineParts.join(' · ')));
+      } else {
+        card.appendChild(header);
+      }
+
+      const chips = createNode('div', 'companion-card-chips');
+      chips.append(
+        createStatChip('AC', coerceString(meta.ac).trim() || '—'),
+        createStatChip('HP', coerceString(meta.hp).trim() || '—'),
+        createStatChip('Speed', coerceString(meta.speed).trim() || '—')
+      );
+      card.appendChild(chips);
+
+      if (meta.summary) {
+        card.appendChild(createNode('p', 'companion-card-summary', meta.summary));
+      }
+
+      listNode.appendChild(card);
+    });
+  }
+
+  function loadCompanions() {
+    const data = Array.isArray(getPackData().companions) ? getPackData().companions : [];
+    companions = data
+      .map((entry) => normalizeCompanion(entry))
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
+    rebuildCompanionIndex();
+    if (familiarState) {
+      const live = findCompanionFromState(familiarState);
+      if (live) {
+        const preserved = {
+          alias: familiarState.alias || '',
+          notes: familiarState.notes || '',
+          overrides: familiarState.overrides ? { ...familiarState.overrides } : { ac: '', hp: '', speed: '' }
+        };
+        familiarState = createPayloadFromMeta(live);
+        familiarState.alias = preserved.alias;
+        familiarState.notes = preserved.notes;
+        familiarState.overrides = preserved.overrides;
+        updateHiddenField({ skipEvent: true });
+      }
+    }
+    updateCrOptions();
+    renderList();
+    renderDetail();
+  }
+
+  function handleSelect(key) {
+    const meta = findCompanionByValue(key);
+    if (!meta) return;
+    const previous = familiarState;
+    const next = createPayloadFromMeta(meta);
+    if (previous) {
+      next.alias = previous.alias || '';
+      next.notes = previous.notes || '';
+      next.overrides = previous.overrides ? { ...previous.overrides } : { ac: '', hp: '', speed: '' };
+    }
+    familiarState = next;
+    updateHiddenField();
+    renderList();
+    renderDetail();
+    if (aliasField && familiarState && !familiarState.alias) {
+      aliasField.focus();
+    }
+  }
+
+  function handleClear(event) {
+    if (event) {
+      event.preventDefault();
+    }
+    if (!familiarState) return;
+    familiarState = null;
+    updateHiddenField();
+    renderList();
+    renderDetail();
+  }
+
+  function handleListClick(event) {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const card = target.closest('[data-companion-key]');
+    if (!card) return;
+    event.preventDefault();
+    handleSelect(card.dataset.companionKey || card.dataset.companionId || card.dataset.companionSlug);
+  }
+
+  function handleCrFilterChange(event) {
+    const value = event.target.value;
+    filters.cr = value || '';
+    renderList();
+  }
+
+  function handleFeatureChange(event) {
+    const checkbox = event.target;
+    if (!(checkbox instanceof HTMLInputElement)) return;
+    const value = checkbox.value ? checkbox.value.toLowerCase() : '';
+    if (!value) return;
+    if (checkbox.checked) {
+      filters.features.add(value);
+    } else {
+      filters.features.delete(value);
+    }
+    renderList();
+  }
+
+  function handleAliasInput() {
+    if (!familiarState) return;
+    familiarState.alias = aliasField.value;
+    updateHiddenField();
+    renderDetail();
+  }
+
+  function handleOverrideInput(event) {
+    if (!familiarState) return;
+    const input = event.target;
+    if (!(input instanceof HTMLInputElement)) return;
+    const key = input.dataset.companionOverride;
+    if (!key) return;
+    if (!familiarState.overrides) {
+      familiarState.overrides = { ac: '', hp: '', speed: '' };
+    }
+    familiarState.overrides[key] = input.value;
+    updateHiddenField();
+    renderDetail();
+  }
+
+  function handleNotesInput() {
+    if (!familiarState) return;
+    familiarState.notes = notesField.value;
+    updateHiddenField();
+  }
+
+  function syncStateFromData(data) {
+    const rawValue = data?.familiar;
+    let parsed = rawValue;
+    if (typeof rawValue === 'string') {
+      try {
+        parsed = JSON.parse(rawValue);
+      } catch (error) {
+        parsed = null;
+      }
+    }
+    if (!parsed && (data?.familiarType || data?.familiarName || data?.familiarNotes)) {
+      parsed = {
+        id: data.familiarType || null,
+        slug: data.familiarType || null,
+        name: data.familiarName || data.familiarType || null,
+        alias: data.familiarName || '',
+        notes: data.familiarNotes || '',
+        overrides: { ac: '', hp: '', speed: '' }
+      };
+    }
+    familiarState = normalizePayload(parsed);
+    updateHiddenField({ skipEvent: true });
+    renderDetail();
+    renderList();
+  }
+
   return {
     setup(node) {
       section = node;
-      render();
+      feedbackNode = section.querySelector('[data-companion-feedback]');
+      listNode = section.querySelector('[data-companion-list]');
+      nameNode = section.querySelector('[data-companion-name]');
+      metaNode = section.querySelector('[data-companion-meta]');
+      summaryNode = section.querySelector('[data-companion-summary]');
+      chipsNode = section.querySelector('[data-companion-chips]');
+      aliasField = section.querySelector('[data-companion-alias]');
+      notesField = section.querySelector('[data-companion-notes]');
+      clearButton = section.querySelector('[data-companion-clear]');
+      hiddenField = section.querySelector('[data-companion-field]');
+      crFilter = section.querySelector('[data-companion-filter="cr"]');
+      featureChecks = Array.from(section.querySelectorAll('[data-companion-feature]'));
+      overrideFields.clear();
+      section.querySelectorAll('[data-companion-override]').forEach((input) => {
+        const key = input.dataset.companionOverride;
+        if (key) {
+          overrideFields.set(key, input);
+        }
+      });
+
+      if (listNode) {
+        listNode.addEventListener('click', handleListClick);
+      }
+      if (crFilter) {
+        crFilter.addEventListener('change', handleCrFilterChange);
+      }
+      featureChecks.forEach((checkbox) => {
+        checkbox.addEventListener('change', handleFeatureChange);
+      });
+      if (aliasField) {
+        aliasField.addEventListener('input', handleAliasInput);
+      }
+      overrideFields.forEach((input) => {
+        input.addEventListener('input', handleOverrideInput);
+      });
+      if (notesField) {
+        notesField.addEventListener('input', handleNotesInput);
+      }
+      if (clearButton) {
+        clearButton.addEventListener('click', handleClear);
+      }
+
+      loadCompanions();
     },
     onPackData() {
-      render();
+      loadCompanions();
+    },
+    onStateHydrated(currentState) {
+      syncStateFromData(currentState?.data || state.data);
+    },
+    onStatePersisted() {
+      renderDetail();
     }
   };
 })();

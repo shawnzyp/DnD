@@ -160,6 +160,138 @@ function resolveSkillFromText(value) {
   return skillNameIndex[key] || null;
 }
 
+function coerceText(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  return String(value);
+}
+
+function getCompanionSpeedText(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value)) {
+    return value
+      .map((entry) => coerceText(entry).trim())
+      .filter(Boolean)
+      .join(', ');
+  }
+  if (typeof value === 'object') {
+    const entries = [];
+    Object.entries(value).forEach(([key, val]) => {
+      if (val === null || val === undefined || val === '') return;
+      const label = coerceText(key).replace(/_/g, ' ');
+      entries.push(`${label} ${coerceText(val)}`.trim());
+    });
+    return entries.join(', ');
+  }
+  return coerceText(value);
+}
+
+function parseChallengeRatingLabel(raw) {
+  if (raw === null || raw === undefined) return '';
+  const initial = typeof raw === 'number' ? String(raw) : coerceText(raw).trim();
+  if (!initial) return '';
+  const cleaned = initial.replace(/^CR\s*/i, '').trim();
+  return cleaned || initial;
+}
+
+function normalizeCompanionEntry(entry) {
+  if (!entry) return null;
+  const stats = {
+    ac: entry.armor_class ?? entry.armorClass ?? entry.ac ?? null,
+    hp: entry.hit_points ?? entry.hitPoints ?? entry.hp ?? null,
+    speed: getCompanionSpeedText(entry.speed ?? entry.speeds)
+  };
+  return {
+    id: entry.id || null,
+    slug: entry.slug || null,
+    name: entry.name || entry.slug || 'Companion',
+    size: entry.size ? coerceText(entry.size) : '',
+    alignment: entry.alignment ? coerceText(entry.alignment) : '',
+    type: entry.creature_type ? coerceText(entry.creature_type) : entry.type ? coerceText(entry.type) : '',
+    crDisplay: parseChallengeRatingLabel(entry.challenge_rating ?? entry.challengeRating ?? entry.cr ?? entry.challenge ?? ''),
+    source: entry.source?.name || entry.sourceName || (typeof entry.source === 'string' ? entry.source : ''),
+    summary: entry.summary || entry.description || '',
+    stats
+  };
+}
+
+function parseFamiliarState(raw) {
+  if (!raw && raw !== 0) return null;
+  let value = raw;
+  if (typeof raw === 'string') {
+    try {
+      value = JSON.parse(raw);
+    } catch (error) {
+      return null;
+    }
+  }
+  if (!value || typeof value !== 'object') return null;
+  const overrides = value.overrides && typeof value.overrides === 'object' ? value.overrides : {};
+  const statsSource = value.stats && typeof value.stats === 'object' ? value.stats : value;
+  return {
+    id: value.id || value.slug || value.name || null,
+    slug: value.slug || null,
+    name: value.name ? coerceText(value.name) : value.slug || value.id || null,
+    alias: value.alias ? coerceText(value.alias) : '',
+    notes: value.notes ? coerceText(value.notes) : '',
+    summary: value.summary || value.description || '',
+    size: value.size ? coerceText(value.size) : '',
+    alignment: value.alignment ? coerceText(value.alignment) : '',
+    type: value.type ? coerceText(value.type) : value.creature_type ? coerceText(value.creature_type) : '',
+    cr: value.cr ? coerceText(value.cr) : '',
+    source: value.source?.name || value.sourceName || (typeof value.source === 'string' ? value.source : ''),
+    stats: {
+      ac: statsSource.ac ?? statsSource.armor_class ?? statsSource.armorClass ?? null,
+      hp: statsSource.hp ?? statsSource.hit_points ?? statsSource.hitPoints ?? null,
+      speed: getCompanionSpeedText(statsSource.speed ?? statsSource.speeds)
+    },
+    overrides: {
+      ac: overrides.ac ? coerceText(overrides.ac) : '',
+      hp: overrides.hp ? coerceText(overrides.hp) : '',
+      speed: overrides.speed ? coerceText(overrides.speed) : ''
+    }
+  };
+}
+
+function resolveCompanionEntry(familiar) {
+  if (!familiar) return null;
+  const { companions = [] } = getPackData();
+  const identifiers = new Set([
+    familiar.id ? coerceText(familiar.id).toLowerCase() : null,
+    familiar.slug ? coerceText(familiar.slug).toLowerCase() : null,
+    familiar.name ? coerceText(familiar.name).toLowerCase() : null
+  ].filter(Boolean));
+  if (!identifiers.size) return null;
+  const match = companions.find((entry) => {
+    const candidates = [entry.id, entry.slug, entry.name];
+    return candidates
+      .filter(Boolean)
+      .map((value) => coerceText(value).toLowerCase())
+      .some((value) => identifiers.has(value));
+  });
+  return normalizeCompanionEntry(match);
+}
+
+function createCompanionStatChip(label, finalValue, baseValue, isOverride) {
+  const chip = document.createElement('span');
+  chip.className = 'stat-chip';
+  if (isOverride) {
+    chip.dataset.override = 'true';
+  }
+  const labelEl = document.createElement('span');
+  labelEl.textContent = label;
+  const valueEl = document.createElement('strong');
+  valueEl.textContent = finalValue || '—';
+  chip.append(labelEl, valueEl);
+  if (isOverride && baseValue && baseValue !== finalValue) {
+    const baseEl = document.createElement('small');
+    baseEl.textContent = `Base ${baseValue}`;
+    chip.appendChild(baseEl);
+  }
+  return chip;
+}
+
 function randomDieRoll(size) {
   const die = Number.parseInt(size, 10);
   if (!Number.isFinite(die) || die <= 0) return 0;
@@ -1206,6 +1338,7 @@ class SummaryUI {
     this.renderResources();
     this.renderSpellcasting();
     this.renderEquipment();
+    this.renderCompanion();
     this.renderCounters();
     this.renderConcentration();
     this.renderConditions();
@@ -1249,6 +1382,10 @@ class SummaryUI {
       <details open>
         <summary>Equipment</summary>
         <div class="section-body" data-summary-section="equipment"></div>
+      </details>
+      <details>
+        <summary>Companion</summary>
+        <div class="section-body" data-summary-section="companion"></div>
       </details>
       <details>
         <summary>Class Trackers</summary>
@@ -1640,6 +1777,95 @@ class SummaryUI {
       });
       container.appendChild(list);
     });
+  }
+
+  renderCompanion() {
+    const container = this.root.querySelector('[data-summary-section="companion"]');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const familiar = parseFamiliarState(this.builderState?.data?.familiar);
+    if (!familiar) {
+      container.appendChild(createElement('p', 'summary-empty', 'No companion tracked yet.'));
+      return;
+    }
+
+    const meta = resolveCompanionEntry(familiar);
+    const baseStats = {
+      ac: meta?.stats?.ac ?? familiar.stats.ac ?? null,
+      hp: meta?.stats?.hp ?? familiar.stats.hp ?? null,
+      speed: meta?.stats?.speed ?? familiar.stats.speed ?? ''
+    };
+    const overrides = familiar.overrides || { ac: '', hp: '', speed: '' };
+
+    const baseAc = baseStats.ac === null || baseStats.ac === undefined ? '' : coerceText(baseStats.ac).trim();
+    const baseHp = baseStats.hp === null || baseStats.hp === undefined ? '' : coerceText(baseStats.hp).trim();
+    const baseSpeed = baseStats.speed ? coerceText(baseStats.speed).trim() : '';
+    const overrideAc = overrides.ac ? coerceText(overrides.ac).trim() : '';
+    const overrideHp = overrides.hp ? coerceText(overrides.hp).trim() : '';
+    const overrideSpeed = overrides.speed ? coerceText(overrides.speed).trim() : '';
+
+    const finalAc = overrideAc || baseAc;
+    const finalHp = overrideHp || baseHp;
+    const finalSpeed = overrideSpeed || baseSpeed;
+
+    const displayName = (familiar.alias && familiar.alias.trim()) || meta?.name || familiar.name || 'Tracked companion';
+    const size = meta?.size || familiar.size || '';
+    const alignment = meta?.alignment || familiar.alignment || '';
+    const cr = (meta?.crDisplay || familiar.cr || '').toString().trim();
+    const source = meta?.source || familiar.source || '';
+    const summary = (familiar.summary || meta?.summary || '').trim();
+    const notes = familiar.notes ? familiar.notes.trim() : '';
+
+    const metaParts = [];
+    if (size) metaParts.push(size);
+    if (alignment) metaParts.push(alignment);
+    if (cr) metaParts.push(`CR ${cr}`);
+    if (source) metaParts.push(source);
+
+    const card = document.createElement('article');
+    card.className = 'summary-companion';
+
+    const header = document.createElement('header');
+    const title = document.createElement('h4');
+    title.textContent = displayName;
+    header.appendChild(title);
+    const metaLine = document.createElement('p');
+    metaLine.textContent = metaParts.length ? metaParts.join(' · ') : '—';
+    header.appendChild(metaLine);
+    card.appendChild(header);
+
+    const chips = document.createElement('div');
+    chips.className = 'summary-companion-chips';
+    chips.append(
+      createCompanionStatChip('AC', finalAc || '—', baseAc, Boolean(overrideAc)),
+      createCompanionStatChip('HP', finalHp || '—', baseHp, Boolean(overrideHp)),
+      createCompanionStatChip('Speed', finalSpeed || '—', baseSpeed, Boolean(overrideSpeed))
+    );
+    card.appendChild(chips);
+
+    if (summary) {
+      const summaryParagraph = document.createElement('p');
+      summaryParagraph.className = 'summary-companion-summary';
+      summaryParagraph.textContent = summary;
+      card.appendChild(summaryParagraph);
+    }
+
+    if (notes) {
+      const notesParagraph = document.createElement('p');
+      notesParagraph.className = 'summary-companion-notes';
+      notesParagraph.textContent = notes;
+      card.appendChild(notesParagraph);
+    }
+
+    if (!meta) {
+      const alert = document.createElement('p');
+      alert.className = 'summary-companion-alert';
+      alert.textContent = 'This companion is not available in the loaded packs. Showing saved data.';
+      card.appendChild(alert);
+    }
+
+    container.appendChild(card);
   }
 
   renderCounters() {
