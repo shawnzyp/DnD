@@ -254,6 +254,15 @@
       overflow-y: auto;
       padding-right: 0.4rem;
     }
+    .feat-grid[data-virtualized] [data-virtual-spacer] {
+      visibility: hidden;
+      pointer-events: none;
+      margin: 0;
+      padding: 0;
+    }
+    .feat-grid[data-virtualized] [data-virtual-empty] {
+      grid-column: 1 / -1;
+    }
     .feat-grid::-webkit-scrollbar {
       width: 8px;
     }
