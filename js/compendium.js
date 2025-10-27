@@ -1,6 +1,13 @@
 const FAVORITES_KEY = 'dndCompendiumFavorites';
 const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
-const TYPE_LABELS = { spell: 'Spell', feat: 'Feat', item: 'Item', rule: 'Rule' };
+const TYPE_LABELS = {
+  spell: 'Spell',
+  feat: 'Feat',
+  item: 'Item',
+  rule: 'Rule',
+  monster: 'Monster',
+  skill: 'Skill'
+};
 const VIEW_ROW_HEIGHT = 156;
 
 const viewport = document.getElementById('list-viewport');
@@ -21,15 +28,32 @@ const drawerScrim = document.getElementById('drawer-scrim');
 const favoriteToggle = document.getElementById('favorite-toggle');
 const builderAddButton = document.getElementById('builder-add');
 const spellPanelHost = document.getElementById('spell-panel');
+const monsterPanelHost = document.getElementById('monster-panel');
 
 const worker = new Worker('/js/compendium-worker.js', { type: 'module' });
 
-let packData = { packs: [], spells: [], feats: [], items: [], rules: [] };
+let packData = {
+  packs: [],
+  spells: [],
+  feats: [],
+  items: [],
+  rules: [],
+  monsters: [],
+  skills: []
+};
 let favorites = loadFavorites();
 let quickAddQueue = loadQuickAddQueue();
 let filtered = [];
 let entryIndex = new Map();
-let lastCounts = { spells: 0, feats: 0, items: 0, rules: 0, total: 0 };
+let lastCounts = {
+  spells: 0,
+  feats: 0,
+  items: 0,
+  rules: 0,
+  monsters: 0,
+  skills: 0,
+  total: 0
+};
 let activeRequestId = 0;
 let workerReady = false;
 let pendingQuery = false;
@@ -91,7 +115,9 @@ function setPackData(value) {
     spells: Array.isArray(value?.spells) ? value.spells : [],
     feats: Array.isArray(value?.feats) ? value.feats : [],
     items: Array.isArray(value?.items) ? value.items : [],
-    rules: Array.isArray(value?.rules) ? value.rules : []
+    rules: Array.isArray(value?.rules) ? value.rules : [],
+    monsters: Array.isArray(value?.monsters) ? value.monsters : [],
+    skills: Array.isArray(value?.skills) ? value.skills : []
   };
   window.dndCompendiumData = packData;
 }
@@ -297,6 +323,7 @@ function openDetail(entry) {
   renderStats(entry.stats || []);
   renderBody(entry.body || '');
   applySpellPanel(entry);
+  applyMonsterPanel(entry);
   detailStatus.textContent = '';
   favoriteToggle.dataset.id = entry.id;
   builderAddButton.dataset.id = entry.id;
@@ -324,6 +351,7 @@ function closeDetail() {
   }
   currentEntry = null;
   resetSpellPanel();
+  resetMonsterPanel();
 }
 
 function renderTags(tags) {
@@ -408,6 +436,177 @@ function applySpellPanel(entry) {
       console.warn('Failed to render spell detail', error);
       resetSpellPanel();
     });
+}
+
+function resetMonsterPanel() {
+  if (!monsterPanelHost) return;
+  monsterPanelHost.hidden = true;
+  monsterPanelHost.innerHTML = '';
+}
+
+function createMonsterListSection(title, items = []) {
+  if (!items.length) return null;
+  const section = document.createElement('section');
+  section.className = 'monster-panel__section';
+  const heading = document.createElement('h3');
+  heading.className = 'monster-panel__section-title';
+  heading.textContent = title;
+  section.appendChild(heading);
+  const list = document.createElement('ul');
+  list.className = 'monster-panel__list';
+  items.forEach((item) => {
+    if (!item?.value) return;
+    const li = document.createElement('li');
+    li.className = 'monster-panel__list-item';
+    if (item.label) {
+      const strong = document.createElement('strong');
+      strong.textContent = `${item.label}: `;
+      li.appendChild(strong);
+    }
+    const span = document.createElement('span');
+    span.textContent = item.value;
+    li.appendChild(span);
+    list.appendChild(li);
+  });
+  if (!list.childNodes.length) return null;
+  section.appendChild(list);
+  return section;
+}
+
+function createMonsterTraitSection(title, traits = []) {
+  if (!traits.length) return null;
+  const section = document.createElement('section');
+  section.className = 'monster-panel__section';
+  const heading = document.createElement('h3');
+  heading.className = 'monster-panel__section-title';
+  heading.textContent = title;
+  section.appendChild(heading);
+  const wrapper = document.createElement('div');
+  wrapper.className = 'monster-panel__traits';
+  traits.forEach((trait) => {
+    if (!trait?.text && !trait?.name) return;
+    const item = document.createElement('p');
+    const name = document.createElement('span');
+    name.className = 'monster-panel__trait-name';
+    name.textContent = trait.name || title;
+    item.appendChild(name);
+    if (trait.text) {
+      const text = document.createElement('span');
+      text.textContent = trait.text;
+      item.appendChild(text);
+    }
+    wrapper.appendChild(item);
+  });
+  if (!wrapper.childNodes.length) return null;
+  section.appendChild(wrapper);
+  return section;
+}
+
+function applyMonsterPanel(entry) {
+  if (!monsterPanelHost) return;
+  const monster = entry?.monster;
+  if (!entry || entry.type !== 'monster' || !monster) {
+    resetMonsterPanel();
+    return;
+  }
+
+  const panel = document.createElement('div');
+  panel.className = 'monster-panel';
+
+  const headline = document.createElement('div');
+  headline.className = 'monster-panel__headline';
+  const subtitle = document.createElement('p');
+  subtitle.className = 'monster-panel__subtitle';
+  subtitle.textContent = monster.sizeType || TYPE_LABELS.monster;
+  headline.appendChild(subtitle);
+
+  const metaValues = Array.isArray(monster.meta) ? monster.meta.filter(Boolean) : [];
+  if (metaValues.length) {
+    const meta = document.createElement('div');
+    meta.className = 'monster-panel__meta';
+    metaValues.forEach((value) => {
+      const span = document.createElement('span');
+      span.textContent = value;
+      meta.appendChild(span);
+    });
+    headline.appendChild(meta);
+  }
+  panel.appendChild(headline);
+
+  if (Array.isArray(monster.abilities) && monster.abilities.length) {
+    const abilityGrid = document.createElement('div');
+    abilityGrid.className = 'monster-panel__ability-grid';
+    monster.abilities.forEach((ability) => {
+      if (!ability || typeof ability.score !== 'number') return;
+      const card = document.createElement('div');
+      card.className = 'monster-panel__ability';
+      const abilityLabel = document.createElement('span');
+      abilityLabel.className = 'monster-panel__ability-ability';
+      abilityLabel.textContent = ability.ability || '';
+      card.appendChild(abilityLabel);
+      const abilityScore = document.createElement('span');
+      abilityScore.className = 'monster-panel__ability-score';
+      abilityScore.textContent = String(ability.score);
+      card.appendChild(abilityScore);
+      if (ability.mod !== undefined) {
+        const abilityMod = document.createElement('span');
+        abilityMod.className = 'monster-panel__ability-mod';
+        abilityMod.textContent = ability.mod;
+        card.appendChild(abilityMod);
+      }
+      abilityGrid.appendChild(card);
+    });
+    if (abilityGrid.childNodes.length) {
+      panel.appendChild(abilityGrid);
+    }
+  }
+
+  const primaryStats = createMonsterListSection('Combat Stats', [
+    monster.armorClass ? { label: 'Armor Class', value: monster.armorClass } : null,
+    monster.hitPoints ? { label: 'Hit Points', value: monster.hitPoints } : null,
+    monster.speed ? { label: 'Speed', value: monster.speed } : null
+  ].filter(Boolean));
+  if (primaryStats) {
+    panel.appendChild(primaryStats);
+  }
+
+  const secondaryStats = createMonsterListSection('Defenses & Senses', [
+    monster.savingThrows ? { label: 'Saving Throws', value: monster.savingThrows } : null,
+    monster.skills ? { label: 'Skills', value: monster.skills } : null,
+    monster.damageVulnerabilities ? { label: 'Vulnerabilities', value: monster.damageVulnerabilities } : null,
+    monster.damageResistances ? { label: 'Resistances', value: monster.damageResistances } : null,
+    monster.damageImmunities ? { label: 'Damage Immunities', value: monster.damageImmunities } : null,
+    monster.conditionImmunities ? { label: 'Condition Immunities', value: monster.conditionImmunities } : null,
+    monster.senses ? { label: 'Senses', value: monster.senses } : null,
+    monster.languages ? { label: 'Languages', value: monster.languages } : null
+  ].filter(Boolean));
+  if (secondaryStats) {
+    panel.appendChild(secondaryStats);
+  }
+
+  const traitSection = createMonsterTraitSection('Traits', monster.traits || []);
+  if (traitSection) {
+    panel.appendChild(traitSection);
+  }
+
+  const actionSection = createMonsterTraitSection('Actions', monster.actions || []);
+  if (actionSection) {
+    panel.appendChild(actionSection);
+  }
+
+  const reactionSection = createMonsterTraitSection('Reactions', monster.reactions || []);
+  if (reactionSection) {
+    panel.appendChild(reactionSection);
+  }
+
+  const legendarySection = createMonsterTraitSection('Legendary Actions', monster.legendaryActions || []);
+  if (legendarySection) {
+    panel.appendChild(legendarySection);
+  }
+
+  monsterPanelHost.innerHTML = '';
+  monsterPanelHost.appendChild(panel);
+  monsterPanelHost.hidden = false;
 }
 
 function toggleFavorite(id) {

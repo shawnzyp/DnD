@@ -452,6 +452,136 @@
       color: rgba(245, 248, 253, 0.72);
     }
 
+    .monster-panel-host {
+      display: grid;
+      gap: 0.75rem;
+      margin: 0 0 1rem;
+    }
+
+    .monster-panel {
+      border-radius: 0.9rem;
+      background: rgba(245, 248, 253, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 1rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .monster-panel__headline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.75rem;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+
+    .monster-panel__subtitle {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+
+    .monster-panel__meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .monster-panel__meta span::before {
+      content: '•';
+      margin: 0 0.35rem;
+      opacity: 0.55;
+    }
+
+    .monster-panel__meta span:first-child::before {
+      content: '';
+      margin: 0;
+    }
+
+    .monster-panel__ability-grid {
+      display: grid;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+
+    .monster-panel__ability {
+      border-radius: 0.85rem;
+      background: var(--surface-strong);
+      padding: 0.5rem 0.4rem;
+      text-align: center;
+    }
+
+    .monster-panel__ability span {
+      display: block;
+    }
+
+    .monster-panel__ability-ability {
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .monster-panel__ability-score {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+
+    .monster-panel__ability-mod {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    .monster-panel__section {
+      display: grid;
+      gap: 0.35rem;
+    }
+
+    .monster-panel__section-title {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .monster-panel__list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.25rem;
+      font-size: 0.8rem;
+    }
+
+    .monster-panel__list-item strong {
+      font-weight: 600;
+    }
+
+    .monster-panel__traits {
+      display: grid;
+      gap: 0.6rem;
+      font-size: 0.82rem;
+    }
+
+    .monster-panel__traits p {
+      margin: 0;
+    }
+
+    .monster-panel__trait-name {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.1rem;
+    }
+
+    @media (max-width: 420px) {
+      .monster-panel__ability-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
     .drawer-actions {
       display: flex;
       gap: 0.75rem;
@@ -554,12 +684,14 @@
     </div>
     <input type="file" id="compendium-pack-file" accept="application/json" hidden />
     <div class="search-shell">
-      <input type="search" id="search-input" placeholder="Search spells, feats, and rules" aria-label="Search compendium" autocomplete="off" />
+      <input type="search" id="search-input" placeholder="Search spells, feats, items, rules, monsters, and skills" aria-label="Search compendium" autocomplete="off" />
       <div class="chips" role="group" aria-label="Filters">
         <button class="chip" data-filter="spell" aria-pressed="false">Spell</button>
         <button class="chip" data-filter="feat" aria-pressed="false">Feat</button>
         <button class="chip" data-filter="item" aria-pressed="false">Item</button>
         <button class="chip" data-filter="rule" aria-pressed="false">Rule</button>
+        <button class="chip" data-filter="monster" aria-pressed="false">Monster</button>
+        <button class="chip" data-filter="skill" aria-pressed="false">Skill</button>
       </div>
     </div>
   </header>
@@ -583,6 +715,7 @@
     <ul id="detail-tags" class="tag-list"></ul>
     <dl id="detail-stats" class="stat-grid"></dl>
     <div id="spell-panel" class="spell-panel-host" hidden></div>
+    <div id="monster-panel" class="monster-panel-host" hidden></div>
     <div id="detail-body"></div>
     <div class="drawer-actions">
       <button type="button" id="builder-add">Add to Builder</button>

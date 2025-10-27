@@ -2,11 +2,21 @@ const TYPE_LABELS = {
   spell: 'Spell',
   feat: 'Feat',
   item: 'Item',
-  rule: 'Rule'
+  rule: 'Rule',
+  monster: 'Monster',
+  skill: 'Skill'
 };
 
 let entries = [];
-let counts = { spells: 0, feats: 0, items: 0, rules: 0, total: 0 };
+let counts = {
+  spells: 0,
+  feats: 0,
+  items: 0,
+  rules: 0,
+  monsters: 0,
+  skills: 0,
+  total: 0
+};
 
 function summarise(text) {
   const value = (text || '').toString().trim();
@@ -40,6 +50,70 @@ function formatSourceDetail(source) {
 function pushTag(tags, value) {
   const str = (value || '').toString().trim();
   if (str) tags.add(str);
+}
+
+function abilityAbbreviation(key) {
+  if (!key) return '';
+  const normalized = key.toString().toLowerCase();
+  const lookup = {
+    strength: 'STR',
+    str: 'STR',
+    dexterity: 'DEX',
+    dex: 'DEX',
+    constitution: 'CON',
+    con: 'CON',
+    intelligence: 'INT',
+    int: 'INT',
+    wisdom: 'WIS',
+    wis: 'WIS',
+    charisma: 'CHA',
+    cha: 'CHA'
+  };
+  return lookup[normalized] || normalized.slice(0, 3).toUpperCase();
+}
+
+function formatAbilityMod(score) {
+  if (typeof score !== 'number' || Number.isNaN(score)) return '';
+  const mod = Math.floor((score - 10) / 2);
+  return mod >= 0 ? `+${mod}` : `${mod}`;
+}
+
+function formatSpeed(speed) {
+  if (!speed) return '';
+  if (typeof speed === 'string') return speed;
+  if (typeof speed === 'object') {
+    const parts = Object.entries(speed)
+      .filter(([, value]) => value)
+      .map(([mode, value]) => {
+        const label = mode.replace(/_/g, ' ');
+        return `${label.charAt(0).toUpperCase()}${label.slice(1)} ${value}`;
+      });
+    return parts.join(', ');
+  }
+  return '';
+}
+
+function formatKeyedBonuses(record, formatter = (key) => key) {
+  if (!record || typeof record !== 'object') return '';
+  const parts = Object.entries(record)
+    .filter(([, value]) => value !== undefined && value !== null && `${value}`.trim())
+    .map(([key, value]) => `${formatter(key)} ${value}`);
+  return parts.join(', ');
+}
+
+function formatArray(values) {
+  if (!Array.isArray(values)) return '';
+  return values.filter(Boolean).join(', ');
+}
+
+function formatMonsterTraits(list) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item) => ({
+      name: (item?.name || '').toString().trim(),
+      text: normaliseLines(item?.text || item?.description || '')
+    }))
+    .filter((item) => item.name || item.text);
 }
 
 function buildSpellEntry(spell) {
@@ -235,17 +309,204 @@ function buildRuleEntry(rule) {
   };
 }
 
+function buildSkillEntry(skill) {
+  const description = normaliseLines(skill.description || skill.text || '');
+  const overview = skill.summary ? skill.summary.toString().trim() : description;
+  const badge = formatSourceBadge(skill.source);
+  const ability = abilityAbbreviation(skill.ability);
+  const examples = Array.isArray(skill.examples) ? skill.examples.filter(Boolean) : [];
+  const tags = new Set([TYPE_LABELS.skill]);
+  const stats = [];
+
+  if (ability) {
+    stats.push({ label: 'Ability', value: ability });
+    pushTag(tags, ability);
+    pushTag(tags, `${ability} Skill`);
+  }
+  if (examples.length) {
+    stats.push({ label: 'Common Uses', value: examples.join(', ') });
+  }
+  const sourceDetail = formatSourceDetail(skill.source);
+  if (sourceDetail) {
+    stats.push({ label: 'Source', value: sourceDetail.replace('Source: ', '') });
+  }
+  pushTag(tags, badge);
+
+  const detailParts = [
+    `${TYPE_LABELS.skill}${ability ? ` (${ability})` : ''}`,
+    '',
+    description,
+    '',
+    examples.length ? `Examples: ${examples.join('; ')}` : '',
+    '',
+    sourceDetail
+  ].filter(Boolean);
+
+  return {
+    id: `skill:${skill.slug}`,
+    slug: skill.slug,
+    name: skill.name,
+    type: 'skill',
+    summary: summarise(overview),
+    subtitle: [TYPE_LABELS.skill, ability, badge].filter(Boolean).join(' · '),
+    body: detailParts.join('\n'),
+    stats,
+    tags: Array.from(tags).filter(Boolean),
+    searchText: [skill.name, ability, examples.join(' '), description, sourceDetail]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+  };
+}
+
+function buildMonsterEntry(monster) {
+  const description = normaliseLines(monster.description || monster.text || monster.summary || '');
+  const badge = formatSourceBadge(monster.source);
+  const sizeType = [monster.size, monster.creatureType].filter(Boolean).join(' ');
+  const xp = typeof monster.experience === 'number' ? monster.experience : null;
+  const challenge = monster.challengeRating
+    ? `CR ${monster.challengeRating}${xp !== null ? ` (${xp.toLocaleString()} XP)` : ''}`
+    : '';
+  const proficiency = monster.proficiencyBonus ? `PB ${monster.proficiencyBonus}` : '';
+  const armorClass = monster.armorClassType
+    ? `${monster.armorClass} (${monster.armorClassType})`
+    : monster.armorClass !== undefined
+    ? `${monster.armorClass}`
+    : '';
+  const hitPoints = monster.hitDice
+    ? `${monster.hitPoints} (${monster.hitDice})`
+    : monster.hitPoints !== undefined
+    ? `${monster.hitPoints}`
+    : '';
+  const speed = formatSpeed(monster.speed);
+  const savingThrows = formatKeyedBonuses(monster.savingThrows, abilityAbbreviation);
+  const skillList = formatKeyedBonuses(monster.skills, (key) => key);
+  const resistances = formatArray(monster.damageResistances);
+  const vulnerabilities = formatArray(monster.damageVulnerabilities);
+  const immunities = formatArray(monster.damageImmunities);
+  const conditionImmunities = formatArray(monster.conditionImmunities);
+  const senses = formatArray(monster.senses);
+  const languages = formatArray(monster.languages);
+  const traits = formatMonsterTraits(monster.traits);
+  const actions = formatMonsterTraits(monster.actions);
+  const reactions = formatMonsterTraits(monster.reactions);
+  const legendaryActions = formatMonsterTraits(monster.legendaryActions);
+
+  const abilities = Object.entries(monster.abilityScores || {})
+    .filter(([, value]) => typeof value === 'number' && !Number.isNaN(value))
+    .map(([ability, score]) => ({
+      ability: abilityAbbreviation(ability),
+      score,
+      mod: formatAbilityMod(score)
+    }));
+
+  const subtitleParts = [TYPE_LABELS.monster];
+  if (sizeType) subtitleParts.push(sizeType);
+  if (challenge) subtitleParts.push(challenge);
+  if (badge) subtitleParts.push(badge);
+
+  const tags = new Set([TYPE_LABELS.monster]);
+  pushTag(tags, sizeType);
+  pushTag(tags, monster.alignment);
+  pushTag(tags, challenge);
+  pushTag(tags, badge);
+
+  const stats = [
+    armorClass ? { label: 'Armor Class', value: armorClass } : null,
+    hitPoints ? { label: 'Hit Points', value: hitPoints } : null,
+    speed ? { label: 'Speed', value: speed } : null,
+    challenge ? { label: 'Challenge', value: challenge } : null,
+    proficiency ? { label: 'Proficiency Bonus', value: monster.proficiencyBonus } : null
+  ].filter(Boolean);
+
+  const sourceDetail = formatSourceDetail(monster.source);
+  if (sourceDetail) {
+    stats.push({ label: 'Source', value: sourceDetail.replace('Source: ', '') });
+  }
+
+  const detailParts = [sizeType || TYPE_LABELS.monster, monster.alignment, '', description, '', sourceDetail]
+    .filter(Boolean);
+
+  const searchSegments = [
+    monster.name,
+    sizeType,
+    monster.alignment,
+    challenge,
+    armorClass,
+    hitPoints,
+    speed,
+    savingThrows,
+    skillList,
+    resistances,
+    vulnerabilities,
+    immunities,
+    conditionImmunities,
+    senses,
+    languages,
+    description,
+    traits.map((trait) => trait.text).join(' '),
+    actions.map((action) => action.text).join(' '),
+    reactions.map((reaction) => reaction.text).join(' '),
+    legendaryActions.map((legendary) => legendary.text).join(' '),
+    sourceDetail
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  const meta = [monster.alignment, challenge, proficiency, badge].filter(Boolean);
+
+  const monsterPanel = {
+    sizeType,
+    meta,
+    armorClass,
+    hitPoints,
+    speed,
+    savingThrows,
+    skills: skillList,
+    damageResistances: resistances,
+    damageVulnerabilities: vulnerabilities,
+    damageImmunities: immunities,
+    conditionImmunities,
+    senses,
+    languages,
+    traits,
+    actions,
+    reactions,
+    legendaryActions,
+    abilities
+  };
+
+  return {
+    id: `monster:${monster.slug}`,
+    slug: monster.slug,
+    name: monster.name,
+    type: 'monster',
+    summary: summarise(monster.summary || description),
+    subtitle: subtitleParts.filter(Boolean).join(' · '),
+    body: detailParts.join('\n'),
+    stats,
+    tags: Array.from(tags).filter(Boolean),
+    searchText: searchSegments,
+    monster: monsterPanel
+  };
+}
+
 function buildEntries(payload) {
   const list = [];
   const spells = Array.isArray(payload?.spells) ? payload.spells : [];
   const feats = Array.isArray(payload?.feats) ? payload.feats : [];
   const items = Array.isArray(payload?.items) ? payload.items : [];
   const rules = Array.isArray(payload?.rules) ? payload.rules : [];
+  const monsters = Array.isArray(payload?.monsters) ? payload.monsters : [];
+  const skills = Array.isArray(payload?.skills) ? payload.skills : [];
 
   spells.forEach((spell) => list.push(buildSpellEntry(spell)));
   feats.forEach((feat) => list.push(buildFeatEntry(feat)));
   items.forEach((item) => list.push(buildItemEntry(item)));
   rules.forEach((rule) => list.push(buildRuleEntry(rule)));
+  skills.forEach((skill) => list.push(buildSkillEntry(skill)));
+  monsters.forEach((monster) => list.push(buildMonsterEntry(monster)));
 
   list.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
 
@@ -254,6 +515,8 @@ function buildEntries(payload) {
     feats: feats.length,
     items: items.length,
     rules: rules.length,
+    monsters: monsters.length,
+    skills: skills.length,
     total: list.length
   };
 
