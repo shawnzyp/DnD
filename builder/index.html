@@ -40,6 +40,21 @@
       line-height: 1.6;
       scroll-padding-bottom: calc(var(--builder-shell-footer-space) + env(safe-area-inset-bottom) + var(--viewport-bottom-offset));
     }
+    .quick-add-highlight {
+      animation: quick-add-pulse 1.6s ease-out;
+      box-shadow: 0 0 0 0 rgba(79, 216, 160, 0.65);
+    }
+    @keyframes quick-add-pulse {
+      0% {
+        box-shadow: 0 0 0 0 rgba(79, 216, 160, 0.65);
+      }
+      70% {
+        box-shadow: 0 0 0 8px rgba(79, 216, 160, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(79, 216, 160, 0);
+      }
+    }
     .skip-link {
       position: absolute;
       top: 0;
@@ -1345,6 +1360,65 @@
       font-size: 0.76rem;
       color: var(--muted);
       text-align: right;
+    }
+    .builder-toast-host {
+      position: fixed;
+      bottom: calc(1.25rem + var(--viewport-bottom-offset));
+      right: 1.25rem;
+      display: grid;
+      gap: 0.6rem;
+      z-index: 16;
+      pointer-events: none;
+    }
+    .builder-toast {
+      background: rgba(17, 24, 40, 0.94);
+      border: 1px solid color-mix(in srgb, var(--surface-border) 60%, transparent 40%);
+      border-radius: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      pointer-events: auto;
+      box-shadow: 0 18px 46px rgba(5, 10, 18, 0.55);
+      font-size: 0.78rem;
+      max-width: min(320px, 90vw);
+      transition: opacity 160ms ease, transform 160ms ease;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .builder-toast-dismissed {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    .builder-toast-message {
+      flex: 1;
+      color: var(--fg);
+      line-height: 1.4;
+    }
+    .builder-toast-undo {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-weight: 600;
+      font-size: 0.76rem;
+      padding: 0;
+      cursor: pointer;
+    }
+    .builder-toast-undo:hover,
+    .builder-toast-undo:focus-visible {
+      text-decoration: underline;
+    }
+    @media (max-width: 720px) {
+      .builder-toast-host {
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
+        bottom: calc(1rem + var(--viewport-bottom-offset));
+        width: min(360px, 92vw);
+      }
+      .builder-toast {
+        width: 100%;
+      }
     }
     .legal-link {
       padding: 0.75rem 1.5rem;
