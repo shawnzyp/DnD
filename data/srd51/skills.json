@@ -1,0 +1,362 @@
+[
+  {
+    "id": "srd51.skill.acrobatics",
+    "slug": "acrobatics",
+    "type": "skill",
+    "name": "Acrobatics",
+    "ability": "Dexterity",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Checks made to keep your balance, tumble, and slip past foes.",
+    "description": "Your Dexterity (Acrobatics) check covers difficult attempts to stay on your feet, tumble, or reduce the impact of a fall. The DM might ask for an Acrobatics check when you try to cross a precarious surface, perform acrobatic stunts, or escape a grapple by twisting free.",
+    "examples": [
+      "Balance on a narrow ledge",
+      "Flip over an obstacle",
+      "Slip through a closing space"
+    ]
+  },
+  {
+    "id": "srd51.skill.animal-handling",
+    "slug": "animal-handling",
+    "type": "skill",
+    "name": "Animal Handling",
+    "ability": "Wisdom",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Use Wisdom to calm or control beasts and mounts.",
+    "description": "When you try to calm a domesticated animal, keep a mount from bolting, or intuit a beast's intentions, the DM might call for a Wisdom (Animal Handling) check. You can also use the skill to improve the attitude of wild animals with food, gentle words, or training.",
+    "examples": [
+      "Calm a spooked horse",
+      "Teach a dog a simple trick",
+      "Predict a predator's behavior"
+    ]
+  },
+  {
+    "id": "srd51.skill.arcana",
+    "slug": "arcana",
+    "type": "skill",
+    "name": "Arcana",
+    "ability": "Intelligence",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Recall lore about spells, magic items, and planar mysteries.",
+    "description": "An Intelligence (Arcana) check measures your ability to recall magical theory. You might identify a spell as it is being cast, remember facts about magical traditions, or notice the presence of planar portals and other supernatural phenomena.",
+    "examples": [
+      "Recognize a rune of warding",
+      "Recall a demon's true name",
+      "Know how a spell scroll functions"
+    ]
+  },
+  {
+    "id": "srd51.skill.athletics",
+    "slug": "athletics",
+    "type": "skill",
+    "name": "Athletics",
+    "ability": "Strength",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Feats of physical power like climbing, jumping, and wrestling.",
+    "description": "Your Strength (Athletics) check covers attempts to climb, jump, swim, or grapple. You might use it to shove a foe, break free of restraints, or leap across a chasm.",
+    "examples": [
+      "Swim across a fast river",
+      "Break down a barred door",
+      "Pin a creature to the ground"
+    ]
+  },
+  {
+    "id": "srd51.skill.deception",
+    "slug": "deception",
+    "type": "skill",
+    "name": "Deception",
+    "ability": "Charisma",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Convince others of lies or hide the truth with words and actions.",
+    "description": "A Charisma (Deception) check determines whether you can convincingly hide the truth. You can fast-talk a guard, forge a believable disguise, or conceal your motives under a pleasant smile.",
+    "examples": [
+      "Bluff during a card game",
+      "Hide your true identity",
+      "Feign innocence when accused"
+    ]
+  },
+  {
+    "id": "srd51.skill.history",
+    "slug": "history",
+    "type": "skill",
+    "name": "History",
+    "ability": "Intelligence",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Recall important events, legendary heroes, and past cultures.",
+    "description": "An Intelligence (History) check lets you recall historical facts, royal lineages, ancient wars, and lost civilizations. The DM might also use it to determine whether you recognize heraldry or legal precedent.",
+    "examples": [
+      "Identify a royal seal",
+      "Remember a forgotten treaty",
+      "Recall a city's founding"
+    ]
+  },
+  {
+    "id": "srd51.skill.insight",
+    "slug": "insight",
+    "type": "skill",
+    "name": "Insight",
+    "ability": "Wisdom",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Discern motives, read body language, and spot lies.",
+    "description": "A Wisdom (Insight) check decides whether you can read a creature's true intentions. You might use it to see through a disguise, sense if someone is lying, or understand a situation's emotional tone.",
+    "examples": [
+      "Sense a hidden agenda",
+      "Read a crowd's mood",
+      "Determine if someone is charmed"
+    ]
+  },
+  {
+    "id": "srd51.skill.intimidation",
+    "slug": "intimidation",
+    "type": "skill",
+    "name": "Intimidation",
+    "ability": "Charisma",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Use threats or forceful presence to influence others.",
+    "description": "When you try to cow someone with menacing words or gestures, the DM can call for a Charisma (Intimidation) check. You can frighten a prisoner, make a bold demand, or force a creature to back down.",
+    "examples": [
+      "Extract information from a captive",
+      "Command a crowd to disperse",
+      "Stare down a rival"
+    ]
+  },
+  {
+    "id": "srd51.skill.investigation",
+    "slug": "investigation",
+    "type": "skill",
+    "name": "Investigation",
+    "ability": "Intelligence",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Search for clues, deduce hidden mechanisms, and solve puzzles.",
+    "description": "When you look for clues and make deductions, you use an Intelligence (Investigation) check. You might pour over books for a hidden cypher, analyze a crime scene, or determine how a trap functions.",
+    "examples": [
+      "Find a hidden switch",
+      "Reconstruct a sequence of events",
+      "Figure out how to disable a trap"
+    ]
+  },
+  {
+    "id": "srd51.skill.medicine",
+    "slug": "medicine",
+    "type": "skill",
+    "name": "Medicine",
+    "ability": "Wisdom",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Stabilize the dying and diagnose ailments.",
+    "description": "A Wisdom (Medicine) check lets you diagnose illnesses, find a creature's vital signs, or apply first aid to stabilize a dying companion.",
+    "examples": [
+      "Treat a lingering wound",
+      "Spot signs of poison",
+      "Suture a serious injury"
+    ]
+  },
+  {
+    "id": "srd51.skill.nature",
+    "slug": "nature",
+    "type": "skill",
+    "name": "Nature",
+    "ability": "Intelligence",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Identify plants, animals, weather, and the natural order.",
+    "description": "An Intelligence (Nature) check lets you recall lore about terrain, plants, animals, the weather, and natural cycles. The skill can also cover knowledge of elemental forces tied to the natural world.",
+    "examples": [
+      "Recognize poisonous berries",
+      "Predict a coming storm",
+      "Recall traits of a beast"
+    ]
+  },
+  {
+    "id": "srd51.skill.perception",
+    "slug": "perception",
+    "type": "skill",
+    "name": "Perception",
+    "ability": "Wisdom",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Notice hidden creatures, faint sounds, and other details.",
+    "description": "A Wisdom (Perception) check lets you spot, hear, or otherwise detect the presence of something. It measures your awareness of the surroundings and keenness of your senses.",
+    "examples": [
+      "Hear approaching footsteps",
+      "Detect a hidden door",
+      "Notice a faint smell of smoke"
+    ]
+  },
+  {
+    "id": "srd51.skill.performance",
+    "slug": "performance",
+    "type": "skill",
+    "name": "Performance",
+    "ability": "Charisma",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Captivate an audience with acting, music, or storytelling.",
+    "description": "A Charisma (Performance) check determines how well you delight an audience with music, dance, acting, or other forms of entertainment.",
+    "examples": [
+      "Deliver a stirring speech",
+      "Play an intricate song",
+      "Act out a convincing impersonation"
+    ]
+  },
+  {
+    "id": "srd51.skill.persuasion",
+    "slug": "persuasion",
+    "type": "skill",
+    "name": "Persuasion",
+    "ability": "Charisma",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Influence others with courtesy, tact, and honest appeal.",
+    "description": "A Charisma (Persuasion) check measures your ability to negotiate, inspire, or otherwise influence others without deception. Use it to secure aid, change opinions, or broker deals.",
+    "examples": [
+      "Broker a truce",
+      "Convince a guard to help",
+      "Rally townsfolk to action"
+    ]
+  },
+  {
+    "id": "srd51.skill.religion",
+    "slug": "religion",
+    "type": "skill",
+    "name": "Religion",
+    "ability": "Intelligence",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Recall lore about deities, rites, and planar hierarchies.",
+    "description": "An Intelligence (Religion) check allows you to recall knowledge about gods, religious traditions, sacred symbols, and planar beings tied to the divine.",
+    "examples": [
+      "Identify a holy symbol",
+      "Recall a celestial hierarchy",
+      "Know the tenets of a faith"
+    ]
+  },
+  {
+    "id": "srd51.skill.sleight-of-hand",
+    "slug": "sleight-of-hand",
+    "type": "skill",
+    "name": "Sleight of Hand",
+    "ability": "Dexterity",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Palm objects, pick pockets, and perform subtle tricks.",
+    "description": "Whenever you attempt to conceal an object on your person, plant something on someone else, or lift a purse, the DM can ask for a Dexterity (Sleight of Hand) check.",
+    "examples": [
+      "Pick a noble's pocket",
+      "Slip poison into a drink",
+      "Conceal a playing card"
+    ]
+  },
+  {
+    "id": "srd51.skill.stealth",
+    "slug": "stealth",
+    "type": "skill",
+    "name": "Stealth",
+    "ability": "Dexterity",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Sneak silently and stay out of sight.",
+    "description": "A Dexterity (Stealth) check lets you conceal yourself from enemies, move silently, or hide objects. The DM might call for it when you blend into a crowd or creep through a dark hallway.",
+    "examples": [
+      "Hide behind a tapestry",
+      "Shadow a patrol",
+      "Conceal a small chest"
+    ]
+  },
+  {
+    "id": "srd51.skill.survival",
+    "slug": "survival",
+    "type": "skill",
+    "name": "Survival",
+    "ability": "Wisdom",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "summary": "Track creatures, find shelter, and endure the wilds.",
+    "description": "A Wisdom (Survival) check allows you to follow tracks, hunt wild game, guide a party through harsh terrain, or predict the weather.",
+    "examples": [
+      "Track a fleeing monster",
+      "Find safe shelter",
+      "Forage for food and water"
+    ]
+  }
+]

@@ -1,4 +1,15 @@
-const DEFAULT_FILES = ['classes', 'races', 'backgrounds', 'feats', 'spells', 'items', 'companions', 'rules'];
+const DEFAULT_FILES = [
+  'classes',
+  'races',
+  'backgrounds',
+  'feats',
+  'spells',
+  'items',
+  'companions',
+  'rules',
+  'skills',
+  'monsters'
+];
 const DATASET_LABELS = {
   classes: 'Classes',
   races: 'Ancestries',
@@ -7,7 +18,9 @@ const DATASET_LABELS = {
   spells: 'Spells',
   items: 'Equipment',
   companions: 'Allies',
-  rules: 'Rules'
+  rules: 'Rules',
+  skills: 'Skills',
+  monsters: 'Monsters'
 };
 
 function normalisePath(pathname) {

@@ -1,0 +1,679 @@
+[
+  {
+    "id": "srd51.monster.acolyte",
+    "slug": "acolyte",
+    "type": "monster",
+    "name": "Acolyte",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "humanoid (any race)",
+    "alignment": "any alignment",
+    "armorClass": 10,
+    "armorClassType": "unarmored",
+    "hitPoints": 9,
+    "hitDice": "2d8",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 10,
+      "dex": 10,
+      "con": 10,
+      "int": 10,
+      "wis": 14,
+      "cha": 11
+    },
+    "savingThrows": {
+      "wis": "+4"
+    },
+    "skills": {
+      "Religion": "+2"
+    },
+    "senses": ["passive Perception 12"],
+    "languages": ["any one language"],
+    "challengeRating": "1/4",
+    "proficiencyBonus": "+2",
+    "experience": 50,
+    "summary": "Devout attendant capable of wielding minor divine magic.",
+    "description": "Acolytes serve temples or shrines, using simple prayers and healing magic to aid their communities.",
+    "traits": [
+      {
+        "name": "Spellcasting",
+        "text": "The acolyte is a 1st-level spellcaster. Its spellcasting ability is Wisdom (spell save DC 12, +4 to hit with spell attacks). It prepares the cleric spell list: sacred flame, thaumaturgy; bless, cure wounds, sanctuary."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Club",
+        "text": "Melee Weapon Attack: +2 to hit, reach 5 ft., one target. Hit: 2 (1d4) bludgeoning damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.bandit",
+    "slug": "bandit",
+    "type": "monster",
+    "name": "Bandit",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "humanoid (any race)",
+    "alignment": "any non-lawful alignment",
+    "armorClass": 12,
+    "armorClassType": "leather armor",
+    "hitPoints": 11,
+    "hitDice": "2d8 + 2",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 11,
+      "dex": 12,
+      "con": 12,
+      "int": 10,
+      "wis": 10,
+      "cha": 10
+    },
+    "skills": {
+      "Athletics": "+3",
+      "Stealth": "+3"
+    },
+    "senses": ["passive Perception 10"],
+    "languages": ["any one language"],
+    "challengeRating": "1/8",
+    "proficiencyBonus": "+2",
+    "experience": 25,
+    "summary": "Street tough or road agent armed with simple weapons.",
+    "description": "Bandits are desperate or opportunistic criminals who prey on the weak and unwary.",
+    "actions": [
+      {
+        "name": "Scimitar",
+        "text": "Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d6 + 1) slashing damage."
+      },
+      {
+        "name": "Light Crossbow",
+        "text": "Ranged Weapon Attack: +3 to hit, range 80/320 ft., one target. Hit: 5 (1d8 + 1) piercing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.brown-bear",
+    "slug": "brown-bear",
+    "type": "monster",
+    "name": "Brown Bear",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Large",
+    "creatureType": "beast",
+    "alignment": "unaligned",
+    "armorClass": 11,
+    "armorClassType": "natural armor",
+    "hitPoints": 34,
+    "hitDice": "4d10 + 12",
+    "speed": {
+      "walk": "40 ft.",
+      "climb": "30 ft."
+    },
+    "abilityScores": {
+      "str": 19,
+      "dex": 10,
+      "con": 16,
+      "int": 2,
+      "wis": 13,
+      "cha": 7
+    },
+    "skills": {
+      "Perception": "+3"
+    },
+    "senses": ["passive Perception 13"],
+    "languages": [],
+    "challengeRating": "1",
+    "proficiencyBonus": "+2",
+    "experience": 200,
+    "summary": "Massive bear that fights with tooth and claw.",
+    "description": "Brown bears are powerful omnivores that defend their territory with fearsome strength.",
+    "actions": [
+      {
+        "name": "Multiattack",
+        "text": "The bear makes two attacks: one with its bite and one with its claws."
+      },
+      {
+        "name": "Bite",
+        "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 8 (1d8 + 4) piercing damage."
+      },
+      {
+        "name": "Claws",
+        "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 11 (2d6 + 4) slashing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.cultist",
+    "slug": "cultist",
+    "type": "monster",
+    "name": "Cultist",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "humanoid (any race)",
+    "alignment": "any non-good alignment",
+    "armorClass": 12,
+    "armorClassType": "leather armor",
+    "hitPoints": 9,
+    "hitDice": "2d8",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 11,
+      "dex": 12,
+      "con": 10,
+      "int": 10,
+      "wis": 11,
+      "cha": 10
+    },
+    "skills": {
+      "Deception": "+2"
+    },
+    "senses": ["passive Perception 10"],
+    "languages": ["any one language"],
+    "challengeRating": "1/8",
+    "proficiencyBonus": "+2",
+    "experience": 25,
+    "summary": "Fanatical devotee wielding ritual daggers and zeal.",
+    "description": "Cultists hide dark agendas behind humble guises, gathering in secret to worship forbidden powers.",
+    "traits": [
+      {
+        "name": "Dark Devotion",
+        "text": "The cultist has advantage on saving throws against being charmed or frightened."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Scimitar",
+        "text": "Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d6 + 1) slashing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.dire-wolf",
+    "slug": "dire-wolf",
+    "type": "monster",
+    "name": "Dire Wolf",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Large",
+    "creatureType": "beast",
+    "alignment": "unaligned",
+    "armorClass": 14,
+    "armorClassType": "natural armor",
+    "hitPoints": 37,
+    "hitDice": "5d10 + 10",
+    "speed": {
+      "walk": "50 ft."
+    },
+    "abilityScores": {
+      "str": 17,
+      "dex": 15,
+      "con": 15,
+      "int": 3,
+      "wis": 12,
+      "cha": 7
+    },
+    "skills": {
+      "Perception": "+3",
+      "Stealth": "+4"
+    },
+    "senses": ["passive Perception 13"],
+    "languages": [],
+    "challengeRating": "1",
+    "proficiencyBonus": "+2",
+    "experience": 200,
+    "summary": "Enormous wolf that hunts in packs.",
+    "description": "Dire wolves are fierce alpha predators with massive jaws and uncanny coordination.",
+    "traits": [
+      {
+        "name": "Keen Hearing and Smell",
+        "text": "The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell."
+      },
+      {
+        "name": "Pack Tactics",
+        "text": "The wolf has advantage on attack rolls against a creature if at least one of the wolf's allies is within 5 feet of the creature and the ally isn't incapacitated."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Bite",
+        "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 10 (2d6 + 3) piercing damage. If the target is a creature, it must succeed on a DC 13 Strength saving throw or be knocked prone."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.goblin",
+    "slug": "goblin",
+    "type": "monster",
+    "name": "Goblin",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Small",
+    "creatureType": "humanoid (goblinoid)",
+    "alignment": "neutral evil",
+    "armorClass": 15,
+    "armorClassType": "leather armor, shield",
+    "hitPoints": 7,
+    "hitDice": "2d6",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 8,
+      "dex": 14,
+      "con": 10,
+      "int": 10,
+      "wis": 8,
+      "cha": 8
+    },
+    "skills": {
+      "Stealth": "+6"
+    },
+    "senses": ["darkvision 60 ft.", "passive Perception 9"],
+    "languages": ["Common", "Goblin"],
+    "challengeRating": "1/4",
+    "proficiencyBonus": "+2",
+    "experience": 50,
+    "summary": "Small skirmisher that relies on ambush tactics.",
+    "description": "Goblins are opportunistic raiders who strike from the shadows and flee at the first sign of trouble.",
+    "traits": [
+      {
+        "name": "Nimble Escape",
+        "text": "The goblin can take the Disengage or Hide action as a bonus action on each of its turns."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Scimitar",
+        "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) slashing damage."
+      },
+      {
+        "name": "Shortbow",
+        "text": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.ogre",
+    "slug": "ogre",
+    "type": "monster",
+    "name": "Ogre",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Large",
+    "creatureType": "giant",
+    "alignment": "chaotic evil",
+    "armorClass": 11,
+    "armorClassType": "hide armor",
+    "hitPoints": 59,
+    "hitDice": "7d10 + 21",
+    "speed": {
+      "walk": "40 ft."
+    },
+    "abilityScores": {
+      "str": 19,
+      "dex": 8,
+      "con": 16,
+      "int": 5,
+      "wis": 7,
+      "cha": 7
+    },
+    "senses": ["darkvision 60 ft.", "passive Perception 8"],
+    "languages": ["Common", "Giant"],
+    "challengeRating": "2",
+    "proficiencyBonus": "+2",
+    "experience": 450,
+    "summary": "Huge, brutal giant that smashes foes with heavy blows.",
+    "description": "Ogres are dim-witted brutes that rely on raw strength and cruelty to overwhelm enemies.",
+    "actions": [
+      {
+        "name": "Greatclub",
+        "text": "Melee Weapon Attack: +6 to hit, reach 5 ft., one target. Hit: 13 (2d8 + 4) bludgeoning damage."
+      },
+      {
+        "name": "Javelin",
+        "text": "Melee or Ranged Weapon Attack: +6 to hit, reach 5 ft. or range 30/120 ft., one target. Hit: 11 (2d6 + 4) piercing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.skeleton",
+    "slug": "skeleton",
+    "type": "monster",
+    "name": "Skeleton",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "undead",
+    "alignment": "lawful evil",
+    "armorClass": 13,
+    "armorClassType": "armor scraps",
+    "hitPoints": 13,
+    "hitDice": "2d8 + 4",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 10,
+      "dex": 14,
+      "con": 15,
+      "int": 6,
+      "wis": 8,
+      "cha": 5
+    },
+    "damageVulnerabilities": ["bludgeoning"],
+    "damageResistances": ["piercing", "slashing"],
+    "damageImmunities": ["poison"],
+    "conditionImmunities": ["poisoned"],
+    "senses": ["darkvision 60 ft.", "passive Perception 9"],
+    "languages": ["understands the languages it knew in life but can't speak"],
+    "challengeRating": "1/4",
+    "proficiencyBonus": "+2",
+    "experience": 50,
+    "summary": "Reanimated bones that march at a necromancer's command.",
+    "description": "Skeletons are the animated remains of the dead, stripped of flesh and driven to obey dark wills.",
+    "actions": [
+      {
+        "name": "Shortsword",
+        "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      },
+      {
+        "name": "Shortbow",
+        "text": "Ranged Weapon Attack: +4 to hit, range 80/320 ft., one target. Hit: 5 (1d6 + 2) piercing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.veteran",
+    "slug": "veteran",
+    "type": "monster",
+    "name": "Veteran",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "humanoid (any race)",
+    "alignment": "any non-chaotic alignment",
+    "armorClass": 17,
+    "armorClassType": "splint, shield",
+    "hitPoints": 58,
+    "hitDice": "9d8 + 18",
+    "speed": {
+      "walk": "30 ft."
+    },
+    "abilityScores": {
+      "str": 16,
+      "dex": 13,
+      "con": 14,
+      "int": 10,
+      "wis": 11,
+      "cha": 10
+    },
+    "savingThrows": {
+      "str": "+6",
+      "con": "+5"
+    },
+    "skills": {
+      "Athletics": "+6",
+      "Perception": "+3"
+    },
+    "senses": ["passive Perception 13"],
+    "languages": ["any two languages"],
+    "challengeRating": "3",
+    "proficiencyBonus": "+2",
+    "experience": 700,
+    "summary": "Seasoned soldier trained for the front lines.",
+    "description": "Veterans are hardened warriors who have survived years of conflict and honed their tactics."
+,
+    "actions": [
+      {
+        "name": "Multiattack",
+        "text": "The veteran makes two longsword attacks. If it has a shortsword drawn, it can also make a shortsword attack."
+      },
+      {
+        "name": "Longsword",
+        "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 7 (1d8 + 3) slashing damage, or 8 (1d10 + 3) slashing damage if used with two hands."
+      },
+      {
+        "name": "Shortsword",
+        "text": "Melee Weapon Attack: +5 to hit, reach 5 ft., one target. Hit: 6 (1d6 + 3) piercing damage."
+      },
+      {
+        "name": "Heavy Crossbow",
+        "text": "Ranged Weapon Attack: +3 to hit, range 100/400 ft., one target. Hit: 6 (1d10 + 1) piercing damage."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.wolf",
+    "slug": "wolf",
+    "type": "monster",
+    "name": "Wolf",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "beast",
+    "alignment": "unaligned",
+    "armorClass": 13,
+    "armorClassType": "natural armor",
+    "hitPoints": 11,
+    "hitDice": "2d8 + 2",
+    "speed": {
+      "walk": "40 ft."
+    },
+    "abilityScores": {
+      "str": 12,
+      "dex": 15,
+      "con": 12,
+      "int": 3,
+      "wis": 12,
+      "cha": 6
+    },
+    "skills": {
+      "Perception": "+3",
+      "Stealth": "+4"
+    },
+    "senses": ["passive Perception 13"],
+    "languages": [],
+    "challengeRating": "1/4",
+    "proficiencyBonus": "+2",
+    "experience": 50,
+    "summary": "Pack hunter with keen senses and vicious bite.",
+    "description": "Wolves rely on cooperation and speed, harrying prey with relentless attacks.",
+    "traits": [
+      {
+        "name": "Keen Hearing and Smell",
+        "text": "The wolf has advantage on Wisdom (Perception) checks that rely on hearing or smell."
+      },
+      {
+        "name": "Pack Tactics",
+        "text": "The wolf has advantage on attack rolls against a creature if at least one of the wolf's allies is within 5 feet of the creature and the ally isn't incapacitated."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Bite",
+        "text": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (2d4 + 2) piercing damage. If the target is a creature, it must succeed on a DC 11 Strength saving throw or be knocked prone."
+      }
+    ]
+  },
+  {
+    "id": "srd51.monster.young-black-dragon",
+    "slug": "young-black-dragon",
+    "type": "monster",
+    "name": "Young Black Dragon",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Large",
+    "creatureType": "dragon",
+    "alignment": "chaotic evil",
+    "armorClass": 18,
+    "armorClassType": "natural armor",
+    "hitPoints": 127,
+    "hitDice": "17d10 + 34",
+    "speed": {
+      "walk": "40 ft.",
+      "fly": "80 ft.",
+      "swim": "40 ft."
+    },
+    "abilityScores": {
+      "str": 21,
+      "dex": 14,
+      "con": 17,
+      "int": 12,
+      "wis": 11,
+      "cha": 15
+    },
+    "savingThrows": {
+      "dex": "+5",
+      "con": "+6",
+      "wis": "+4",
+      "cha": "+5"
+    },
+    "skills": {
+      "Perception": "+7",
+      "Stealth": "+6"
+    },
+    "damageImmunities": ["acid"],
+    "senses": ["blindsight 30 ft.", "darkvision 120 ft.", "passive Perception 17"],
+    "languages": ["Common", "Draconic"],
+    "challengeRating": "7",
+    "proficiencyBonus": "+3",
+    "experience": 2900,
+    "summary": "Sinister swamp dragon that spews acid breath.",
+    "description": "Young black dragons revel in decay and shadow, ruling fetid marshes with cruel cunning.",
+    "traits": [
+      {
+        "name": "Amphibious",
+        "text": "The dragon can breathe air and water."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Multiattack",
+        "text": "The dragon makes three attacks: one with its bite and two with its claws."
+      },
+      {
+        "name": "Bite",
+        "text": "Melee Weapon Attack: +7 to hit, reach 10 ft., one target. Hit: 17 (2d10 + 6) piercing damage plus 4 (1d8) acid damage."
+      },
+      {
+        "name": "Claw",
+        "text": "Melee Weapon Attack: +7 to hit, reach 5 ft., one target. Hit: 13 (2d6 + 6) slashing damage."
+      },
+      {
+        "name": "Tail",
+        "text": "Melee Weapon Attack: +7 to hit, reach 15 ft., one target. Hit: 15 (2d8 + 6) bludgeoning damage."
+      },
+      {
+        "name": "Acid Breath (Recharge 5–6)",
+        "text": "The dragon exhales acid in a 30-foot line that is 5 feet wide. Each creature in that line must make a DC 14 Dexterity saving throw, taking 49 (11d8) acid damage on a failed save, or half as much damage on a successful one."
+      }
+    ],
+    "legendaryActions": []
+  },
+  {
+    "id": "srd51.monster.zombie",
+    "slug": "zombie",
+    "type": "monster",
+    "name": "Zombie",
+    "sourceId": "srd51",
+    "source": {
+      "id": "srd51",
+      "name": "System Reference Document 5.1",
+      "license": "OGL 1.0a"
+    },
+    "size": "Medium",
+    "creatureType": "undead",
+    "alignment": "neutral evil",
+    "armorClass": 8,
+    "hitPoints": 22,
+    "hitDice": "3d8 + 9",
+    "speed": {
+      "walk": "20 ft."
+    },
+    "abilityScores": {
+      "str": 13,
+      "dex": 6,
+      "con": 16,
+      "int": 3,
+      "wis": 6,
+      "cha": 5
+    },
+    "savingThrows": {
+      "wis": "+0"
+    },
+    "damageImmunities": ["poison"],
+    "conditionImmunities": ["poisoned"],
+    "senses": ["darkvision 60 ft.", "passive Perception 8"],
+    "languages": ["understands the languages it knew in life but can't speak"],
+    "challengeRating": "1/4",
+    "proficiencyBonus": "+2",
+    "experience": 50,
+    "summary": "Shambling corpse that refuses to stay down.",
+    "description": "Zombies are corpses infused with necromantic magic, driven to obey the commands of their creators.",
+    "traits": [
+      {
+        "name": "Undead Fortitude",
+        "text": "If damage reduces the zombie to 0 hit points, it must make a Constitution saving throw with a DC of 5 + the damage taken, unless the damage is radiant or from a critical hit. On a success, the zombie drops to 1 hit point instead."
+      }
+    ],
+    "actions": [
+      {
+        "name": "Slam",
+        "text": "Melee Weapon Attack: +3 to hit, reach 5 ft., one target. Hit: 4 (1d6 + 1) bludgeoning damage."
+      }
+    ]
+  }
+]
