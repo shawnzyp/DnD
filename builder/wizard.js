@@ -1299,11 +1299,15 @@ const equipmentModule = (() => {
   let summaryNode = null;
   let attunementFeedback = null;
 
-  function syncStateFromData(data) {
+  function syncStateFromData(data, { hydrateFields = false } = {}) {
     const parsed = getEquipmentRecordsFromFormData(data || {});
     EQUIPMENT_CATEGORIES.forEach(({ key }) => {
       const list = Array.isArray(parsed[key]) ? parsed[key] : [];
-      equipmentState[key] = list.map((entry) => ({ ...entry }));
+      const next = list.map((entry) => ({ ...entry }));
+      equipmentState[key] = next;
+      if (hydrateFields) {
+        setFieldValue(key, next, { skipEvent: true });
+      }
     });
   }
 
@@ -1726,7 +1730,7 @@ const equipmentModule = (() => {
       render({ useFormValues: true });
     },
     onStateHydrated(currentState) {
-      syncStateFromData(currentState?.data || state.data);
+      syncStateFromData(currentState?.data || state.data, { hydrateFields: true });
       render();
     },
     onFormInput(event) {
