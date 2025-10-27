@@ -1068,6 +1068,54 @@ body[data-pack-manager='open'] {
   font-size: 0.85rem;
 }
 
+.condition-annotations {
+  margin-top: var(--space-2xs);
+  display: grid;
+  gap: var(--space-3xs, 0.3rem);
+}
+
+.condition-annotations--stacked {
+  margin-top: calc(var(--space-2xs) * 1.6);
+}
+
+.condition-annotations--inline {
+  margin-top: var(--space-3xs, 0.25rem);
+}
+
+.condition-annotation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2xs);
+  font-size: 0.78rem;
+}
+
+.condition-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3xs, 0.25rem);
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--warning) 45%, transparent 55%);
+  background: color-mix(in srgb, var(--warning) 26%, transparent 74%);
+  color: color-mix(in srgb, var(--warning) 80%, var(--fg) 20%);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.condition-note {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--warning) 60%, var(--muted) 40%);
+  flex: 1 1 160px;
+}
+
+.has-condition-annotation .condition-note {
+  color: color-mix(in srgb, var(--warning) 55%, var(--muted-strong) 45%);
+}
+
 .fab {
   position: fixed;
   right: calc(var(--safe-right) + var(--space-lg));
