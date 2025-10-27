@@ -4529,6 +4529,330 @@ const featsModule = (() => {
   let activeStep = false;
   let nextLocked = false;
   const highlightKeys = new Set();
+  let featVirtualizer = null;
+
+  function createFeatCard(entry) {
+    if (!entry || !entry.feat) return null;
+    const { feat, status } = entry;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'feat-card';
+    button.dataset.featCard = feat.key;
+    const isSelected = selected.has(feat.key);
+    button.dataset.selected = isSelected ? 'true' : 'false';
+    button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    button.dataset.state = status.locked ? 'locked' : 'available';
+    if (status.locked && !isSelected) {
+      button.disabled = true;
+      button.setAttribute('aria-disabled', 'true');
+    } else {
+      button.disabled = false;
+      button.removeAttribute('aria-disabled');
+    }
+    const header = document.createElement('div');
+    header.className = 'feat-card-header';
+    const title = document.createElement('strong');
+    title.textContent = feat.name;
+    header.appendChild(title);
+    if (feat.source) {
+      const source = document.createElement('span');
+      source.className = 'feat-card-source';
+      source.textContent = feat.source;
+      header.appendChild(source);
+    }
+    button.appendChild(header);
+    if (feat.summary) {
+      const summary = document.createElement('p');
+      summary.className = 'feat-card-summary';
+      summary.textContent = feat.summary;
+      button.appendChild(summary);
+    }
+    const chips = [];
+    if (isSelected) {
+      chips.push('Selected');
+    }
+    if (!feat.prerequisites.length) {
+      chips.push('No prerequisites');
+    } else if (status.locked) {
+      chips.push('Prerequisites unmet');
+    } else {
+      chips.push('Prerequisites met');
+    }
+    if (chips.length) {
+      const chipWrapper = document.createElement('div');
+      chipWrapper.className = 'feat-card-chips';
+      chips.forEach((label) => {
+        const chip = document.createElement('span');
+        chip.className = 'feat-card-chip';
+        chip.textContent = label;
+        chipWrapper.appendChild(chip);
+      });
+      button.appendChild(chipWrapper);
+    }
+    if (status.checks.length) {
+      const list = document.createElement('ul');
+      list.className = 'feat-card-prereqs';
+      status.checks.forEach((check) => {
+        const item = document.createElement('li');
+        if (check.unknown) {
+          item.dataset.state = 'unknown';
+        } else if (check.satisfied) {
+          item.dataset.state = 'ok';
+        } else {
+          item.dataset.state = 'warn';
+        }
+        const icon = document.createElement('span');
+        icon.textContent = check.unknown ? '❔' : check.satisfied ? '✅' : '⚠️';
+        const text = document.createElement('span');
+        text.textContent = check.label;
+        item.append(icon, text);
+        list.appendChild(item);
+      });
+      button.appendChild(list);
+    }
+    return button;
+  }
+
+  function createVirtualScroller(container, options = {}) {
+    if (!container) return null;
+    const config = {
+      estimatedItemHeight: 280,
+      minItemWidth: 220,
+      overscan: 1,
+      render: () => null,
+      afterRender: null,
+      ...options
+    };
+    const topSpacer = document.createElement('div');
+    topSpacer.dataset.virtualSpacer = 'top';
+    topSpacer.setAttribute('aria-hidden', 'true');
+    topSpacer.style.gridColumn = '1 / -1';
+    topSpacer.style.display = 'block';
+    const itemsContainer = document.createElement('div');
+    itemsContainer.dataset.virtualItems = 'true';
+    itemsContainer.style.display = 'contents';
+    const bottomSpacer = document.createElement('div');
+    bottomSpacer.dataset.virtualSpacer = 'bottom';
+    bottomSpacer.setAttribute('aria-hidden', 'true');
+    bottomSpacer.style.gridColumn = '1 / -1';
+    bottomSpacer.style.display = 'block';
+    const emptyMessage = document.createElement('p');
+    emptyMessage.className = 'feat-empty';
+    emptyMessage.dataset.virtualEmpty = 'true';
+    emptyMessage.style.gridColumn = '1 / -1';
+    emptyMessage.hidden = true;
+    container.innerHTML = '';
+    container.dataset.virtualized = 'true';
+    container.append(topSpacer, itemsContainer, bottomSpacer, emptyMessage);
+
+    const state = {
+      entries: [],
+      columns: 1,
+      rowGap: 0,
+      itemHeight: config.estimatedItemHeight,
+      overscan: Math.max(0, Number.parseInt(config.overscan, 10) || 0),
+      renderedStart: 0,
+      renderedEnd: 0,
+      lastRange: { start: 0, end: 0 }
+    };
+
+    let scrollTicking = false;
+
+    function readColumns(styles) {
+      if (!styles) return state.columns;
+      const template = styles.gridTemplateColumns;
+      if (template && template !== 'none') {
+        const parts = template.split(' ');
+        const count = parts.filter((part) => part && part !== '/').length;
+        if (count > 0) {
+          return count;
+        }
+      }
+      const width = container.clientWidth;
+      const minWidth = Math.max(1, Number.parseInt(config.minItemWidth, 10) || 1);
+      return Math.max(1, Math.floor(width / minWidth));
+    }
+
+    function syncMetrics() {
+      const styles = window.getComputedStyle(container);
+      state.columns = readColumns(styles);
+      const gapValue = parseFloat(styles.rowGap || styles.gridRowGap || '0');
+      state.rowGap = Number.isFinite(gapValue) ? gapValue : 0;
+    }
+
+    function updateSpacers(range) {
+      const totalRows = Math.ceil(state.entries.length / state.columns) || 0;
+      const startRow = Math.floor(range.start / state.columns);
+      const endRow = Math.ceil(range.end / state.columns);
+      const rowUnit = Math.max(1, state.itemHeight + state.rowGap);
+      const topPadding = startRow * rowUnit;
+      const visibleRows = Math.max(0, endRow - startRow);
+      const visibleHeight = visibleRows * rowUnit;
+      const totalHeight = totalRows * rowUnit;
+      const bottomPadding = Math.max(0, totalHeight - visibleHeight - topPadding);
+      topSpacer.style.height = `${topPadding}px`;
+      bottomSpacer.style.height = `${bottomPadding}px`;
+    }
+
+    function computeRange() {
+      const entries = state.entries;
+      if (!entries.length) {
+        return { start: 0, end: 0 };
+      }
+      syncMetrics();
+      const viewportHeight = container.clientHeight || 0;
+      const scrollTop = container.scrollTop || 0;
+      const rowUnit = Math.max(1, state.itemHeight + state.rowGap);
+      const totalRows = Math.ceil(entries.length / state.columns);
+      const startRow = Math.max(0, Math.floor(scrollTop / rowUnit) - state.overscan);
+      const endRow = Math.min(
+        totalRows,
+        Math.ceil((scrollTop + viewportHeight) / rowUnit) + state.overscan
+      );
+      const start = Math.min(entries.length, startRow * state.columns);
+      const end = Math.min(entries.length, Math.max(start, endRow * state.columns));
+      return { start, end };
+    }
+
+    function measureRenderedNodes() {
+      const nodes = itemsContainer.querySelectorAll('[data-feat-card]');
+      if (!nodes.length) {
+        if (typeof config.afterRender === 'function') {
+          config.afterRender([]);
+        }
+        return;
+      }
+      requestAnimationFrame(() => {
+        let total = 0;
+        let count = 0;
+        nodes.forEach((node) => {
+          const rect = node.getBoundingClientRect();
+          if (!rect || !rect.height) return;
+          total += rect.height;
+          count += 1;
+        });
+        if (count > 0) {
+          const average = total / count;
+          if (Number.isFinite(average) && average > 0 && Math.abs(average - state.itemHeight) > 1) {
+            state.itemHeight = average;
+            updateSpacers(state.lastRange);
+          }
+        }
+        if (typeof config.afterRender === 'function') {
+          config.afterRender(Array.from(nodes));
+        }
+      });
+    }
+
+    function renderWindow(force = false) {
+      if (!state.entries.length) {
+        itemsContainer.innerHTML = '';
+        topSpacer.style.height = '0px';
+        bottomSpacer.style.height = '0px';
+        state.renderedStart = 0;
+        state.renderedEnd = 0;
+        state.lastRange = { start: 0, end: 0 };
+        measureRenderedNodes();
+        return;
+      }
+      const range = computeRange();
+      if (!force && range.start === state.renderedStart && range.end === state.renderedEnd) {
+        return;
+      }
+      state.renderedStart = range.start;
+      state.renderedEnd = range.end;
+      state.lastRange = range;
+      itemsContainer.innerHTML = '';
+      const fragment = document.createDocumentFragment();
+      for (let index = range.start; index < range.end; index += 1) {
+        const entry = state.entries[index];
+        const node = config.render(entry, index);
+        if (node) {
+          fragment.appendChild(node);
+        }
+      }
+      itemsContainer.appendChild(fragment);
+      emptyMessage.hidden = true;
+      itemsContainer.style.display = 'contents';
+      updateSpacers(range);
+      measureRenderedNodes();
+    }
+
+    function handleScroll() {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        scrollTicking = false;
+        renderWindow();
+      });
+    }
+
+    function setEntries(entries, { resetScroll = false } = {}) {
+      state.entries = Array.isArray(entries) ? Array.from(entries) : [];
+      if (resetScroll) {
+        container.scrollTop = 0;
+      }
+      if (!state.entries.length) {
+        setEmptyMessage('');
+        return;
+      }
+      renderWindow(true);
+    }
+
+    function setEmptyMessage(message) {
+      state.entries = [];
+      itemsContainer.innerHTML = '';
+      itemsContainer.style.display = 'none';
+      topSpacer.style.height = '0px';
+      bottomSpacer.style.height = '0px';
+      if (message) {
+        emptyMessage.textContent = message;
+        emptyMessage.hidden = false;
+      } else {
+        emptyMessage.hidden = true;
+      }
+    }
+
+    function refresh() {
+      if (!state.entries.length) return;
+      renderWindow(true);
+    }
+
+    let teardown = () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(() => {
+        renderWindow(true);
+      });
+      observer.observe(container);
+      const originalTeardown = teardown;
+      teardown = () => {
+        observer.disconnect();
+        originalTeardown();
+      };
+    }
+
+    return {
+      setEntries,
+      setEmptyMessage,
+      refresh,
+      teardown
+    };
+  }
+
+  function ensureVirtualizer() {
+    if (!gridNode || featVirtualizer) return;
+    featVirtualizer = createVirtualScroller(gridNode, {
+      render: (entry) => createFeatCard(entry),
+      afterRender: () => {
+        applyHighlights();
+      }
+    });
+  }
 
   function sanitizeBonusValue(value) {
     const parsed = Number.parseInt(value, 10);
@@ -4586,12 +4910,12 @@ const featsModule = (() => {
   function applyHighlights() {
     if (!gridNode || !highlightKeys.size) return;
     const keys = Array.from(highlightKeys);
-    highlightKeys.clear();
     requestAnimationFrame(() => {
       keys.forEach((key) => {
         const selector = `[data-feat-card="${escapeSelector(key)}"]`;
         const node = gridNode.querySelector(selector);
         if (!node) return;
+        highlightKeys.delete(key);
         node.classList.add('quick-add-highlight');
         window.setTimeout(() => {
           if (node.isConnected) {
@@ -4949,97 +5273,13 @@ const featsModule = (() => {
       (item) => matchesSearch(item.feat) && matchesFilter(item.feat, item.status)
     );
     if (gridNode) {
-      gridNode.innerHTML = '';
+      ensureVirtualizer();
       if (!featList.length) {
-        const empty = document.createElement('p');
-        empty.className = 'feat-empty';
-        empty.textContent = 'Load a ruleset to browse feats.';
-        gridNode.appendChild(empty);
+        featVirtualizer?.setEmptyMessage('Load a ruleset to browse feats.');
       } else if (!filtered.length) {
-        const empty = document.createElement('p');
-        empty.className = 'feat-empty';
-        empty.textContent = 'No feats match your search or filters.';
-        gridNode.appendChild(empty);
+        featVirtualizer?.setEmptyMessage('No feats match your search or filters.');
       } else {
-        filtered.forEach(({ feat, status }) => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'feat-card';
-          button.dataset.featCard = feat.key;
-          const isSelected = selected.has(feat.key);
-          button.dataset.selected = isSelected ? 'true' : 'false';
-          button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-          button.dataset.state = status.locked ? 'locked' : 'available';
-          if (status.locked && !isSelected) {
-            button.disabled = true;
-            button.setAttribute('aria-disabled', 'true');
-          } else {
-            button.disabled = false;
-            button.removeAttribute('aria-disabled');
-          }
-          const header = document.createElement('div');
-          header.className = 'feat-card-header';
-          const title = document.createElement('strong');
-          title.textContent = feat.name;
-          header.appendChild(title);
-          if (feat.source) {
-            const source = document.createElement('span');
-            source.className = 'feat-card-source';
-            source.textContent = feat.source;
-            header.appendChild(source);
-          }
-          button.appendChild(header);
-          if (feat.summary) {
-            const summary = document.createElement('p');
-            summary.className = 'feat-card-summary';
-            summary.textContent = feat.summary;
-            button.appendChild(summary);
-          }
-          const chips = [];
-          if (isSelected) {
-            chips.push('Selected');
-          }
-          if (!feat.prerequisites.length) {
-            chips.push('No prerequisites');
-          } else if (status.locked) {
-            chips.push('Prerequisites unmet');
-          } else {
-            chips.push('Prerequisites met');
-          }
-          if (chips.length) {
-            const chipWrapper = document.createElement('div');
-            chipWrapper.className = 'feat-card-chips';
-            chips.forEach((label) => {
-              const chip = document.createElement('span');
-              chip.className = 'feat-card-chip';
-              chip.textContent = label;
-              chipWrapper.appendChild(chip);
-            });
-            button.appendChild(chipWrapper);
-          }
-          if (status.checks.length) {
-            const list = document.createElement('ul');
-            list.className = 'feat-card-prereqs';
-            status.checks.forEach((check) => {
-              const item = document.createElement('li');
-              if (check.unknown) {
-                item.dataset.state = 'unknown';
-              } else if (check.satisfied) {
-                item.dataset.state = 'ok';
-              } else {
-                item.dataset.state = 'warn';
-              }
-              const icon = document.createElement('span');
-              icon.textContent = check.unknown ? '❔' : check.satisfied ? '✅' : '⚠️';
-              const text = document.createElement('span');
-              text.textContent = check.label;
-              item.append(icon, text);
-              list.appendChild(item);
-            });
-            button.appendChild(list);
-          }
-          gridNode.appendChild(button);
-        });
+        featVirtualizer?.setEntries(filtered, { resetScroll: Boolean(options.resetScroll) });
       }
     }
     const selectionDetails = Array.from(selected).map((key) => {
@@ -5127,12 +5367,18 @@ const featsModule = (() => {
     Array.from(filterContainer.querySelectorAll('button[data-filter]')).forEach((node) => {
       node.setAttribute('aria-pressed', node.dataset.filter === activeFilter ? 'true' : 'false');
     });
-    render({ useFormValues: true });
+    if (gridNode) {
+      gridNode.scrollTop = 0;
+    }
+    render({ useFormValues: true, resetScroll: true });
   }
 
   function handleSearchInput() {
     searchQuery = searchInput.value.trim().toLowerCase();
-    render({ useFormValues: true });
+    if (gridNode) {
+      gridNode.scrollTop = 0;
+    }
+    render({ useFormValues: true, resetScroll: true });
   }
 
   function handleBonusInput(event) {
@@ -5171,23 +5417,24 @@ const featsModule = (() => {
         filterContainer.addEventListener('click', handleFilterClick);
       }
       if (gridNode) {
-      gridNode.addEventListener('click', handleCardClick);
+        ensureVirtualizer();
+        gridNode.addEventListener('click', handleCardClick);
       }
       if (bonusInput) {
         bonusInput.addEventListener('input', handleBonusInput);
         bonusInput.addEventListener('change', handleBonusBlur);
         bonusInput.addEventListener('blur', handleBonusBlur);
       }
-      render();
+      render({ resetScroll: true });
     },
     onPackData() {
       buildFeatList();
       syncSelectedFromData(state.data, { silent: true });
-      render();
+      render({ resetScroll: true });
     },
     onStateHydrated(currentState) {
       syncSelectedFromData(currentState?.data || state.data, { silent: true });
-      render();
+      render({ resetScroll: true });
     },
     onStatePersisted() {
       render();
