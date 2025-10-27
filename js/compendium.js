@@ -1,3 +1,5 @@
+import { resolveWithBase } from './url-helpers.js';
+
 const FAVORITES_KEY = 'dndCompendiumFavorites';
 const QUICK_ADD_KEY = 'dndBuilderQuickAddQueue';
 const TYPE_LABELS = {
@@ -30,7 +32,7 @@ const builderAddButton = document.getElementById('builder-add');
 const spellPanelHost = document.getElementById('spell-panel');
 const monsterPanelHost = document.getElementById('monster-panel');
 
-const worker = new Worker('/js/compendium-worker.js', { type: 'module' });
+const worker = new Worker(resolveWithBase('js/compendium-worker.js'), { type: 'module' });
 
 let packData = {
   packs: [],

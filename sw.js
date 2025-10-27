@@ -1,6 +1,61 @@
+const ABSOLUTE_URL = /^https?:\/\//i;
 const APP_CACHE = 'quest-kit-shell-v1';
 const PACK_CACHE = 'quest-kit-packs-v1';
-const APP_SHELL = [
+
+function normaliseBasePath(input) {
+  if (!input) return '';
+  const trimmed = String(input).trim();
+  if (!trimmed) return '';
+  const withoutTrailing = trimmed.replace(/\/+$/, '');
+  if (!withoutTrailing || withoutTrailing === '/') {
+    return '';
+  }
+  return withoutTrailing.startsWith('/') ? withoutTrailing : `/${withoutTrailing}`;
+}
+
+function computeBasePath() {
+  try {
+    const url = new URL(self.location.href);
+    const pathname = url.pathname || '';
+    return normaliseBasePath(pathname.replace(/\/sw\.js$/i, ''));
+  } catch (error) {
+    console.warn('SW: unable to determine base path', error);
+    return '';
+  }
+}
+
+const BASE_PATH = computeBasePath();
+
+function withBase(path) {
+  if (!path) {
+    return BASE_PATH || '/';
+  }
+  if (ABSOLUTE_URL.test(path)) {
+    return path;
+  }
+  let target = path;
+  if (!target.startsWith('/')) {
+    target = `/${target}`;
+  }
+  return `${BASE_PATH}${target}` || target;
+}
+
+function stripBase(pathname) {
+  if (!pathname) return '/';
+  if (!BASE_PATH) {
+    return pathname;
+  }
+  if (pathname === BASE_PATH) {
+    return '/';
+  }
+  if (pathname.startsWith(`${BASE_PATH}/`)) {
+    const remainder = pathname.slice(BASE_PATH.length);
+    return remainder || '/';
+  }
+  return pathname;
+}
+
+const APP_SHELL_PATHS = [
   '/',
   '/index.html',
   '/css/theme.css',
@@ -17,6 +72,8 @@ const APP_SHELL = [
   '/manifest.webmanifest',
   '/packs/manifest.json'
 ];
+
+const APP_SHELL = APP_SHELL_PATHS.map((path) => withBase(path));
 
 let packRevisions = new Map();
 
@@ -64,7 +121,7 @@ async function cacheFirst(request, cacheName) {
   } catch (error) {
     console.warn('SW: cacheFirst network error', error);
   }
-  return caches.match('/index.html');
+  return caches.match(withBase('/index.html'));
 }
 
 async function staleWhileRevalidate(request, cacheName) {
@@ -92,12 +149,14 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  if (url.pathname.startsWith('/data/')) {
+  const relativePath = stripBase(url.pathname);
+
+  if (relativePath.startsWith('/data/')) {
     event.respondWith(staleWhileRevalidate(request, PACK_CACHE));
     return;
   }
 
-  if (APP_SHELL.includes(url.pathname)) {
+  if (APP_SHELL_PATHS.includes(relativePath)) {
     event.respondWith(cacheFirst(request, APP_CACHE));
     return;
   }

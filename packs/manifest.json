@@ -8,7 +8,7 @@
       "description": "Open gaming content released under the 5.1 SRD. Includes core classes, races, spells, and equipment.",
       "license": "OGL 1.0a",
       "priority": 10,
-      "path": "/data/srd51",
+      "path": "data/srd51",
       "files": [
         "classes",
         "races",
