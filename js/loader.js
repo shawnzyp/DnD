@@ -83,7 +83,8 @@
       },
       loadedPacks: [],
       availablePacks: [],
-      packSettings: { order: [], enabled: {} }
+      packSettings: { order: [], enabled: {} },
+      validation: {}
     };
   }
 
@@ -118,6 +119,163 @@
       }
     });
     return clone;
+  }
+
+  function normaliseDatasetKey(key) {
+    if (typeof key !== 'string') {
+      return '';
+    }
+    return key.trim().replace(/\.json$/i, '');
+  }
+
+  function createValidationReport() {
+    return { errors: [], warnings: [] };
+  }
+
+  function mergeValidationReports(...reports) {
+    const merged = createValidationReport();
+    reports.forEach((report) => {
+      if (!report) return;
+      if (Array.isArray(report.errors)) {
+        merged.errors.push(...report.errors);
+      }
+      if (Array.isArray(report.warnings)) {
+        merged.warnings.push(...report.warnings);
+      }
+    });
+    return merged;
+  }
+
+  function summariseValidationReport(report) {
+    const normalised = createValidationReport();
+    if (report) {
+      if (Array.isArray(report.errors)) {
+        report.errors.forEach((error) => {
+          const message = typeof error === 'string' ? error.trim() : String(error || '');
+          if (message) {
+            normalised.errors.push(message);
+          }
+        });
+      }
+      if (Array.isArray(report.warnings)) {
+        report.warnings.forEach((warning) => {
+          const message = typeof warning === 'string' ? warning.trim() : String(warning || '');
+          if (message) {
+            normalised.warnings.push(message);
+          }
+        });
+      }
+    }
+    const dedupedErrors = [...new Set(normalised.errors)].slice(0, 50);
+    const dedupedWarnings = [...new Set(normalised.warnings)].slice(0, 50);
+    const status = dedupedErrors.length ? 'error' : dedupedWarnings.length ? 'warning' : 'ok';
+    const message = dedupedErrors[0] || dedupedWarnings[0] || '';
+    return {
+      status,
+      errors: dedupedErrors,
+      warnings: dedupedWarnings,
+      message
+    };
+  }
+
+  function validatePackDefinition(definition) {
+    const report = createValidationReport();
+    if (!definition || typeof definition !== 'object') {
+      report.errors.push('Pack definition is missing or invalid.');
+      return report;
+    }
+    const id = typeof definition.id === 'string' ? definition.id.trim() : '';
+    if (!id) {
+      report.errors.push('Pack definition must include an "id".');
+    }
+    const name = typeof definition.name === 'string' ? definition.name.trim() : '';
+    if (!name) {
+      report.errors.push('Pack definition must include a "name".');
+    }
+    const files = Array.isArray(definition.files) ? definition.files.map(normaliseDatasetKey).filter(Boolean) : [];
+    if (!files.length) {
+      report.errors.push('Pack definition must list at least one dataset file.');
+    }
+    return report;
+  }
+
+  function validatePackData(definition, data, stats = {}) {
+    const report = createValidationReport();
+    if (!definition || typeof definition !== 'object') {
+      report.errors.push('Pack definition is missing or invalid.');
+      return report;
+    }
+    if (!data || typeof data !== 'object') {
+      report.errors.push('Pack data is missing or invalid.');
+      return report;
+    }
+    const files = Array.isArray(definition.files)
+      ? definition.files.map(normaliseDatasetKey).filter(Boolean)
+      : Object.keys(data || {}).map(normaliseDatasetKey).filter(Boolean);
+    if (!files.length) {
+      report.errors.push('Pack definition must list at least one dataset file.');
+    }
+    let totalRecords = 0;
+    const invalidDatasets = new Set();
+    if (stats && typeof stats === 'object' && stats.invalidDatasets) {
+      if (Array.isArray(stats.invalidDatasets)) {
+        stats.invalidDatasets.forEach((key) => {
+          const normalised = normaliseDatasetKey(key);
+          if (normalised) invalidDatasets.add(normalised);
+        });
+      } else if (stats.invalidDatasets instanceof Set) {
+        stats.invalidDatasets.forEach((key) => {
+          const normalised = normaliseDatasetKey(key);
+          if (normalised) invalidDatasets.add(normalised);
+        });
+      } else if (typeof stats.invalidDatasets === 'object') {
+        Object.entries(stats.invalidDatasets).forEach(([key, value]) => {
+          if (!value) return;
+          const normalised = normaliseDatasetKey(key);
+          if (normalised) invalidDatasets.add(normalised);
+        });
+      }
+    }
+    files.forEach((rawKey) => {
+      const key = normaliseDatasetKey(rawKey);
+      if (!key) {
+        return;
+      }
+      if (invalidDatasets.has(key)) {
+        report.errors.push(`Dataset "${key}" is missing or not an array.`);
+        return;
+      }
+      const records = Array.isArray(data[key]) ? data[key] : null;
+      if (!records) {
+        report.errors.push(`Dataset "${key}" is missing or not an array.`);
+        return;
+      }
+      if (!records.length) {
+        report.warnings.push(`Dataset "${key}" has no records.`);
+        return;
+      }
+      totalRecords += records.length;
+      const skipped = Number.isFinite(stats?.skippedRecords?.[key]) ? stats.skippedRecords[key] : 0;
+      if (skipped > 0) {
+        report.warnings.push(
+          `${skipped} record${skipped === 1 ? '' : 's'} in "${key}" were skipped because they were missing required fields.`
+        );
+      }
+    });
+    if (Number.isFinite(stats?.totalRecords)) {
+      totalRecords = stats.totalRecords;
+    }
+    if (totalRecords === 0) {
+      report.errors.push('No records found across the declared datasets.');
+    }
+    return report;
+  }
+
+  function validatePack(definition, data, stats = {}) {
+    const definitionReport = validatePackDefinition(definition);
+    const dataReport = validatePackData(definition, data, stats);
+    const merged = mergeValidationReports(definitionReport, dataReport);
+    return summariseValidationReport(merged);
   }
 
   function readLocalPackSettings() {
@@ -686,16 +844,34 @@
 
     const files = ensureFiles(definition, data);
     const normalisedData = {};
+    const validationStats = {
+      skippedRecords: {},
+      invalidDatasets: new Set(),
+      totalRecords: 0
+    };
 
     files.forEach((key) => {
-      const entries = Array.isArray(data[key]) ? data[key] : [];
+      const datasetKey = normaliseDatasetKey(key) || key;
+      const entries = Array.isArray(data[key]) ? data[key] : null;
+      if (!entries) {
+        validationStats.invalidDatasets.add(datasetKey);
+        normalisedData[key] = [];
+        return;
+      }
       const normalisedEntries = [];
+      let skipped = 0;
       entries.forEach((entry) => {
         const normalised = normaliseRecord(entry, definition, key);
         if (normalised) {
           normalisedEntries.push(normalised);
+        } else {
+          skipped += 1;
         }
       });
+      if (skipped > 0) {
+        validationStats.skippedRecords[datasetKey] = (validationStats.skippedRecords[datasetKey] || 0) + skipped;
+      }
+      validationStats.totalRecords += normalisedEntries.length;
       normalisedData[key] = normalisedEntries;
     });
 
@@ -705,7 +881,9 @@
       await storePackData(pack);
     }
 
-    return pack;
+    const validationReport = validatePackData(pack, normalisedData, validationStats);
+
+    return { pack, validationReport, validationStats };
   }
 
   function mergePacks(packs) {
@@ -841,9 +1019,12 @@
 
     const packs = [];
     const availablePacks = [];
+    const validationIndex = {};
 
     for (const definition of orderedDefinitions) {
       const enabled = isPackEnabled(definition.id, enabledMap);
+      const definitionReport = validatePackDefinition(definition);
+      let validationSummary = summariseValidationReport(definitionReport);
       const summary = {
         id: definition.id,
         name: definition.name,
@@ -858,23 +1039,58 @@
         path: definition.path || '',
         files: Array.isArray(definition.files) ? definition.files.slice() : [],
         priority: Number.isFinite(definition.priority) ? definition.priority : 0,
-        enabled
+        enabled,
+        requested: enabled,
+        active: false,
+        validation: validationSummary,
+        status: validationSummary.status
       };
       availablePacks.push(summary);
+
       if (!enabled) {
+        validationIndex[summary.id] = summary.validation;
         continue;
       }
+
+      if (validationSummary.status === 'error') {
+        console.warn(`Validation failed for pack ${definition.id}`, validationSummary.errors);
+        validationIndex[summary.id] = summary.validation;
+        continue;
+      }
+
       try {
-        const pack = await loadPack(definition);
+        const { pack, validationReport, validationStats } = await loadPack(definition);
         summary.files = Array.isArray(pack.files) ? pack.files.slice() : summary.files;
         summary.priority = Number.isFinite(pack.priority) ? pack.priority : summary.priority;
-        packs.push(pack);
+        const combinedReport = mergeValidationReports(definitionReport, validationReport);
+        validationSummary = summariseValidationReport(combinedReport);
+        pack.validation = validationSummary;
+        if (validationStats) {
+          pack.validationStats = validationStats;
+        }
+        summary.validation = validationSummary;
+        summary.status = validationSummary.status;
+        summary.active = validationSummary.status !== 'error';
+        if (validationStats && Number.isFinite(validationStats.totalRecords)) {
+          summary.totalRecords = validationStats.totalRecords;
+        }
+        if (summary.active) {
+          packs.push(pack);
+        } else {
+          console.warn(`Pack ${definition.id} skipped due to validation errors`, validationSummary.errors);
+        }
       } catch (error) {
         console.error(`Failed to load pack ${definition.id}`, error);
-        if (definition.data) {
-          packs.push({ ...definition });
-        }
+        const failureReport = mergeValidationReports(definitionReport, {
+          errors: [`Failed to load data for pack: ${error && error.message ? error.message : error}`]
+        });
+        validationSummary = summariseValidationReport(failureReport);
+        summary.validation = validationSummary;
+        summary.status = validationSummary.status;
+        summary.active = false;
       }
+
+      validationIndex[summary.id] = summary.validation;
     }
 
     const merged = mergePacks(packs);
@@ -892,7 +1108,8 @@
       compendium,
       loadedPacks: packs,
       availablePacks,
-      packSettings: packSettingsDetail
+      packSettings: packSettingsDetail,
+      validation: validationIndex
     };
   }
 
@@ -915,7 +1132,8 @@
       sourceIndex: detail.merged.sourceIndex,
       availablePacks: Array.isArray(detail.availablePacks) ? detail.availablePacks : [],
       packSettings: detail.packSettings || { order: [], enabled: {} },
-      manifest: detail.manifest
+      manifest: detail.manifest,
+      validation: detail.validation || {}
     };
     if (!initialised) {
       window.dispatchEvent(new CustomEvent('dnd-data-ready', { detail }));
@@ -1105,6 +1323,8 @@
     resetPacks,
     getPackSettings: readPackSettings,
     updatePackSettings,
+    getValidationResults: async () => (await ensureReady()).validation,
+    validatePack: (definition, data, stats) => validatePack(definition, data, stats),
     reload: async () => {
       readyPromise = null;
       return ensureReady();
