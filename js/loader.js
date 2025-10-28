@@ -132,7 +132,9 @@
         items: [],
         rules: [],
         skills: [],
-        monsters: []
+        monsters: [],
+        backgrounds: [],
+        races: []
       },
       loadedPacks: [],
       availablePacks: [],
@@ -859,10 +861,26 @@
     }
     clone.sourceId = pack.id;
     const source = clone.source && typeof clone.source === 'object' ? { ...clone.source } : {};
+    const documentTitle = typeof clone.document__title === 'string' ? clone.document__title.trim() : '';
     if (!source.id) source.id = pack.id;
-    if (!source.name) source.name = pack.name;
-    if (!source.edition && pack.edition) source.edition = pack.edition;
+    if (!source.name) source.name = documentTitle || pack.name;
+    if (!source.edition) {
+      if (pack.edition) {
+        source.edition = pack.edition;
+      } else if (documentTitle && documentTitle !== pack.name) {
+        source.edition = pack.name;
+      }
+    }
+    if (!source.license && typeof clone.document__license === 'string' && clone.document__license.trim()) {
+      source.license = clone.document__license.trim();
+    }
     if (!source.license && pack.license) source.license = pack.license;
+    if (!source.url && typeof clone.document__url === 'string' && clone.document__url.trim()) {
+      source.url = clone.document__url.trim();
+    }
+    if (!source.url && typeof pack.url === 'string') {
+      source.url = pack.url;
+    }
     clone.source = source;
     return clone;
   }
@@ -1032,7 +1050,9 @@
       items: merged.data.items || [],
       rules: merged.data.rules || [],
       skills: merged.data.skills || [],
-      monsters: merged.data.monsters || []
+      monsters: merged.data.monsters || [],
+      backgrounds: merged.data.backgrounds || [],
+      races: merged.data.races || []
     };
   }
 

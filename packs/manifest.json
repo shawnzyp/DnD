@@ -21,6 +21,23 @@
         "skills",
         "monsters"
       ]
+    },
+    {
+      "id": "open5e",
+      "name": "Open5e Compendium",
+      "edition": "5e Third-Party",
+      "version": "2024.04",
+      "description": "Community-sourced backgrounds, feats, races, rules, and spells from Open5e.",
+      "license": "Open Gaming License 1.0a",
+      "priority": 5,
+      "path": "/data/open5e",
+      "files": [
+        "backgrounds",
+        "feats",
+        "races",
+        "rules",
+        "spells"
+      ]
     }
   ]
 }

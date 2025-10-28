@@ -4,7 +4,9 @@ const TYPE_LABELS = {
   item: 'Item',
   rule: 'Rule',
   monster: 'Monster',
-  skill: 'Skill'
+  skill: 'Skill',
+  background: 'Background',
+  race: 'Race'
 };
 
 let entries = [];
@@ -15,6 +17,8 @@ let counts = {
   rules: 0,
   monsters: 0,
   skills: 0,
+  backgrounds: 0,
+  races: 0,
   total: 0
 };
 
@@ -116,15 +120,122 @@ function formatMonsterTraits(list) {
     .filter((item) => item.name || item.text);
 }
 
+function splitValues(value) {
+  if (typeof value !== 'string') return [];
+  return value
+    .split(/[;,]/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
+function extractAbilityIncreases(race) {
+  const entries = [];
+  const tags = new Set();
+  const abilityMap = race && typeof race.ability_score_increase === 'object' && !Array.isArray(race.ability_score_increase)
+    ? race.ability_score_increase
+    : null;
+  if (abilityMap) {
+    Object.entries(abilityMap).forEach(([ability, value]) => {
+      const label = ability && ability.toString().trim();
+      if (!label) return;
+      const numeric = Number(value);
+      const formattedValue = Number.isFinite(numeric) ? (numeric >= 0 ? `+${numeric}` : `${numeric}`) : `${value}`;
+      entries.push(`${label} ${formattedValue}`);
+      tags.add(label);
+    });
+  }
+
+  if (Array.isArray(race?.asi)) {
+    race.asi.forEach((entry) => {
+      if (!entry) return;
+      const attributes = Array.isArray(entry.attributes)
+        ? entry.attributes.filter(Boolean)
+        : typeof entry.attribute === 'string'
+        ? [entry.attribute]
+        : typeof entry.name === 'string'
+        ? [entry.name]
+        : [];
+      const value = Number(entry.value);
+      const label = attributes.length ? attributes.join(' / ') : '';
+      if (label && Number.isFinite(value)) {
+        entries.push(`${label} ${value >= 0 ? `+${value}` : `${value}`}`);
+        attributes.forEach((attr) => tags.add(attr));
+      } else if (label && entry.value) {
+        entries.push(`${label} ${entry.value}`);
+        attributes.forEach((attr) => tags.add(attr));
+      } else if (typeof entry === 'string') {
+        entries.push(entry);
+      }
+    });
+  }
+
+  if (!entries.length && typeof race?.asi_desc === 'string' && race.asi_desc.trim()) {
+    entries.push(race.asi_desc.trim());
+  }
+
+  return { summary: entries.join(', '), tags: Array.from(tags).filter(Boolean) };
+}
+
+function formatTraitsText(traits) {
+  if (!traits) return '';
+  if (Array.isArray(traits)) {
+    return traits
+      .map((trait) => {
+        if (!trait) return '';
+        if (typeof trait === 'string') {
+          return normaliseLines(trait);
+        }
+        const name = (trait.name || trait.title || '').toString().trim();
+        const text = normaliseLines(trait.text || trait.description || trait.desc || trait.content || '');
+        if (name && text) return `${name}: ${text}`;
+        if (name) return name;
+        return text;
+      })
+      .filter(Boolean)
+      .join('\n\n');
+  }
+  if (typeof traits === 'object') {
+    return Object.entries(traits)
+      .map(([key, value]) => `${key}: ${normaliseLines(value)}`)
+      .filter(Boolean)
+      .join('\n\n');
+  }
+  return normaliseLines(traits);
+}
+
+function formatSubraceText(subraces) {
+  if (!Array.isArray(subraces) || !subraces.length) return '';
+  return subraces
+    .map((subrace) => {
+      if (!subrace) return '';
+      const name = (subrace.name || subrace.title || '').toString().trim();
+      const text = normaliseLines(subrace.desc || subrace.description || subrace.text || '');
+      if (name && text) return `${name}: ${text}`;
+      if (name) return name;
+      return text;
+    })
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 function buildSpellEntry(spell) {
-  const description = normaliseLines(spell.description || spell.text || spell.summary || '');
+  const baseDescription = normaliseLines(spell.description || spell.text || spell.summary || spell.desc || '');
+  const higherLevels = normaliseLines(spell.higher_level || spell.higherLevels || '');
+  const description = [baseDescription, higherLevels].filter(Boolean).join('\n\n');
   const badge = formatSourceBadge(spell.source);
   const subtitleParts = [TYPE_LABELS.spell];
   const tags = new Set();
   tags.add(TYPE_LABELS.spell);
-  if (typeof spell.level === 'number') {
-    subtitleParts.push(`Level ${spell.level}`);
-    pushTag(tags, `Level ${spell.level}`);
+  const level = Number.isFinite(spell.level)
+    ? spell.level
+    : Number.isFinite(spell.level_int)
+    ? spell.level_int
+    : typeof spell.level === 'string' && spell.level.trim()
+    ? Number.parseInt(spell.level, 10)
+    : null;
+  if (Number.isFinite(level)) {
+    subtitleParts.push(`Level ${level}`);
+    pushTag(tags, `Level ${level}`);
   }
   if (spell.school) {
     subtitleParts.push(spell.school);
@@ -132,25 +243,43 @@ function buildSpellEntry(spell) {
   }
   if (badge) subtitleParts.push(badge);
   const stats = [];
-  if (typeof spell.level === 'number') {
-    stats.push({ label: 'Level', value: `${spell.level}` });
+  if (Number.isFinite(level)) {
+    stats.push({ label: 'Level', value: `${level}` });
   }
   if (spell.school) stats.push({ label: 'School', value: spell.school });
   if (spell.casting_time) stats.push({ label: 'Casting Time', value: spell.casting_time });
   if (spell.range) stats.push({ label: 'Range', value: spell.range });
   if (spell.duration) stats.push({ label: 'Duration', value: spell.duration });
   if (spell.components) stats.push({ label: 'Components', value: spell.components });
-  if (Array.isArray(spell.classes) && spell.classes.length) {
-    stats.push({ label: 'Classes', value: spell.classes.join(', ') });
-    spell.classes.forEach((cls) => pushTag(tags, cls));
+  if (spell.material) stats.push({ label: 'Material', value: spell.material });
+  if (typeof spell.ritual === 'boolean') {
+    stats.push({ label: 'Ritual', value: spell.ritual ? 'Yes' : 'No' });
+  }
+  if (typeof spell.concentration === 'boolean') {
+    stats.push({ label: 'Concentration', value: spell.concentration ? 'Yes' : 'No' });
+  } else if (typeof spell.concentration === 'string' && spell.concentration.trim()) {
+    stats.push({ label: 'Concentration', value: spell.concentration.trim() });
+  }
+  const classes = Array.isArray(spell.classes)
+    ? spell.classes.filter(Boolean)
+    : typeof spell.dnd_class === 'string'
+    ? spell.dnd_class
+        .split(/[;,]/)
+        .map((value) => value.trim())
+        .filter(Boolean)
+    : [];
+  if (classes.length) {
+    stats.push({ label: 'Classes', value: classes.join(', ') });
+    classes.forEach((cls) => pushTag(tags, cls));
   }
   pushTag(tags, badge);
   const detailParts = [
-    `${spell.school || 'Spell'} • Level ${typeof spell.level === 'number' ? spell.level : 0}`,
+    `${spell.school || 'Spell'}${Number.isFinite(level) ? ` • Level ${level}` : ''}`,
     spell.casting_time ? `Casting Time: ${spell.casting_time}` : '',
     spell.range ? `Range: ${spell.range}` : '',
     spell.components ? `Components: ${spell.components}` : '',
     spell.duration ? `Duration: ${spell.duration}` : '',
+    spell.material ? `Material: ${spell.material}` : '',
     '',
     description,
     '',
@@ -172,7 +301,8 @@ function buildSpellEntry(spell) {
       spell.casting_time,
       spell.range,
       spell.components,
-      Array.isArray(spell.classes) ? spell.classes.join(' ') : '',
+      spell.material,
+      classes.join(' '),
       description,
       formatSourceDetail(spell.source)
     ]
@@ -183,14 +313,20 @@ function buildSpellEntry(spell) {
 }
 
 function buildFeatEntry(feat) {
-  const description = normaliseLines(feat.description || feat.summary || feat.text || '');
+  const description = normaliseLines(feat.description || feat.summary || feat.text || feat.desc || '');
   const badge = formatSourceBadge(feat.source);
   const subtitleParts = [TYPE_LABELS.feat];
   const tags = new Set();
   tags.add(TYPE_LABELS.feat);
   if (badge) subtitleParts.push(badge);
   pushTag(tags, badge);
-  const prereqs = Array.isArray(feat.prerequisites) ? feat.prerequisites.filter(Boolean) : [];
+  let prereqs = Array.isArray(feat.prerequisites) ? feat.prerequisites.filter(Boolean) : [];
+  if (!prereqs.length && typeof feat.prerequisite === 'string') {
+    prereqs = feat.prerequisite
+      .split(/[;,]/)
+      .map((value) => value.replace(/^Prerequisite:\s*/i, '').trim())
+      .filter(Boolean);
+  }
   const stats = [];
   if (prereqs.length) {
     stats.push({ label: 'Prerequisites', value: prereqs.join(', ') });
@@ -276,22 +412,23 @@ function buildItemEntry(item) {
 }
 
 function buildRuleEntry(rule) {
-  const description = normaliseLines(rule.description || rule.text || rule.summary || '');
+  const description = normaliseLines(rule.description || rule.text || rule.summary || rule.desc || '');
   const badge = formatSourceBadge(rule.source);
   const subtitleParts = [TYPE_LABELS.rule];
   const tags = new Set();
   tags.add(TYPE_LABELS.rule);
-  if (rule.section) {
-    subtitleParts.push(rule.section);
-    pushTag(tags, rule.section);
+  const section = rule.section || rule.parent || '';
+  if (section) {
+    subtitleParts.push(section);
+    pushTag(tags, section);
   }
   if (badge) subtitleParts.push(badge);
   pushTag(tags, badge);
   const stats = [];
-  if (rule.section) stats.push({ label: 'Section', value: rule.section });
+  if (section) stats.push({ label: 'Section', value: section });
   const sourceDetail = formatSourceDetail(rule.source);
   if (sourceDetail) stats.push({ label: 'Source', value: sourceDetail.replace('Source: ', '') });
-  const detailParts = [rule.section || TYPE_LABELS.rule, '', description, '', sourceDetail].filter(Boolean);
+  const detailParts = [section || TYPE_LABELS.rule, '', description, '', sourceDetail].filter(Boolean);
   return {
     id: `rule:${rule.slug}`,
     slug: rule.slug,
@@ -353,6 +490,209 @@ function buildSkillEntry(skill) {
     stats,
     tags: Array.from(tags).filter(Boolean),
     searchText: [skill.name, ability, examples.join(' '), description, sourceDetail]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+  };
+}
+
+function buildBackgroundEntry(background) {
+  const description = normaliseLines(background.description || background.desc || '');
+  const featureDescription = normaliseLines(background.feature_desc || background.featureDescription || '');
+  const characteristics = normaliseLines(background.suggested_characteristics || '');
+  const badge = formatSourceBadge(background.source);
+  const subtitleParts = [TYPE_LABELS.background];
+  const tags = new Set([TYPE_LABELS.background]);
+  if (badge) subtitleParts.push(badge);
+  pushTag(tags, badge);
+
+  const stats = [];
+  const skillValue = Array.isArray(background.skills)
+    ? background.skills.filter(Boolean).join(', ')
+    : typeof background.skill_proficiencies === 'string'
+    ? background.skill_proficiencies
+    : '';
+  if (skillValue) {
+    stats.push({ label: 'Skill Proficiencies', value: skillValue });
+    splitValues(skillValue).forEach((skill) => pushTag(tags, skill));
+  }
+
+  const toolValue = Array.isArray(background.tools)
+    ? background.tools.filter(Boolean).join(', ')
+    : typeof background.tool_proficiencies === 'string'
+    ? background.tool_proficiencies
+    : '';
+  if (toolValue) {
+    stats.push({ label: 'Tool Proficiencies', value: toolValue });
+    splitValues(toolValue).forEach((tool) => pushTag(tags, tool));
+  }
+
+  let languageValue = '';
+  if (Array.isArray(background.languages)) {
+    languageValue = background.languages.filter(Boolean).join(', ');
+  } else if (typeof background.languages === 'number') {
+    languageValue = `${background.languages} ${background.languages === 1 ? 'language' : 'languages'} of your choice`;
+  } else if (typeof background.languages === 'string') {
+    languageValue = background.languages;
+  }
+  if (languageValue) {
+    stats.push({ label: 'Languages', value: languageValue });
+    splitValues(languageValue).forEach((lang) => pushTag(tags, lang));
+  }
+
+  const equipmentValue = Array.isArray(background.equipment)
+    ? background.equipment.filter(Boolean).join(', ')
+    : background.equipment;
+  if (equipmentValue) {
+    stats.push({ label: 'Equipment', value: equipmentValue });
+  }
+
+  if (background.feature) {
+    stats.push({ label: 'Feature', value: background.feature });
+    pushTag(tags, background.feature);
+  }
+
+  const detailParts = [
+    TYPE_LABELS.background,
+    background.feature ? `Feature: ${background.feature}` : '',
+    '',
+    description,
+    '',
+    featureDescription,
+    '',
+    characteristics ? `Suggested Characteristics:\n${characteristics}` : '',
+    '',
+    formatSourceDetail(background.source)
+  ].filter(Boolean);
+
+  return {
+    id: `background:${background.slug}`,
+    slug: background.slug,
+    name: background.name,
+    type: 'background',
+    summary: summarise(description || featureDescription || characteristics),
+    subtitle: subtitleParts.filter(Boolean).join(' · '),
+    body: detailParts.join('\n'),
+    stats,
+    tags: Array.from(tags).filter(Boolean),
+    searchText: [
+      background.name,
+      skillValue,
+      toolValue,
+      languageValue,
+      equipmentValue,
+      background.feature,
+      description,
+      featureDescription,
+      characteristics,
+      formatSourceDetail(background.source)
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+  };
+}
+
+function buildRaceEntry(race) {
+  const description = normaliseLines(race.description || race.desc || '');
+  const badge = formatSourceBadge(race.source);
+  const subtitleParts = [TYPE_LABELS.race];
+  const tags = new Set([TYPE_LABELS.race]);
+  const size = race.size || race.size_raw;
+  if (size) {
+    subtitleParts.push(size);
+    pushTag(tags, size);
+  }
+  if (badge) subtitleParts.push(badge);
+  pushTag(tags, badge);
+
+  const stats = [];
+  const abilityInfo = extractAbilityIncreases(race);
+  if (abilityInfo.summary) {
+    stats.push({ label: 'Ability Scores', value: abilityInfo.summary });
+    abilityInfo.tags.forEach((tag) => pushTag(tags, tag));
+  }
+
+  let speedValue = '';
+  if (typeof race.speed === 'number') {
+    speedValue = `${race.speed} ft.`;
+  } else if (typeof race.speed === 'string') {
+    speedValue = race.speed;
+  } else if (race.speed) {
+    speedValue = formatSpeed(race.speed);
+  }
+  if (!speedValue && typeof race.speed_desc === 'string') {
+    speedValue = normaliseLines(race.speed_desc);
+  }
+  if (speedValue) {
+    stats.push({ label: 'Speed', value: speedValue });
+  }
+
+  const languageValue = Array.isArray(race.languages)
+    ? race.languages.filter(Boolean).join(', ')
+    : typeof race.languages === 'string'
+    ? race.languages
+    : '';
+  if (languageValue) {
+    stats.push({ label: 'Languages', value: languageValue });
+    splitValues(languageValue).forEach((lang) => pushTag(tags, lang));
+  }
+
+  if (race.vision) {
+    const vision = normaliseLines(race.vision);
+    if (vision) {
+      stats.push({ label: 'Vision', value: vision });
+      splitValues(vision).forEach((value) => pushTag(tags, value));
+    }
+  }
+
+  const alignment = normaliseLines(race.alignment || '');
+  if (alignment) {
+    stats.push({ label: 'Alignment', value: alignment });
+  }
+
+  const age = normaliseLines(race.age || '');
+  if (age) {
+    stats.push({ label: 'Age', value: age });
+  }
+
+  const traitsText = formatTraitsText(race.traits);
+  const subraceText = formatSubraceText(race.subraces);
+
+  const detailParts = [
+    size ? `${TYPE_LABELS.race} (${size})` : TYPE_LABELS.race,
+    '',
+    description,
+    '',
+    traitsText ? `Traits:\n${traitsText}` : '',
+    subraceText ? `Subraces:\n${subraceText}` : '',
+    '',
+    formatSourceDetail(race.source)
+  ].filter(Boolean);
+
+  return {
+    id: `race:${race.slug}`,
+    slug: race.slug,
+    name: race.name,
+    type: 'race',
+    summary: summarise(description || traitsText || subraceText),
+    subtitle: subtitleParts.filter(Boolean).join(' · '),
+    body: detailParts.join('\n'),
+    stats,
+    tags: Array.from(tags).filter(Boolean),
+    searchText: [
+      race.name,
+      size,
+      abilityInfo.summary,
+      speedValue,
+      languageValue,
+      traitsText,
+      subraceText,
+      description,
+      alignment,
+      age,
+      formatSourceDetail(race.source)
+    ]
       .filter(Boolean)
       .join(' ')
       .toLowerCase()
@@ -500,12 +840,16 @@ function buildEntries(payload) {
   const rules = Array.isArray(payload?.rules) ? payload.rules : [];
   const monsters = Array.isArray(payload?.monsters) ? payload.monsters : [];
   const skills = Array.isArray(payload?.skills) ? payload.skills : [];
+  const backgrounds = Array.isArray(payload?.backgrounds) ? payload.backgrounds : [];
+  const races = Array.isArray(payload?.races) ? payload.races : [];
 
   spells.forEach((spell) => list.push(buildSpellEntry(spell)));
   feats.forEach((feat) => list.push(buildFeatEntry(feat)));
   items.forEach((item) => list.push(buildItemEntry(item)));
   rules.forEach((rule) => list.push(buildRuleEntry(rule)));
   skills.forEach((skill) => list.push(buildSkillEntry(skill)));
+  backgrounds.forEach((background) => list.push(buildBackgroundEntry(background)));
+  races.forEach((race) => list.push(buildRaceEntry(race)));
   monsters.forEach((monster) => list.push(buildMonsterEntry(monster)));
 
   list.sort((a, b) => a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }));
@@ -517,6 +861,8 @@ function buildEntries(payload) {
     rules: rules.length,
     monsters: monsters.length,
     skills: skills.length,
+    backgrounds: backgrounds.length,
+    races: races.length,
     total: list.length
   };
 
