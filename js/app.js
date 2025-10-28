@@ -13,6 +13,19 @@ const AVAILABLE_THEMES = new Set(
 const themeListeners = new Set();
 let activeTheme = 'system';
 const QUICK_NAV_STYLE_ID = 'quick-nav-menu-styles';
+const QUICK_NAV_SOURCES_HOST_ID = 'quick-nav-sources-host';
+
+const quickNavSourcesElements = {
+  host: null,
+  scrim: null,
+  panel: null,
+  close: null,
+  list: null
+};
+let quickNavSourcesFocusReturn = null;
+let quickNavSourcesData = { state: 'loading', packs: [] };
+let quickNavSourcesDataInitialised = false;
+let quickNavSourcesHideTimer = null;
 
 function ensureQuickNavStyles() {
   if (document.getElementById(QUICK_NAV_STYLE_ID)) {
@@ -31,6 +44,253 @@ function ensureQuickNavStyles() {
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
+}
+
+function ensureQuickNavSourcesPanel() {
+  if (quickNavSourcesElements.host) {
+    return quickNavSourcesElements;
+  }
+
+  const host = document.createElement('div');
+  host.id = QUICK_NAV_SOURCES_HOST_ID;
+  host.className = 'quick-nav-sheet';
+  host.setAttribute('data-state', 'closed');
+  host.setAttribute('aria-hidden', 'true');
+  host.hidden = true;
+
+  const scrim = document.createElement('div');
+  scrim.className = 'quick-nav-sheet__scrim';
+  host.appendChild(scrim);
+
+  const panel = document.createElement('section');
+  panel.className = 'quick-nav-sheet__panel surface-blur';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+  panel.setAttribute('aria-labelledby', 'quick-nav-sources-title');
+  panel.tabIndex = -1;
+
+  const header = document.createElement('header');
+  header.className = 'quick-nav-sheet__header';
+
+  const title = document.createElement('h2');
+  title.className = 'quick-nav-sheet__title';
+  title.id = 'quick-nav-sources-title';
+  title.textContent = 'Active sources';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'quick-nav-sheet__close';
+  closeButton.textContent = 'Close';
+
+  header.appendChild(title);
+  header.appendChild(closeButton);
+
+  const body = document.createElement('div');
+  body.className = 'quick-nav-sheet__body';
+
+  const intro = document.createElement('p');
+  intro.className = 'muted';
+  intro.textContent = 'Content packs currently merged into your compendium.';
+
+  const list = document.createElement('ul');
+  list.className = 'chip-set';
+  list.setAttribute('data-pack-sources', '');
+  list.setAttribute('aria-label', 'Active content packs');
+
+  const learn = document.createElement('p');
+  learn.className = 'muted';
+  learn.innerHTML =
+    'Learn more about <a href="./docs/packs.md" target="_blank" rel="noreferrer noopener">content packs</a> and <a href="./docs/pwa.md" target="_blank" rel="noreferrer noopener">offline support</a>.';
+
+  body.appendChild(intro);
+  body.appendChild(list);
+  body.appendChild(learn);
+
+  panel.appendChild(header);
+  panel.appendChild(body);
+
+  host.appendChild(panel);
+
+  document.body.appendChild(host);
+
+  host.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeQuickNavSourcesPanel({ returnFocus: true });
+    }
+  });
+  scrim.addEventListener('click', () => {
+    closeQuickNavSourcesPanel({ returnFocus: true });
+  });
+  closeButton.addEventListener('click', () => {
+    closeQuickNavSourcesPanel({ returnFocus: true });
+  });
+
+  quickNavSourcesElements.host = host;
+  quickNavSourcesElements.scrim = scrim;
+  quickNavSourcesElements.panel = panel;
+  quickNavSourcesElements.close = closeButton;
+  quickNavSourcesElements.list = list;
+
+  return quickNavSourcesElements;
+}
+
+function renderQuickNavSources() {
+  ensureQuickNavSourcesPanel();
+  const list = quickNavSourcesElements.list;
+  if (!list) return;
+
+  list.innerHTML = '';
+
+  if (quickNavSourcesData.state !== 'ready') {
+    const loadingItem = document.createElement('li');
+    loadingItem.className = 'chip chip-muted';
+    loadingItem.textContent = 'Loading pack data…';
+    list.appendChild(loadingItem);
+    return;
+  }
+
+  const packs = Array.isArray(quickNavSourcesData.packs) ? quickNavSourcesData.packs : [];
+  if (!packs.length) {
+    const empty = document.createElement('li');
+    empty.className = 'chip chip-muted';
+    empty.textContent = 'No content packs loaded';
+    list.appendChild(empty);
+    return;
+  }
+
+  packs.forEach((pack) => {
+    if (!pack) return;
+    const item = document.createElement('li');
+    item.className = 'chip chip-outline';
+
+    const title = document.createElement('span');
+    title.textContent = pack.name || 'Pack';
+    item.appendChild(title);
+
+    const metaParts = [];
+    if (pack.edition) metaParts.push(pack.edition);
+    if (pack.version) metaParts.push(`v${pack.version}`);
+
+    if (metaParts.length) {
+      const meta = document.createElement('span');
+      meta.className = 'chip__meta';
+      meta.textContent = metaParts.join(' · ');
+      item.appendChild(meta);
+    }
+
+    list.appendChild(item);
+  });
+}
+
+function closeQuickNavSourcesPanel({ returnFocus = false } = {}) {
+  const host = quickNavSourcesElements.host;
+  if (!host) return;
+
+  if (host.getAttribute('data-state') !== 'open') {
+    if (returnFocus && quickNavSourcesFocusReturn && typeof quickNavSourcesFocusReturn.focus === 'function') {
+      quickNavSourcesFocusReturn.focus({ preventScroll: true });
+    }
+    quickNavSourcesFocusReturn = null;
+    return;
+  }
+
+  host.setAttribute('data-state', 'closed');
+  host.setAttribute('aria-hidden', 'true');
+
+  if (quickNavSourcesHideTimer) {
+    clearTimeout(quickNavSourcesHideTimer);
+  }
+  quickNavSourcesHideTimer = window.setTimeout(() => {
+    host.hidden = true;
+    quickNavSourcesHideTimer = null;
+  }, 200);
+
+  if (returnFocus && quickNavSourcesFocusReturn && typeof quickNavSourcesFocusReturn.focus === 'function') {
+    quickNavSourcesFocusReturn.focus({ preventScroll: true });
+  }
+  quickNavSourcesFocusReturn = null;
+}
+
+function openQuickNavSourcesPanel({ trigger } = {}) {
+  ensureQuickNavSourcesPanel();
+  const host = quickNavSourcesElements.host;
+  const panel = quickNavSourcesElements.panel;
+  if (!host || !panel) return;
+
+  if (host.getAttribute('data-state') === 'open') {
+    if (trigger) {
+      quickNavSourcesFocusReturn = trigger;
+    }
+    requestAnimationFrame(() => {
+      panel.focus({ preventScroll: true });
+    });
+    return;
+  }
+
+  quickNavSourcesFocusReturn = trigger || document.activeElement;
+  if (quickNavSourcesHideTimer) {
+    clearTimeout(quickNavSourcesHideTimer);
+    quickNavSourcesHideTimer = null;
+  }
+  host.hidden = false;
+  host.setAttribute('data-state', 'open');
+  host.setAttribute('aria-hidden', 'false');
+
+  renderQuickNavSources();
+
+  requestAnimationFrame(() => {
+    panel.focus({ preventScroll: true });
+  });
+}
+
+function normaliseQuickNavPackSummaries(detail) {
+  if (detail?.merged && Array.isArray(detail.merged.packSummaries)) {
+    return detail.merged.packSummaries;
+  }
+  if (Array.isArray(detail?.packs)) {
+    return detail.packs;
+  }
+  if (window.dndData && Array.isArray(window.dndData.packs)) {
+    return window.dndData.packs;
+  }
+  return [];
+}
+
+function applyQuickNavSourcesDetail(detail) {
+  quickNavSourcesData = {
+    state: 'ready',
+    packs: normaliseQuickNavPackSummaries(detail)
+  };
+  renderQuickNavSources();
+}
+
+function initQuickNavSourcesData() {
+  if (quickNavSourcesDataInitialised) {
+    return;
+  }
+  quickNavSourcesDataInitialised = true;
+
+  renderQuickNavSources();
+
+  const handleDetail = (detail) => {
+    if (!detail) return;
+    applyQuickNavSourcesDetail(detail);
+  };
+
+  if (window.dnd && typeof window.dnd.onChange === 'function') {
+    window.dnd.onChange((detail) => {
+      handleDetail(detail);
+    });
+  } else {
+    window.addEventListener('dnd-data-changed', (event) => {
+      handleDetail(event?.detail);
+    });
+  }
+
+  if (window.dndData && Array.isArray(window.dndData.packs)) {
+    applyQuickNavSourcesDetail({ merged: { packSummaries: window.dndData.packs } });
+  }
 }
 
 .quick-nav__toggle {
@@ -83,10 +343,15 @@ function ensureQuickNavStyles() {
   gap: 0.5rem;
   padding: 0.55rem 0.7rem;
   border-radius: 0.65rem;
+  border: none;
+  background: none;
   text-decoration: none;
   color: inherit;
   font-weight: 600;
   font-size: 0.95rem;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
   transition: background-color 150ms ease, color 150ms ease;
 }
 
@@ -100,6 +365,91 @@ function ensureQuickNavStyles() {
 .quick-nav__item[aria-current="page"] {
   background: color-mix(in srgb, var(--accent, #4cc2ff) 45%, transparent 55%);
   color: var(--accent-contrast, #041014);
+}
+
+.quick-nav-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.quick-nav-sheet[data-state="open"] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.quick-nav-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, rgba(4, 16, 20, 0.65) 78%, rgba(4, 16, 20, 0.9) 22%);
+}
+
+.quick-nav-sheet__panel {
+  position: relative;
+  margin: 0 auto calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 1.25rem);
+  width: min(520px, calc(100% - 2rem));
+  max-height: min(75vh, 560px);
+  background: color-mix(in srgb, var(--surface, rgba(12, 18, 24, 0.92)) 85%, var(--bg, #0b1014) 15%);
+  border: 1px solid color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 80%, transparent 20%);
+  border-radius: 1.25rem 1.25rem 0.85rem 0.85rem;
+  padding: 1.35rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
+  transform: translateY(28px);
+  transition: transform 180ms ease;
+  overflow: auto;
+  color: var(--fg, #f5f8fd);
+}
+
+.quick-nav-sheet[data-state="open"] .quick-nav-sheet__panel {
+  transform: translateY(0);
+}
+
+.quick-nav-sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.quick-nav-sheet__title {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.quick-nav-sheet__close {
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--fg, rgba(255, 255, 255, 0.65)) 80%, transparent 20%);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.quick-nav-sheet__close:hover,
+.quick-nav-sheet__close:focus-visible {
+  background: color-mix(in srgb, var(--accent, #4cc2ff) 28%, transparent 72%);
+  color: var(--accent-contrast, #041014);
+  outline: none;
+}
+
+.quick-nav-sheet__body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quick-nav-sheet__body .muted {
+  color: color-mix(in srgb, var(--fg, #f5f8fd) 58%, rgba(245, 248, 253, 0.5) 42%);
 }
 
 :root[data-theme="high-contrast"] .quick-nav__toggle {
@@ -119,6 +469,12 @@ function ensureQuickNavStyles() {
 
   .quick-nav__menu {
     min-width: 180px;
+  }
+
+  .quick-nav-sheet__panel {
+    width: calc(100% - 1.5rem);
+    border-radius: 1rem 1rem 0.75rem 0.75rem;
+    padding: 1.1rem 1.1rem 1.4rem;
   }
 }
 `;
@@ -158,6 +514,8 @@ function initQuickNavMenu() {
   }
 
   ensureQuickNavStyles();
+  ensureQuickNavSourcesPanel();
+  initQuickNavSourcesData();
 
   const container = document.createElement('div');
   container.className = 'quick-nav';
@@ -190,23 +548,49 @@ function initQuickNavMenu() {
   const items = [
     { label: 'Main Menu', path: './' },
     { label: 'Compendium', path: 'compendium/' },
-    { label: 'Builder', path: 'builder/' }
+    { label: 'Builder', path: 'builder/' },
+    {
+      label: 'Active sources',
+      action: ({ trigger }) => {
+        openQuickNavSourcesPanel({ trigger });
+      }
+    }
   ];
 
   items.forEach((item) => {
-    const url = resolveAppUrl(item.path);
-    const anchor = document.createElement('a');
-    anchor.className = 'quick-nav__item';
-    anchor.href = url.toString();
-    anchor.setAttribute('role', 'menuitem');
-    anchor.textContent = item.label;
+    let element = null;
+    if (item.path) {
+      const url = resolveAppUrl(item.path);
+      const anchor = document.createElement('a');
+      anchor.className = 'quick-nav__item';
+      anchor.href = url.toString();
+      anchor.setAttribute('role', 'menuitem');
+      anchor.textContent = item.label;
 
-    const targetPath = normalisePathname(url);
-    if (currentPath === targetPath) {
-      anchor.setAttribute('aria-current', 'page');
+      const targetPath = normalisePathname(url);
+      if (currentPath === targetPath) {
+        anchor.setAttribute('aria-current', 'page');
+      }
+
+      element = anchor;
+    } else if (typeof item.action === 'function') {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'quick-nav__item';
+      button.setAttribute('role', 'menuitem');
+      button.textContent = item.label;
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeMenu();
+        item.action({ trigger: toggle, event });
+      });
+      element = button;
     }
 
-    menu.appendChild(anchor);
+    if (element) {
+      menu.appendChild(element);
+    }
   });
 
   container.appendChild(toggle);
