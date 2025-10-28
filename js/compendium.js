@@ -6,7 +6,9 @@ const TYPE_LABELS = {
   item: 'Item',
   rule: 'Rule',
   monster: 'Monster',
-  skill: 'Skill'
+  skill: 'Skill',
+  background: 'Background',
+  race: 'Race'
 };
 const VIEW_ROW_HEIGHT = 156;
 
@@ -39,7 +41,9 @@ let packData = {
   items: [],
   rules: [],
   monsters: [],
-  skills: []
+  skills: [],
+  backgrounds: [],
+  races: []
 };
 let favorites = loadFavorites();
 let quickAddQueue = loadQuickAddQueue();
@@ -52,6 +56,8 @@ let lastCounts = {
   rules: 0,
   monsters: 0,
   skills: 0,
+  backgrounds: 0,
+  races: 0,
   total: 0
 };
 let activeRequestId = 0;
@@ -117,7 +123,9 @@ function setPackData(value) {
     items: Array.isArray(value?.items) ? value.items : [],
     rules: Array.isArray(value?.rules) ? value.rules : [],
     monsters: Array.isArray(value?.monsters) ? value.monsters : [],
-    skills: Array.isArray(value?.skills) ? value.skills : []
+    skills: Array.isArray(value?.skills) ? value.skills : [],
+    backgrounds: Array.isArray(value?.backgrounds) ? value.backgrounds : [],
+    races: Array.isArray(value?.races) ? value.races : []
   };
   window.dndCompendiumData = packData;
 }
