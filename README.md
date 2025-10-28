@@ -22,3 +22,13 @@ npm run dev
 ```
 
 Pack data and UI state are loaded through the `js/loader.js` runtime, which exposes a `window.dnd` API for modules like the builder and compendium. See the content pack reference for schema details and merge behaviour.
+
+### Content ingest helpers
+
+The `scripts/pocket_squire_ingest.py` utility can mirror Creative Commons data from [Open5e](https://open5e.com/) and, optionally, crawl D&D Wiki content with light license capture for auditing. It requires Python 3 with the `requests`, `beautifulsoup4`, `html2text`, and `tqdm` packages installed.
+
+```bash
+python3 scripts/pocket_squire_ingest.py
+```
+
+Outputs are written to `ddb_ingest_out/` alongside a simple HTTP cache to avoid unnecessary requests when iterating.
