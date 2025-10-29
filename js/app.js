@@ -13,12 +13,15 @@ const AVAILABLE_THEMES = new Set(
 const themeListeners = new Set();
 let activeTheme = 'system';
 const QUICK_NAV_STYLE_ID = 'quick-nav-menu-styles';
+const QUICK_NAV_IDLE_DELAY = 3000;
 
 const quickNavSourcesElements = {
-  section: null,
-  title: null,
+  dialog: null,
+  body: null,
   list: null,
-  empty: null
+  message: null,
+  close: null,
+  manageButton: null
 };
 let quickNavSourcesData = { state: 'loading', packs: [] };
 let quickNavSourcesDataInitialised = false;
@@ -31,6 +34,7 @@ function ensureQuickNavStyles() {
   const style = document.createElement('style');
   style.id = QUICK_NAV_STYLE_ID;
   style.textContent = `
+
 .quick-nav {
   position: fixed;
   left: calc(var(--safe-left, env(safe-area-inset-left, 0px)) + 1.25rem);
@@ -54,7 +58,15 @@ function ensureQuickNavStyles() {
   justify-content: center;
   cursor: pointer;
   box-shadow: 0 28px 46px -32px rgba(0, 0, 0, 0.65);
-  transition: transform var(--transition-base, 160ms ease), box-shadow var(--transition-base, 160ms ease);
+  opacity: 1;
+  transition:
+    opacity var(--transition-base, 160ms ease),
+    transform var(--transition-base, 160ms ease),
+    box-shadow var(--transition-base, 160ms ease);
+}
+
+.quick-nav[data-idle="true"] .quick-nav__toggle {
+  opacity: 0.1;
 }
 
 .quick-nav__toggle:hover,
@@ -66,6 +78,13 @@ function ensureQuickNavStyles() {
 .quick-nav__toggle:focus-visible {
   outline: 3px solid color-mix(in srgb, var(--accent, #4cc2ff) 45%, #ffffff 55%);
   outline-offset: 3px;
+}
+
+.quick-nav[data-state="open"] .quick-nav__toggle,
+.quick-nav__toggle:hover,
+.quick-nav__toggle:focus-visible,
+.quick-nav__toggle:active {
+  opacity: 1;
 }
 
 .quick-nav__icon {
@@ -103,25 +122,6 @@ function ensureQuickNavStyles() {
   transition-delay: 0s, 0s, 0s;
 }
 
-.quick-nav__section {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.quick-nav__divider {
-  height: 1px;
-  background: color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 75%, transparent 25%);
-  margin-block: 0.15rem;
-}
-
-.quick-nav__section-title {
-  margin: 0;
-  font-size: 0.75rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--muted, rgba(245, 248, 253, 0.7));
-}
-
 .quick-nav__item {
   display: flex;
   align-items: center;
@@ -141,11 +141,22 @@ function ensureQuickNavStyles() {
   transition: background-color 150ms ease, color 150ms ease;
 }
 
+.quick-nav__item[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .quick-nav__item:hover,
 .quick-nav__item:focus-visible {
   background: color-mix(in srgb, var(--accent, #4cc2ff) 26%, transparent 74%);
   color: var(--fg, #f5f8fd);
   outline: none;
+}
+
+.quick-nav__item[aria-disabled="true"]:hover,
+.quick-nav__item[aria-disabled="true"]:focus-visible {
+  background: none;
+  color: inherit;
 }
 
 .quick-nav__item[aria-current="page"] {
@@ -168,8 +179,110 @@ function ensureQuickNavStyles() {
 
 .quick-nav__empty {
   margin: 0;
-  font-size: 0.8rem;
-  color: color-mix(in srgb, var(--fg, #f5f8fd) 55%, rgba(245, 248, 253, 0.5) 45%);
+  font-size: 0.85rem;
+  color: color-mix(in srgb, var(--fg, #f5f8fd) 60%, rgba(245, 248, 253, 0.45) 40%);
+}
+
+.quick-nav-dialog {
+  position: fixed;
+  inset: 0;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--transition-base, 160ms ease),
+    visibility 0s linear var(--transition-base, 160ms ease);
+}
+
+.quick-nav-dialog[hidden] {
+  display: none;
+}
+
+.quick-nav-dialog[data-state="open"] {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s, 0s;
+}
+
+.quick-nav-dialog__scrim {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg, #0b1014) 30%, rgba(0, 0, 0, 0.65) 70%);
+}
+
+.quick-nav-dialog__panel {
+  position: relative;
+  z-index: 1;
+  max-width: min(480px, 100%);
+  width: min(480px, 100%);
+  padding: clamp(1.25rem, 4vw, 1.85rem);
+  border-radius: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 70%, transparent 30%);
+  background: color-mix(in srgb, var(--surface, rgba(12, 18, 24, 0.94)) 80%, var(--bg, #0b1014) 20%);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
+  display: grid;
+  gap: 1rem;
+  color: var(--fg, #f5f8fd);
+}
+
+.quick-nav-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.quick-nav-dialog__title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.quick-nav-dialog__close {
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--accent, #4cc2ff) 18%, transparent 82%);
+  color: var(--fg, #f5f8fd);
+  cursor: pointer;
+}
+
+.quick-nav-dialog__close:hover,
+.quick-nav-dialog__close:focus-visible {
+  background: color-mix(in srgb, var(--accent, #4cc2ff) 32%, transparent 68%);
+  outline: none;
+}
+
+.quick-nav-dialog__body {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.quick-nav-dialog__description {
+  margin: 0;
+  font-size: 0.95rem;
+  color: color-mix(in srgb, var(--fg, #f5f8fd) 78%, rgba(245, 248, 253, 0.45) 22%);
+}
+
+.quick-nav-dialog__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.quick-nav-dialog__link {
+  color: var(--accent, #4cc2ff);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.quick-nav-dialog__manage {
+  margin-left: auto;
 }
 
 :root[data-theme="high-contrast"] .quick-nav__toggle {
@@ -181,6 +294,10 @@ function ensureQuickNavStyles() {
   color: var(--fg, #ffffff);
 }
 
+:root[data-theme="high-contrast"] .quick-nav-dialog__close {
+  border: 2px solid var(--accent-strong, var(--accent, #ffffff));
+}
+
 @media (max-width: 640px) {
   .quick-nav {
     left: calc(var(--safe-left, env(safe-area-inset-left, 0px)) + 1rem);
@@ -189,6 +306,14 @@ function ensureQuickNavStyles() {
 
   .quick-nav__menu {
     min-width: 180px;
+  }
+
+  .quick-nav-dialog__panel {
+    width: 100%;
+  }
+
+  .quick-nav-dialog__footer {
+    gap: 0.5rem;
   }
 }
 `;
@@ -218,24 +343,24 @@ function applyQuickNavSourcesDetail(detail) {
 }
 
 function renderQuickNavSources() {
-  const { section, list } = quickNavSourcesElements;
-  if (!section || !list) {
+  const { body, list, manageButton } = quickNavSourcesElements;
+  if (!body || !list) {
     return;
   }
 
   list.innerHTML = '';
 
-  if (quickNavSourcesElements.empty) {
-    quickNavSourcesElements.empty.remove();
-    quickNavSourcesElements.empty = null;
+  if (quickNavSourcesElements.message) {
+    quickNavSourcesElements.message.remove();
+    quickNavSourcesElements.message = null;
   }
 
   const showMessage = (text) => {
     const message = document.createElement('p');
     message.className = 'quick-nav__empty';
     message.textContent = text;
-    section.appendChild(message);
-    quickNavSourcesElements.empty = message;
+    body.appendChild(message);
+    quickNavSourcesElements.message = message;
   };
 
   if (quickNavSourcesData.state !== 'ready') {
@@ -274,6 +399,18 @@ function renderQuickNavSources() {
   });
 
   list.appendChild(fragment);
+
+  if (manageButton) {
+    const hasPackManager = Boolean(document.querySelector('[data-pack-manager]'));
+    manageButton.disabled = !hasPackManager;
+    if (!hasPackManager) {
+      manageButton.setAttribute('aria-disabled', 'true');
+      manageButton.title = 'Manage packs is available from the home screen.';
+    } else {
+      manageButton.removeAttribute('aria-disabled');
+      manageButton.removeAttribute('title');
+    }
+  }
 }
 
 function initQuickNavSourcesData() {
@@ -369,67 +506,171 @@ function initQuickNavMenu() {
   menu.hidden = true;
 
   const currentPath = normalisePathname(window.location.href);
-  const navSection = document.createElement('div');
-  navSection.className = 'quick-nav__section';
 
   const navItems = [
-    { label: 'Home', path: './' },
-    { label: 'Compendium', path: 'compendium/' },
-    { label: 'Builder', path: 'builder/' }
+    { type: 'link', label: 'Compendium', path: 'compendium/' },
+    { type: 'link', label: 'Builder', path: 'builder/' },
+    { type: 'action', label: 'Active sources', action: 'open-sources' },
+    { type: 'link', label: 'Content packs & offline support', path: 'docs/packs.md', external: true }
   ];
 
   navItems.forEach((item) => {
-    const url = resolveAppUrl(item.path);
-    const anchor = document.createElement('a');
-    anchor.className = 'quick-nav__item';
-    anchor.href = url.toString();
-    anchor.setAttribute('role', 'menuitem');
-    anchor.textContent = item.label;
+    if (item.type === 'link') {
+      const url = resolveAppUrl(item.path);
+      const anchor = document.createElement('a');
+      anchor.className = 'quick-nav__item';
+      anchor.href = url.toString();
+      anchor.setAttribute('role', 'menuitem');
+      anchor.textContent = item.label;
 
-    const targetPath = normalisePathname(url);
-    if (currentPath === targetPath) {
-      anchor.setAttribute('aria-current', 'page');
+      if (item.external) {
+        anchor.target = '_blank';
+        anchor.rel = 'noreferrer noopener';
+      } else {
+        const targetPath = normalisePathname(url);
+        if (currentPath === targetPath) {
+          anchor.setAttribute('aria-current', 'page');
+        }
+      }
+
+      menu.appendChild(anchor);
+      return;
     }
 
-    navSection.appendChild(anchor);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'quick-nav__item';
+    button.setAttribute('role', 'menuitem');
+    button.textContent = item.label;
+
+    button.addEventListener('click', (event) => {
+      event.preventDefault();
+      handleAction(item.action, button);
+    });
+
+    menu.appendChild(button);
   });
-
-  const sourcesSection = document.createElement('div');
-  sourcesSection.className = 'quick-nav__section';
-
-  const sourcesTitle = document.createElement('p');
-  sourcesTitle.className = 'quick-nav__section-title';
-  sourcesTitle.id = 'quick-nav-sources-title';
-  sourcesTitle.textContent = 'Active sources';
-
-  const sourcesList = document.createElement('ul');
-  sourcesList.className = 'quick-nav__sources-list';
-  sourcesList.setAttribute('data-pack-sources', '');
-  sourcesList.setAttribute('aria-labelledby', 'quick-nav-sources-title');
-
-  sourcesSection.appendChild(sourcesTitle);
-  sourcesSection.appendChild(sourcesList);
-
-  quickNavSourcesElements.section = sourcesSection;
-  quickNavSourcesElements.title = sourcesTitle;
-  quickNavSourcesElements.list = sourcesList;
-
-  menu.appendChild(navSection);
-
-  const divider = document.createElement('div');
-  divider.className = 'quick-nav__divider';
-  divider.setAttribute('role', 'presentation');
-  menu.appendChild(divider);
-
-  menu.appendChild(sourcesSection);
-
-  initQuickNavSourcesData();
 
   container.appendChild(toggle);
   container.appendChild(menu);
   document.body.appendChild(container);
 
+  const sourcesDialog = document.createElement('div');
+  sourcesDialog.className = 'quick-nav-dialog';
+  sourcesDialog.setAttribute('data-quick-nav-dialog', 'sources');
+  sourcesDialog.hidden = true;
+  sourcesDialog.setAttribute('aria-hidden', 'true');
+  sourcesDialog.setAttribute('data-state', 'closed');
+
+  const sourcesScrim = document.createElement('div');
+  sourcesScrim.className = 'quick-nav-dialog__scrim';
+
+  const sourcesPanel = document.createElement('section');
+  sourcesPanel.className = 'quick-nav-dialog__panel surface-blur';
+  sourcesPanel.setAttribute('role', 'dialog');
+  sourcesPanel.setAttribute('aria-modal', 'true');
+  sourcesPanel.setAttribute('aria-labelledby', 'quick-nav-sources-heading');
+
+  const sourcesHeader = document.createElement('header');
+  sourcesHeader.className = 'quick-nav-dialog__header';
+
+  const sourcesTitle = document.createElement('h2');
+  sourcesTitle.className = 'quick-nav-dialog__title';
+  sourcesTitle.id = 'quick-nav-sources-heading';
+  sourcesTitle.textContent = 'Active sources';
+
+  const closeButton = document.createElement('button');
+  closeButton.type = 'button';
+  closeButton.className = 'quick-nav-dialog__close';
+  closeButton.textContent = 'Close';
+  closeButton.setAttribute('aria-label', 'Close active sources');
+
+  sourcesHeader.appendChild(sourcesTitle);
+  sourcesHeader.appendChild(closeButton);
+
+  const sourcesBody = document.createElement('div');
+  sourcesBody.className = 'quick-nav-dialog__body';
+
+  const description = document.createElement('p');
+  description.className = 'quick-nav-dialog__description';
+  description.textContent = 'Content packs currently merged into your compendium.';
+
+  const sourcesList = document.createElement('ul');
+  sourcesList.className = 'quick-nav__sources-list';
+  sourcesList.setAttribute('data-pack-sources', '');
+  sourcesList.setAttribute('aria-labelledby', 'quick-nav-sources-heading');
+
+  sourcesBody.appendChild(description);
+  sourcesBody.appendChild(sourcesList);
+
+  const sourcesFooter = document.createElement('div');
+  sourcesFooter.className = 'quick-nav-dialog__footer';
+
+  const learnLink = document.createElement('a');
+  learnLink.className = 'quick-nav-dialog__link';
+  const learnUrl = resolveAppUrl('docs/packs.md');
+  learnLink.href = learnUrl.toString();
+  learnLink.target = '_blank';
+  learnLink.rel = 'noreferrer noopener';
+  learnLink.textContent = 'Learn more about content packs and offline support';
+
+  const manageButton = document.createElement('button');
+  manageButton.type = 'button';
+  manageButton.className = 'button button-secondary quick-nav-dialog__manage';
+  manageButton.textContent = 'Manage packs';
+
+  sourcesFooter.appendChild(learnLink);
+  sourcesFooter.appendChild(manageButton);
+
+  sourcesPanel.appendChild(sourcesHeader);
+  sourcesPanel.appendChild(sourcesBody);
+  sourcesPanel.appendChild(sourcesFooter);
+
+  sourcesDialog.appendChild(sourcesScrim);
+  sourcesDialog.appendChild(sourcesPanel);
+  document.body.appendChild(sourcesDialog);
+
+  quickNavSourcesElements.dialog = sourcesDialog;
+  quickNavSourcesElements.body = sourcesBody;
+  quickNavSourcesElements.list = sourcesList;
+  quickNavSourcesElements.close = closeButton;
+  quickNavSourcesElements.manageButton = manageButton;
+
+  initQuickNavSourcesData();
+
   let isOpen = false;
+  let isDialogOpen = false;
+  let sourcesDialogFocusReturn = null;
+  let idleTimer = null;
+
+  function resetIdleTimer() {
+    if (idleTimer) {
+      window.clearTimeout(idleTimer);
+    }
+    container.removeAttribute('data-idle');
+    idleTimer = window.setTimeout(() => {
+      if (!container.isConnected) return;
+      container.setAttribute('data-idle', 'true');
+    }, QUICK_NAV_IDLE_DELAY);
+  }
+
+  function handleActivity() {
+    if (!container.isConnected) {
+      return;
+    }
+    resetIdleTimer();
+  }
+
+  ['pointerdown', 'pointermove', 'touchstart'].forEach((eventName) => {
+    document.addEventListener(eventName, handleActivity, { passive: true });
+  });
+  ['keydown', 'focusin'].forEach((eventName) => {
+    document.addEventListener(eventName, handleActivity);
+  });
+  toggle.addEventListener('mouseenter', handleActivity);
+  toggle.addEventListener('focus', handleActivity);
+
+  resetIdleTimer();
 
   function openMenu({ focusFirst = false } = {}) {
     if (isOpen) return;
@@ -438,6 +679,7 @@ function initQuickNavMenu() {
     toggle.setAttribute('aria-expanded', 'true');
     toggle.setAttribute('aria-label', 'Close navigation menu');
     menu.hidden = false;
+    resetIdleTimer();
 
     if (focusFirst) {
       const firstItem = menu.querySelector('.quick-nav__item');
@@ -452,11 +694,95 @@ function initQuickNavMenu() {
     toggle.setAttribute('aria-expanded', 'false');
     toggle.setAttribute('aria-label', 'Open navigation menu');
     menu.hidden = true;
+    resetIdleTimer();
 
     if (returnFocus) {
       toggle.focus();
     }
   }
+
+  function handleQuickNavPackManager() {
+    const trigger = document.querySelector('[data-pack-manager-open]');
+    if (trigger) {
+      trigger.click();
+      return true;
+    }
+    const host = document.querySelector('[data-pack-manager]');
+    if (host) {
+      host.removeAttribute('hidden');
+      host.setAttribute('data-state', 'open');
+      host.setAttribute('aria-hidden', 'false');
+      document.body?.setAttribute('data-pack-manager', 'open');
+      const panel = host.querySelector('[data-pack-manager-panel]');
+      if (panel && typeof panel.focus === 'function') {
+        requestAnimationFrame(() => {
+          panel.focus({ preventScroll: true });
+        });
+      }
+      return true;
+    }
+    return false;
+  }
+
+  function openSourcesDialog(trigger) {
+    if (isDialogOpen) return;
+    const dialog = quickNavSourcesElements.dialog;
+    if (!dialog) return;
+    isDialogOpen = true;
+    sourcesDialogFocusReturn = trigger || document.activeElement;
+    dialog.hidden = false;
+    dialog.setAttribute('aria-hidden', 'false');
+    dialog.setAttribute('data-state', 'open');
+    resetIdleTimer();
+    requestAnimationFrame(() => {
+      quickNavSourcesElements.close?.focus({ preventScroll: true });
+    });
+  }
+
+  function closeSourcesDialog({ returnFocus = true } = {}) {
+    if (!isDialogOpen) return;
+    const dialog = quickNavSourcesElements.dialog;
+    if (!dialog) return;
+    dialog.setAttribute('data-state', 'closed');
+    dialog.setAttribute('aria-hidden', 'true');
+    dialog.hidden = true;
+    isDialogOpen = false;
+    resetIdleTimer();
+    if (returnFocus && sourcesDialogFocusReturn && typeof sourcesDialogFocusReturn.focus === 'function') {
+      sourcesDialogFocusReturn.focus({ preventScroll: true });
+    }
+    sourcesDialogFocusReturn = null;
+  }
+
+  function handleAction(action, trigger) {
+    if (action === 'open-sources') {
+      openSourcesDialog(trigger);
+    }
+  }
+
+  manageButton.addEventListener('click', () => {
+    if (handleQuickNavPackManager()) {
+      closeSourcesDialog({ returnFocus: false });
+    }
+  });
+
+  sourcesScrim.addEventListener('click', () => {
+    closeSourcesDialog();
+  });
+  closeButton.addEventListener('click', () => {
+    closeSourcesDialog();
+  });
+  sourcesDialog.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeSourcesDialog();
+    }
+  });
+  sourcesDialog.addEventListener('click', (event) => {
+    if (event.target === sourcesDialog) {
+      closeSourcesDialog();
+    }
+  });
 
   toggle.addEventListener('click', (event) => {
     event.stopPropagation();
@@ -476,9 +802,16 @@ function initQuickNavMenu() {
   });
 
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && isOpen) {
-      event.preventDefault();
-      closeMenu({ returnFocus: true });
+    if (event.key === 'Escape') {
+      if (isDialogOpen) {
+        event.preventDefault();
+        closeSourcesDialog();
+        return;
+      }
+      if (isOpen) {
+        event.preventDefault();
+        closeMenu({ returnFocus: true });
+      }
     }
   });
 
