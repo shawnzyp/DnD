@@ -13,19 +13,15 @@ const AVAILABLE_THEMES = new Set(
 const themeListeners = new Set();
 let activeTheme = 'system';
 const QUICK_NAV_STYLE_ID = 'quick-nav-menu-styles';
-const QUICK_NAV_SOURCES_HOST_ID = 'quick-nav-sources-host';
 
 const quickNavSourcesElements = {
-  host: null,
-  scrim: null,
-  panel: null,
-  close: null,
-  list: null
+  section: null,
+  title: null,
+  list: null,
+  empty: null
 };
-let quickNavSourcesFocusReturn = null;
 let quickNavSourcesData = { state: 'loading', packs: [] };
 let quickNavSourcesDataInitialised = false;
-let quickNavSourcesHideTimer = null;
 
 function ensureQuickNavStyles() {
   if (document.getElementById(QUICK_NAV_STYLE_ID)) {
@@ -38,259 +34,12 @@ function ensureQuickNavStyles() {
 .quick-nav {
   position: fixed;
   left: calc(var(--safe-left, env(safe-area-inset-left, 0px)) + 1.25rem);
-  bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + var(--bottom-nav-height, 0px) + 1.25rem);
+  bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 1.25rem);
   z-index: 60;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.5rem;
-}
-
-function ensureQuickNavSourcesPanel() {
-  if (quickNavSourcesElements.host) {
-    return quickNavSourcesElements;
-  }
-
-  const host = document.createElement('div');
-  host.id = QUICK_NAV_SOURCES_HOST_ID;
-  host.className = 'quick-nav-sheet';
-  host.setAttribute('data-state', 'closed');
-  host.setAttribute('aria-hidden', 'true');
-  host.hidden = true;
-
-  const scrim = document.createElement('div');
-  scrim.className = 'quick-nav-sheet__scrim';
-  host.appendChild(scrim);
-
-  const panel = document.createElement('section');
-  panel.className = 'quick-nav-sheet__panel surface-blur';
-  panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-modal', 'true');
-  panel.setAttribute('aria-labelledby', 'quick-nav-sources-title');
-  panel.tabIndex = -1;
-
-  const header = document.createElement('header');
-  header.className = 'quick-nav-sheet__header';
-
-  const title = document.createElement('h2');
-  title.className = 'quick-nav-sheet__title';
-  title.id = 'quick-nav-sources-title';
-  title.textContent = 'Active sources';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.className = 'quick-nav-sheet__close';
-  closeButton.textContent = 'Close';
-
-  header.appendChild(title);
-  header.appendChild(closeButton);
-
-  const body = document.createElement('div');
-  body.className = 'quick-nav-sheet__body';
-
-  const intro = document.createElement('p');
-  intro.className = 'muted';
-  intro.textContent = 'Content packs currently merged into your compendium.';
-
-  const list = document.createElement('ul');
-  list.className = 'chip-set';
-  list.setAttribute('data-pack-sources', '');
-  list.setAttribute('aria-label', 'Active content packs');
-
-  const learn = document.createElement('p');
-  learn.className = 'muted';
-  learn.innerHTML =
-    'Learn more about <a href="./docs/packs.md" target="_blank" rel="noreferrer noopener">content packs</a> and <a href="./docs/pwa.md" target="_blank" rel="noreferrer noopener">offline support</a>.';
-
-  body.appendChild(intro);
-  body.appendChild(list);
-  body.appendChild(learn);
-
-  panel.appendChild(header);
-  panel.appendChild(body);
-
-  host.appendChild(panel);
-
-  document.body.appendChild(host);
-
-  host.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      closeQuickNavSourcesPanel({ returnFocus: true });
-    }
-  });
-  scrim.addEventListener('click', () => {
-    closeQuickNavSourcesPanel({ returnFocus: true });
-  });
-  closeButton.addEventListener('click', () => {
-    closeQuickNavSourcesPanel({ returnFocus: true });
-  });
-
-  quickNavSourcesElements.host = host;
-  quickNavSourcesElements.scrim = scrim;
-  quickNavSourcesElements.panel = panel;
-  quickNavSourcesElements.close = closeButton;
-  quickNavSourcesElements.list = list;
-
-  return quickNavSourcesElements;
-}
-
-function renderQuickNavSources() {
-  ensureQuickNavSourcesPanel();
-  const list = quickNavSourcesElements.list;
-  if (!list) return;
-
-  list.innerHTML = '';
-
-  if (quickNavSourcesData.state !== 'ready') {
-    const loadingItem = document.createElement('li');
-    loadingItem.className = 'chip chip-muted';
-    loadingItem.textContent = 'Loading pack data…';
-    list.appendChild(loadingItem);
-    return;
-  }
-
-  const packs = Array.isArray(quickNavSourcesData.packs) ? quickNavSourcesData.packs : [];
-  if (!packs.length) {
-    const empty = document.createElement('li');
-    empty.className = 'chip chip-muted';
-    empty.textContent = 'No content packs loaded';
-    list.appendChild(empty);
-    return;
-  }
-
-  packs.forEach((pack) => {
-    if (!pack) return;
-    const item = document.createElement('li');
-    item.className = 'chip chip-outline';
-
-    const title = document.createElement('span');
-    title.textContent = pack.name || 'Pack';
-    item.appendChild(title);
-
-    const metaParts = [];
-    if (pack.edition) metaParts.push(pack.edition);
-    if (pack.version) metaParts.push(`v${pack.version}`);
-
-    if (metaParts.length) {
-      const meta = document.createElement('span');
-      meta.className = 'chip__meta';
-      meta.textContent = metaParts.join(' · ');
-      item.appendChild(meta);
-    }
-
-    list.appendChild(item);
-  });
-}
-
-function closeQuickNavSourcesPanel({ returnFocus = false } = {}) {
-  const host = quickNavSourcesElements.host;
-  if (!host) return;
-
-  if (host.getAttribute('data-state') !== 'open') {
-    if (returnFocus && quickNavSourcesFocusReturn && typeof quickNavSourcesFocusReturn.focus === 'function') {
-      quickNavSourcesFocusReturn.focus({ preventScroll: true });
-    }
-    quickNavSourcesFocusReturn = null;
-    return;
-  }
-
-  host.setAttribute('data-state', 'closed');
-  host.setAttribute('aria-hidden', 'true');
-
-  if (quickNavSourcesHideTimer) {
-    clearTimeout(quickNavSourcesHideTimer);
-  }
-  quickNavSourcesHideTimer = window.setTimeout(() => {
-    host.hidden = true;
-    quickNavSourcesHideTimer = null;
-  }, 200);
-
-  if (returnFocus && quickNavSourcesFocusReturn && typeof quickNavSourcesFocusReturn.focus === 'function') {
-    quickNavSourcesFocusReturn.focus({ preventScroll: true });
-  }
-  quickNavSourcesFocusReturn = null;
-}
-
-function openQuickNavSourcesPanel({ trigger } = {}) {
-  ensureQuickNavSourcesPanel();
-  const host = quickNavSourcesElements.host;
-  const panel = quickNavSourcesElements.panel;
-  if (!host || !panel) return;
-
-  if (host.getAttribute('data-state') === 'open') {
-    if (trigger) {
-      quickNavSourcesFocusReturn = trigger;
-    }
-    requestAnimationFrame(() => {
-      panel.focus({ preventScroll: true });
-    });
-    return;
-  }
-
-  quickNavSourcesFocusReturn = trigger || document.activeElement;
-  if (quickNavSourcesHideTimer) {
-    clearTimeout(quickNavSourcesHideTimer);
-    quickNavSourcesHideTimer = null;
-  }
-  host.hidden = false;
-  host.setAttribute('data-state', 'open');
-  host.setAttribute('aria-hidden', 'false');
-
-  renderQuickNavSources();
-
-  requestAnimationFrame(() => {
-    panel.focus({ preventScroll: true });
-  });
-}
-
-function normaliseQuickNavPackSummaries(detail) {
-  if (detail?.merged && Array.isArray(detail.merged.packSummaries)) {
-    return detail.merged.packSummaries;
-  }
-  if (Array.isArray(detail?.packs)) {
-    return detail.packs;
-  }
-  if (window.dndData && Array.isArray(window.dndData.packs)) {
-    return window.dndData.packs;
-  }
-  return [];
-}
-
-function applyQuickNavSourcesDetail(detail) {
-  quickNavSourcesData = {
-    state: 'ready',
-    packs: normaliseQuickNavPackSummaries(detail)
-  };
-  renderQuickNavSources();
-}
-
-function initQuickNavSourcesData() {
-  if (quickNavSourcesDataInitialised) {
-    return;
-  }
-  quickNavSourcesDataInitialised = true;
-
-  renderQuickNavSources();
-
-  const handleDetail = (detail) => {
-    if (!detail) return;
-    applyQuickNavSourcesDetail(detail);
-  };
-
-  if (window.dnd && typeof window.dnd.onChange === 'function') {
-    window.dnd.onChange((detail) => {
-      handleDetail(detail);
-    });
-  } else {
-    window.addEventListener('dnd-data-changed', (event) => {
-      handleDetail(event?.detail);
-    });
-  }
-
-  if (window.dndData && Array.isArray(window.dndData.packs)) {
-    applyQuickNavSourcesDetail({ merged: { packSummaries: window.dndData.packs } });
-  }
 }
 
 .quick-nav__toggle {
@@ -325,15 +74,52 @@ function initQuickNavSourcesData() {
 }
 
 .quick-nav__menu {
-  min-width: 200px;
-  padding: 0.75rem;
-  border-radius: 0.9rem;
+  min-width: 220px;
+  padding: 0.85rem;
+  border-radius: 1rem;
   background: color-mix(in srgb, var(--surface, rgba(12, 18, 24, 0.92)) 78%, var(--bg, #0b1014) 22%);
   border: 1px solid color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 70%, transparent 30%);
-  box-shadow: 0 20px 36px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.45);
+  display: grid;
+  gap: 0.5rem;
+  color: var(--fg, #f5f8fd);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+  transition:
+    opacity var(--transition-base, 160ms ease),
+    transform var(--transition-base, 160ms ease),
+    visibility 0s linear var(--transition-base, 160ms ease);
+}
+
+.quick-nav__menu[hidden] {
+  display: none;
+}
+
+.quick-nav[data-state="open"] .quick-nav__menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  transition-delay: 0s, 0s, 0s;
+}
+
+.quick-nav__section {
   display: grid;
   gap: 0.35rem;
-  color: var(--fg, #f5f8fd);
+}
+
+.quick-nav__divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 75%, transparent 25%);
+  margin-block: 0.15rem;
+}
+
+.quick-nav__section-title {
+  margin: 0;
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted, rgba(245, 248, 253, 0.7));
 }
 
 .quick-nav__item {
@@ -367,89 +153,23 @@ function initQuickNavSourcesData() {
   color: var(--accent-contrast, #041014);
 }
 
-.quick-nav-sheet {
-  position: fixed;
-  inset: 0;
-  z-index: 70;
+.quick-nav__sources-list {
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 160ms ease;
-}
-
-.quick-nav-sheet[data-state="open"] {
-  pointer-events: auto;
-  opacity: 1;
-}
-
-.quick-nav-sheet__scrim {
-  position: absolute;
-  inset: 0;
-  background: color-mix(in srgb, rgba(4, 16, 20, 0.65) 78%, rgba(4, 16, 20, 0.9) 22%);
-}
-
-.quick-nav-sheet__panel {
-  position: relative;
-  margin: 0 auto calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 1.25rem);
-  width: min(520px, calc(100% - 2rem));
-  max-height: min(75vh, 560px);
-  background: color-mix(in srgb, var(--surface, rgba(12, 18, 24, 0.92)) 85%, var(--bg, #0b1014) 15%);
-  border: 1px solid color-mix(in srgb, var(--surface-border, rgba(255, 255, 255, 0.16)) 80%, transparent 20%);
-  border-radius: 1.25rem 1.25rem 0.85rem 0.85rem;
-  padding: 1.35rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55);
-  transform: translateY(28px);
-  transition: transform 180ms ease;
-  overflow: auto;
-  color: var(--fg, #f5f8fd);
-}
-
-.quick-nav-sheet[data-state="open"] .quick-nav-sheet__panel {
-  transform: translateY(0);
-}
-
-.quick-nav-sheet__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.quick-nav-sheet__title {
+  flex-wrap: wrap;
+  gap: 0.4rem;
   margin: 0;
-  font-size: 1.3rem;
+  padding: 0;
+  list-style: none;
 }
 
-.quick-nav-sheet__close {
-  padding: 0.35rem 0.75rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--fg, rgba(255, 255, 255, 0.65)) 80%, transparent 20%);
-  background: transparent;
-  color: inherit;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+.quick-nav__sources-list .chip {
+  font-size: 0.75rem;
 }
 
-.quick-nav-sheet__close:hover,
-.quick-nav-sheet__close:focus-visible {
-  background: color-mix(in srgb, var(--accent, #4cc2ff) 28%, transparent 72%);
-  color: var(--accent-contrast, #041014);
-  outline: none;
-}
-
-.quick-nav-sheet__body {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.quick-nav-sheet__body .muted {
-  color: color-mix(in srgb, var(--fg, #f5f8fd) 58%, rgba(245, 248, 253, 0.5) 42%);
+.quick-nav__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--fg, #f5f8fd) 55%, rgba(245, 248, 253, 0.5) 45%);
 }
 
 :root[data-theme="high-contrast"] .quick-nav__toggle {
@@ -464,17 +184,123 @@ function initQuickNavSourcesData() {
 @media (max-width: 640px) {
   .quick-nav {
     left: calc(var(--safe-left, env(safe-area-inset-left, 0px)) + 1rem);
-    bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + var(--bottom-nav-height, 0px) + 1rem);
+    bottom: calc(var(--safe-bottom, env(safe-area-inset-bottom, 0px)) + 1rem);
   }
 
   .quick-nav__menu {
     min-width: 180px;
   }
+}
+`;
 
-  .quick-nav-sheet__panel {
-    width: calc(100% - 1.5rem);
-    border-radius: 1rem 1rem 0.75rem 0.75rem;
-    padding: 1.1rem 1.1rem 1.4rem;
+  document.head?.appendChild(style);
+}
+
+function normaliseQuickNavPackSummaries(detail) {
+  if (detail?.merged && Array.isArray(detail.merged.packSummaries)) {
+    return detail.merged.packSummaries;
+  }
+  if (Array.isArray(detail?.packs)) {
+    return detail.packs;
+  }
+  if (window.dndData && Array.isArray(window.dndData.packs)) {
+    return window.dndData.packs;
+  }
+  return [];
+}
+
+function applyQuickNavSourcesDetail(detail) {
+  quickNavSourcesData = {
+    state: 'ready',
+    packs: normaliseQuickNavPackSummaries(detail)
+  };
+  renderQuickNavSources();
+}
+
+function renderQuickNavSources() {
+  const { section, list } = quickNavSourcesElements;
+  if (!section || !list) {
+    return;
+  }
+
+  list.innerHTML = '';
+
+  if (quickNavSourcesElements.empty) {
+    quickNavSourcesElements.empty.remove();
+    quickNavSourcesElements.empty = null;
+  }
+
+  const showMessage = (text) => {
+    const message = document.createElement('p');
+    message.className = 'quick-nav__empty';
+    message.textContent = text;
+    section.appendChild(message);
+    quickNavSourcesElements.empty = message;
+  };
+
+  if (quickNavSourcesData.state !== 'ready') {
+    showMessage('Loading pack data…');
+    return;
+  }
+
+  const packs = Array.isArray(quickNavSourcesData.packs) ? quickNavSourcesData.packs : [];
+  if (!packs.length) {
+    showMessage('No content packs loaded');
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  packs.forEach((pack) => {
+    if (!pack) return;
+    const item = document.createElement('li');
+    item.className = 'chip chip-outline';
+
+    const title = document.createElement('span');
+    title.textContent = pack.name || 'Pack';
+    item.appendChild(title);
+
+    const metaParts = [];
+    if (pack.edition) metaParts.push(pack.edition);
+    if (pack.version) metaParts.push(`v${pack.version}`);
+
+    if (metaParts.length) {
+      const meta = document.createElement('span');
+      meta.className = 'chip__meta';
+      meta.textContent = metaParts.join(' · ');
+      item.appendChild(meta);
+    }
+
+    fragment.appendChild(item);
+  });
+
+  list.appendChild(fragment);
+}
+
+function initQuickNavSourcesData() {
+  if (quickNavSourcesDataInitialised) {
+    return;
+  }
+  quickNavSourcesDataInitialised = true;
+
+  renderQuickNavSources();
+
+  const handleDetail = (detail) => {
+    if (!detail) return;
+    applyQuickNavSourcesDetail(detail);
+  };
+
+  if (window.dnd && typeof window.dnd.onChange === 'function') {
+    window.dnd.onChange((detail) => {
+      handleDetail(detail);
+    });
+  } else {
+    window.addEventListener('dnd-data-changed', (event) => {
+      handleDetail(event?.detail);
+    });
+  }
+
+  if (window.dndData && Array.isArray(window.dndData.packs)) {
+    applyQuickNavSourcesDetail({ merged: { packSummaries: window.dndData.packs } });
   }
 }
 `;
@@ -514,8 +340,6 @@ function initQuickNavMenu() {
   }
 
   ensureQuickNavStyles();
-  ensureQuickNavSourcesPanel();
-  initQuickNavSourcesData();
 
   const container = document.createElement('div');
   container.className = 'quick-nav';
@@ -545,53 +369,61 @@ function initQuickNavMenu() {
   menu.hidden = true;
 
   const currentPath = normalisePathname(window.location.href);
-  const items = [
-    { label: 'Main Menu', path: './' },
+  const navSection = document.createElement('div');
+  navSection.className = 'quick-nav__section';
+
+  const navItems = [
+    { label: 'Home', path: './' },
     { label: 'Compendium', path: 'compendium/' },
-    { label: 'Builder', path: 'builder/' },
-    {
-      label: 'Active sources',
-      action: ({ trigger }) => {
-        openQuickNavSourcesPanel({ trigger });
-      }
-    }
+    { label: 'Builder', path: 'builder/' }
   ];
 
-  items.forEach((item) => {
-    let element = null;
-    if (item.path) {
-      const url = resolveAppUrl(item.path);
-      const anchor = document.createElement('a');
-      anchor.className = 'quick-nav__item';
-      anchor.href = url.toString();
-      anchor.setAttribute('role', 'menuitem');
-      anchor.textContent = item.label;
+  navItems.forEach((item) => {
+    const url = resolveAppUrl(item.path);
+    const anchor = document.createElement('a');
+    anchor.className = 'quick-nav__item';
+    anchor.href = url.toString();
+    anchor.setAttribute('role', 'menuitem');
+    anchor.textContent = item.label;
 
-      const targetPath = normalisePathname(url);
-      if (currentPath === targetPath) {
-        anchor.setAttribute('aria-current', 'page');
-      }
-
-      element = anchor;
-    } else if (typeof item.action === 'function') {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'quick-nav__item';
-      button.setAttribute('role', 'menuitem');
-      button.textContent = item.label;
-      button.addEventListener('click', (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        closeMenu();
-        item.action({ trigger: toggle, event });
-      });
-      element = button;
+    const targetPath = normalisePathname(url);
+    if (currentPath === targetPath) {
+      anchor.setAttribute('aria-current', 'page');
     }
 
-    if (element) {
-      menu.appendChild(element);
-    }
+    navSection.appendChild(anchor);
   });
+
+  const sourcesSection = document.createElement('div');
+  sourcesSection.className = 'quick-nav__section';
+
+  const sourcesTitle = document.createElement('p');
+  sourcesTitle.className = 'quick-nav__section-title';
+  sourcesTitle.id = 'quick-nav-sources-title';
+  sourcesTitle.textContent = 'Active sources';
+
+  const sourcesList = document.createElement('ul');
+  sourcesList.className = 'quick-nav__sources-list';
+  sourcesList.setAttribute('data-pack-sources', '');
+  sourcesList.setAttribute('aria-labelledby', 'quick-nav-sources-title');
+
+  sourcesSection.appendChild(sourcesTitle);
+  sourcesSection.appendChild(sourcesList);
+
+  quickNavSourcesElements.section = sourcesSection;
+  quickNavSourcesElements.title = sourcesTitle;
+  quickNavSourcesElements.list = sourcesList;
+
+  menu.appendChild(navSection);
+
+  const divider = document.createElement('div');
+  divider.className = 'quick-nav__divider';
+  divider.setAttribute('role', 'presentation');
+  menu.appendChild(divider);
+
+  menu.appendChild(sourcesSection);
+
+  initQuickNavSourcesData();
 
   container.appendChild(toggle);
   container.appendChild(menu);
